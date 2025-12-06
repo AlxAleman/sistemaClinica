@@ -9,10 +9,12 @@ import moment from "moment";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { EditIcon, TrashIcon, CalendarIcon, UsersIcon, ArrowLeftIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function EvaluationDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const id = params.id as string;
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ export default function EvaluationDetailPage() {
       const data = await evaluationService.getById(id);
       setEvaluation(data);
     } catch (error: any) {
-      toast.error("Error al cargar evaluación");
+      toast.error(t("messages.errorLoadingEvaluation"));
       router.push("/dashboard/evaluations");
     } finally {
       setLoading(false);
@@ -47,10 +49,10 @@ export default function EvaluationDetailPage() {
     if (!evaluation) return;
     try {
       await evaluationService.delete(id);
-      toast.success("Evaluación eliminada exitosamente");
+      toast.success(t("messages.evaluationDeleted"));
       router.push("/dashboard/evaluations");
     } catch (error: any) {
-      toast.error("Error al eliminar evaluación");
+      toast.error(t("messages.errorDeleting") + " " + t("evaluations.title").toLowerCase());
     }
   };
 
@@ -70,11 +72,11 @@ export default function EvaluationDetailPage() {
   const getTypeText = (type: string) => {
     switch (type) {
       case "INITIAL":
-        return "Inicial";
+        return t("evaluations.initial");
       case "PROGRESS":
-        return "Progreso";
+        return t("evaluations.progress");
       case "FINAL":
-        return "Final";
+        return t("evaluations.final");
       default:
         return type;
     }
@@ -85,7 +87,7 @@ export default function EvaluationDetailPage() {
       <div className="px-4 py-6 sm:px-0">
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando evaluación...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("messages.loadingEvaluation")}</p>
         </div>
       </div>
     );
@@ -112,7 +114,7 @@ export default function EvaluationDetailPage() {
             className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             <ArrowLeftIcon className="h-4 w-4" />
-            Volver a Evaluaciones
+            {t("messages.backToEvaluations")}
           </Link>
         </div>
 
@@ -122,7 +124,7 @@ export default function EvaluationDetailPage() {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  Evaluación de {evaluation.patient?.name || "Paciente"}
+                  {t("messages.evaluationOf")} {evaluation.patient?.name || t("messages.unknownPatient")}
                 </h1>
                 <div className="mt-2 flex items-center gap-3">
                   <span
@@ -134,7 +136,7 @@ export default function EvaluationDetailPage() {
                   </span>
                   {evaluation.painLevel !== null && (
                     <span className="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                      Dolor: {evaluation.painLevel}/10
+                      {t("evaluations.pain")}: {evaluation.painLevel}/10
                     </span>
                   )}
                 </div>
@@ -145,14 +147,14 @@ export default function EvaluationDetailPage() {
                   className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                 >
                   <EditIcon className="h-4 w-4" />
-                  Editar
+                  {t("common.edit")}
                 </Link>
                 <button
                   onClick={handleDeleteClick}
                   className="inline-flex items-center gap-2 px-3 py-2 border border-red-300 dark:border-red-600 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 >
                   <TrashIcon className="h-4 w-4" />
-                  Eliminar
+                  {t("common.delete")}
                 </button>
               </div>
             </div>
@@ -164,7 +166,7 @@ export default function EvaluationDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Paciente
+                  {t("evaluations.patient")}
                 </label>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                   {evaluation.patient?.name || "N/A"}
@@ -177,7 +179,7 @@ export default function EvaluationDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Fecha de Evaluación
+                  {t("evaluations.evaluationDate")}
                 </label>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                   {moment(evaluation.evaluationDate).format("DD/MM/YYYY HH:mm")}
@@ -189,7 +191,7 @@ export default function EvaluationDetailPage() {
             {evaluation.painLevel !== null && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Nivel de Dolor
+                  {t("evaluations.painLevel")}
                 </label>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
@@ -209,7 +211,7 @@ export default function EvaluationDetailPage() {
             {evaluation.rangeOfMotion && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Rango de Movimiento
+                  {t("evaluations.rangeOfMotion")}
                 </label>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                   {evaluation.rangeOfMotion}
@@ -221,7 +223,7 @@ export default function EvaluationDetailPage() {
             {evaluation.strength && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Fuerza
+                  {t("evaluations.strength")}
                 </label>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                   {evaluation.strength}
@@ -233,7 +235,7 @@ export default function EvaluationDetailPage() {
             {evaluation.functionalAssessment && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Evaluación Funcional
+                  {t("evaluations.functionalAssessment")}
                 </label>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                   {evaluation.functionalAssessment}
@@ -245,7 +247,7 @@ export default function EvaluationDetailPage() {
             {evaluation.notes && (
               <div>
                 <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Notas Adicionales
+                  {t("evaluations.additionalNotes")}
                 </label>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                   {evaluation.notes}
@@ -260,7 +262,7 @@ export default function EvaluationDetailPage() {
                   href={`/dashboard/evaluations/comparison?patientId=${evaluation.patientId}`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
                 >
-                  Ver Comparación Inicial vs Final
+                  {t("evaluations.viewComparison")}
                 </Link>
               </div>
             )}
@@ -272,10 +274,10 @@ export default function EvaluationDetailPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar Evaluación"
-        message="¿Estás seguro de que quieres eliminar esta evaluación? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t("evaluations.deleteTitle")}
+        message={t("evaluations.deleteMessage")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
         type="danger"
       />
     </div>

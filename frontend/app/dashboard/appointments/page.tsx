@@ -58,7 +58,7 @@ export default function AppointmentsPage() {
       });
       setAppointments(response.appointments);
     } catch (error: any) {
-      toast.error("Error al cargar citas");
+      toast.error(t("messages.errorLoadingAppointments"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -101,11 +101,11 @@ export default function AppointmentsPage() {
   const handleDeleteConfirm = async () => {
     try {
       await appointmentService.delete(deleteConfirm.id);
-      toast.success("Cita eliminada exitosamente");
+      toast.success(t("messages.appointmentDeleted"));
       setDeleteConfirm({ isOpen: false, id: "" });
       fetchAppointments();
     } catch (error: any) {
-      toast.error("Error al eliminar cita");
+      toast.error(t("messages.errorDeleting") + " " + t("appointments.title").toLowerCase());
     }
   };
 

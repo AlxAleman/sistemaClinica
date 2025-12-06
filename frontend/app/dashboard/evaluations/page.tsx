@@ -42,7 +42,7 @@ export default function EvaluationsPage() {
       setEvaluations(response.evaluations);
       setPagination(response.pagination);
     } catch (error: any) {
-      toast.error("Error al cargar evaluaciones");
+      toast.error(t("messages.errorLoadingEvaluations"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -56,11 +56,11 @@ export default function EvaluationsPage() {
   const handleDeleteConfirm = async () => {
     try {
       await evaluationService.delete(deleteConfirm.id);
-      toast.success("Evaluación eliminada exitosamente");
+      toast.success(t("messages.evaluationDeleted"));
       setDeleteConfirm({ isOpen: false, id: "" });
       fetchEvaluations();
     } catch (error: any) {
-      toast.error("Error al eliminar evaluación");
+      toast.error(t("messages.errorDeleting") + " " + t("evaluations.title").toLowerCase());
     }
   };
 

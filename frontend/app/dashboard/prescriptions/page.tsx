@@ -10,9 +10,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import { PlusIcon, ClipboardIcon, CalendarIcon, EditIcon, TrashIcon, PrinterIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function PrescriptionsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -40,7 +42,7 @@ export default function PrescriptionsPage() {
       setPrescriptions(response.prescriptions);
       setPagination(response.pagination);
     } catch (error: any) {
-      toast.error("Error al cargar recetas");
+      toast.error(t("messages.errorLoadingPrescriptions"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -54,11 +56,11 @@ export default function PrescriptionsPage() {
   const handleDeleteConfirm = async () => {
     try {
       await prescriptionService.delete(deleteConfirm.id);
-      toast.success("Receta eliminada exitosamente");
+      toast.success(t("messages.prescriptionDeleted"));
       setDeleteConfirm({ isOpen: false, id: "" });
       fetchPrescriptions();
     } catch (error: any) {
-      toast.error("Error al eliminar receta");
+      toast.error(t("messages.errorDeleting") + " " + t("prescriptions.title").toLowerCase());
     }
   };
 
@@ -66,34 +68,34 @@ export default function PrescriptionsPage() {
     <div className="px-3 sm:px-4 py-4 sm:py-6">
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Recetas" },
+          { label: t("common.dashboard"), href: "/dashboard" },
+          { label: t("prescriptions.title") },
         ]}
       />
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Recetas Médicas</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t("prescriptions.title")}</h1>
         <Link
           href="/dashboard/prescriptions/new"
           className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
         >
           <PlusIcon className="h-4 w-4" />
-          <span className="hidden sm:inline">Nueva Receta</span>
-          <span className="sm:hidden">Nueva</span>
+          <span className="hidden sm:inline">{t("prescriptions.newPrescription")}</span>
+          <span className="sm:hidden">{t("common.create")}</span>
         </Link>
       </div>
 
       {loading ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando recetas...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("prescriptions.loading") || t("common.loading")}</p>
         </div>
       ) : prescriptions.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <EmptyState
-            title="No hay recetas registradas"
-            message="Comienza agregando tu primera receta al sistema"
-            actionLabel="Crear primera receta"
+            title={t("prescriptions.noPrescriptions") || "No hay recetas registradas"}
+            message={t("prescriptions.createFirst") || "Comienza agregando tu primera receta al sistema"}
+            actionLabel={t("prescriptions.createFirstButton") || "Crear primera receta"}
             actionHref="/dashboard/prescriptions/new"
             icon={<ClipboardIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />}
           />
@@ -112,7 +114,7 @@ export default function PrescriptionsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <p className="text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
-                            {prescription.patient?.name || "Paciente desconocido"}
+                            {prescription.patient?.name || t("messages.unknownPatientText")}
                           </p>
                           {prescription.printed && (
                             <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 flex-shrink-0">
@@ -259,10 +261,10 @@ export default function PrescriptionsPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar Receta"
-        message="¿Estás seguro de que quieres eliminar esta receta? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t("prescriptions.deleteTitle") || "Eliminar Receta"}
+        message={t("prescriptions.deleteMessage") || "¿Estás seguro de que quieres eliminar esta receta? Esta acción no se puede deshacer."}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
         type="danger"
       />
     </div>

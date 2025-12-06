@@ -42,7 +42,7 @@ export default function TreatmentPlansPage() {
       setPlans(response.treatmentPlans);
       setPagination(response.pagination);
     } catch (error: any) {
-      toast.error("Error al cargar planes de tratamiento");
+      toast.error(t("messages.errorLoadingPlans"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -56,11 +56,11 @@ export default function TreatmentPlansPage() {
   const handleDeleteConfirm = async () => {
     try {
       await treatmentPlanService.delete(deleteConfirm.id);
-      toast.success("Plan de tratamiento eliminado exitosamente");
+      toast.success(t("messages.planDeleted"));
       setDeleteConfirm({ isOpen: false, id: "" });
       fetchPlans();
     } catch (error: any) {
-      toast.error("Error al eliminar plan de tratamiento");
+      toast.error(t("messages.errorDeleting") + " " + t("treatmentPlans.title").toLowerCase());
     }
   };
 

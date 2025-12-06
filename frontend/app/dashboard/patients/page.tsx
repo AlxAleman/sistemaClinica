@@ -58,7 +58,7 @@ export default function PatientsPage() {
       setPatients(response.patients);
       setPagination(response.pagination);
     } catch (error: any) {
-      toast.error("Error al cargar pacientes");
+      toast.error(t("messages.errorLoadingPatients"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -72,11 +72,11 @@ export default function PatientsPage() {
   const handleDeleteConfirm = async () => {
     try {
       await patientService.delete(deleteConfirm.id);
-      toast.success("Paciente eliminado exitosamente");
+      toast.success(t("messages.patientDeleted"));
       setDeleteConfirm({ isOpen: false, id: "", name: "" });
       fetchPatients();
     } catch (error: any) {
-      toast.error("Error al eliminar paciente");
+      toast.error(t("messages.errorDeleting") + " " + t("patients.title").toLowerCase());
     }
   };
 

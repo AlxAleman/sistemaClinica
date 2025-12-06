@@ -382,7 +382,11 @@ export default function DashboardPage() {
             <input
               type="date"
               value={moment(selectedDate).format("YYYY-MM-DD")}
-              onChange={(e) => setSelectedDate(new Date(e.target.value))}
+              onChange={(e) => {
+                // Usar moment para parsear la fecha sin problemas de zona horaria
+                const newDate = moment(e.target.value, "YYYY-MM-DD").toDate();
+                setSelectedDate(newDate);
+              }}
               className="flex-1 sm:flex-none px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             {!isToday && (
@@ -491,7 +495,7 @@ export default function DashboardPage() {
               href="/dashboard/appointments"
               className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
             >
-              Ver todas →
+              {t("messages.seeAll")} →
             </Link>
           </div>
           {upcomingAppointments.length > 0 ? (

@@ -10,10 +10,12 @@ import moment from "moment";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { ArrowLeftIcon, UsersIcon } from "@/components/Icons";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function EvaluationComparisonPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const patientIdParam = searchParams.get("patientId");
   const [loading, setLoading] = useState(true);
   const [comparison, setComparison] = useState<EvaluationComparison | null>(null);
@@ -23,7 +25,7 @@ export default function EvaluationComparisonPage() {
     if (patientIdParam) {
       fetchData();
     } else {
-      toast.error("ID de paciente requerido");
+      toast.error(t("messages.patientRequired"));
       router.push("/dashboard/evaluations");
     }
   }, [patientIdParam]);
@@ -38,7 +40,7 @@ export default function EvaluationComparisonPage() {
       setComparison(comparisonData);
       setPatient(patientData);
     } catch (error: any) {
-      toast.error("Error al cargar comparación");
+      toast.error(t("messages.errorLoadingComparison"));
       router.push("/dashboard/evaluations");
     } finally {
       setLoading(false);
@@ -50,7 +52,7 @@ export default function EvaluationComparisonPage() {
       <div className="px-4 py-6 sm:px-0">
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando comparación...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("evaluations.comparison")}...</p>
         </div>
       </div>
     );
@@ -61,20 +63,20 @@ export default function EvaluationComparisonPage() {
       <div className="px-4 py-6 sm:px-0">
         <Breadcrumbs
           items={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Evaluaciones", href: "/dashboard/evaluations" },
-            { label: "Comparación" },
+            { label: t("common.dashboard"), href: "/dashboard" },
+            { label: t("evaluations.title"), href: "/dashboard/evaluations" },
+            { label: t("evaluations.comparison") },
           ]}
         />
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 text-center transition-colors">
           <p className="text-gray-600 dark:text-gray-400">
-            No hay evaluaciones inicial y final para comparar.
+            {t("evaluations.noComparison") || "No hay evaluaciones inicial y final para comparar."}
           </p>
           <Link
             href="/dashboard/evaluations"
             className="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
           >
-            Volver a Evaluaciones
+            {t("messages.backToEvaluations")}
           </Link>
         </div>
       </div>

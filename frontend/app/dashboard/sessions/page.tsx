@@ -42,7 +42,7 @@ export default function SessionsPage() {
       setSessions(response.sessions);
       setPagination(response.pagination);
     } catch (error: any) {
-      toast.error("Error al cargar sesiones");
+      toast.error(t("messages.errorLoadingSessions"));
       console.error(error);
     } finally {
       setLoading(false);
@@ -56,11 +56,11 @@ export default function SessionsPage() {
   const handleDeleteConfirm = async () => {
     try {
       await sessionService.delete(deleteConfirm.id);
-      toast.success("Sesión eliminada exitosamente");
+      toast.success(t("messages.sessionDeleted"));
       setDeleteConfirm({ isOpen: false, id: "" });
       fetchSessions();
     } catch (error: any) {
-      toast.error("Error al eliminar sesión");
+      toast.error(t("messages.errorDeleting") + " " + t("sessions.title").toLowerCase());
     }
   };
 
