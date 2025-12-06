@@ -163,7 +163,7 @@ export default function SessionDetailPage() {
                 <dd className="mt-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                      {session.painLevel}/10
+                      {session.painLevel || 0}/10
                     </span>
                     <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
