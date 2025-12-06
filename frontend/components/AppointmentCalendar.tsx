@@ -287,7 +287,6 @@ export default function AppointmentCalendar({
           style={{ height: "100%" }}
           date={currentDate}
           view={currentView}
-          range={customRange || undefined}
           onNavigate={handleNavigate}
           onView={handleViewChange}
           onSelectSlot={onSelectSlot}

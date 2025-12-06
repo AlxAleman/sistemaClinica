@@ -33,8 +33,10 @@ yarn-error.log*
 # Vercel
 .vercel
 
-# Lock files (opcional - puedes mantenerlos o eliminarlos)
-# pnpm-lock.yaml
+# Lock files
+# pnpm-lock.yaml debe estar en el repo (NO ignorar)
+package-lock.json
+yarn.lock
 
 # IDE
 .vscode/

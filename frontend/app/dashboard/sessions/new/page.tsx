@@ -142,7 +142,7 @@ export default function NewSessionPage() {
           {/* Cita relacionada (opcional) */}
           <AppointmentSelector
             appointments={appointments}
-            value={formData.appointmentId}
+            value={formData.appointmentId || null}
             onChange={(appointmentId) => setFormData({ ...formData, appointmentId })}
             onSelect={handleAppointmentSelect}
           />
