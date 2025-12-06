@@ -11,9 +11,11 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 import { SearchIcon, EditIcon, TrashIcon, CalendarIcon, HospitalIcon, PhoneIcon, EmailIcon, IdCardIcon, PlusIcon, UsersIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function PatientsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -82,19 +84,19 @@ export default function PatientsPage() {
     <div className="px-4 py-6 sm:px-0">
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Pacientes" },
+          { label: t("common.dashboard"), href: "/dashboard" },
+          { label: t("patients.title") },
         ]}
       />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Pacientes</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("patients.title")}</h1>
         <Link
           href="/dashboard/patients/new"
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          Nuevo Paciente
+          {t("patients.newPatient")}
         </Link>
       </div>
 
@@ -106,7 +108,7 @@ export default function PatientsPage() {
           </div>
           <input
             type="text"
-            placeholder="Buscar por nombre, email, teléfono o DUI..."
+            placeholder={t("patients.searchPlaceholder")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
@@ -118,18 +120,18 @@ export default function PatientsPage() {
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando pacientes...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("patients.loading")}</p>
         </div>
       ) : patients.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <EmptyState
-            title={search ? "No se encontraron pacientes" : "No hay pacientes registrados"}
+            title={search ? t("patients.noResults") : t("patients.noPatients")}
             message={
               search
-                ? `No se encontraron pacientes que coincidan con "${search}"`
-                : "Comienza agregando tu primer paciente al sistema"
+                ? t("patients.noResultsMessage", { search })
+                : t("patients.createFirst")
             }
-            actionLabel={search ? undefined : "Crear primer paciente"}
+            actionLabel={search ? undefined : t("patients.createFirstButton")}
             actionHref={search ? undefined : "/dashboard/patients/new"}
             icon={
               <UsersIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
@@ -182,11 +184,11 @@ export default function PatientsPage() {
                                   <>
                                     <span className="mr-4 flex items-center">
                                       <CalendarIcon className="h-4 w-4 mr-1" />
-                                      {patient._count.appointments} citas
+                                      {patient._count.appointments} {t("patients.appointmentsCount")}
                                     </span>
                                     <span className="flex items-center">
                                       <HospitalIcon className="h-4 w-4 mr-1" />
-                                      {patient._count.sessions} sesiones
+                                      {patient._count.sessions} {t("patients.sessionsCount")}
                                     </span>
                                   </>
                                 )}
@@ -204,7 +206,7 @@ export default function PatientsPage() {
                               title="Editar paciente"
                             >
                               <EditIcon className="h-4 w-4" />
-                              Editar
+                              {t("patients.edit")}
                             </button>
                             <button
                               onClick={(e) => {
@@ -212,10 +214,10 @@ export default function PatientsPage() {
                                 handleDeleteClick(patient.id, patient.name);
                               }}
                               className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-sm font-medium transition-colors"
-                              title="Eliminar paciente"
+                              title={t("patients.delete")}
                             >
                               <TrashIcon className="h-4 w-4" />
-                              Eliminar
+                              {t("patients.delete")}
                             </button>
                           </div>
                     </div>
@@ -229,9 +231,9 @@ export default function PatientsPage() {
           {pagination.totalPages > 1 && (
             <div className="mt-6 flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                Mostrando {((pagination.page - 1) * pagination.limit) + 1} a{" "}
+                {t("patients.showing")} {((pagination.page - 1) * pagination.limit) + 1} {t("patients.to")}{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
-                de {pagination.total} pacientes
+                {t("patients.of")} {pagination.total} {t("patients.title").toLowerCase()}
               </div>
               <div className="flex gap-2">
                 <button
@@ -241,7 +243,7 @@ export default function PatientsPage() {
                   disabled={pagination.page === 1}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Anterior
+                  {t("patients.previous")}
                 </button>
                 <button
                   onClick={() =>
@@ -250,7 +252,7 @@ export default function PatientsPage() {
                   disabled={pagination.page >= pagination.totalPages}
                   className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Siguiente
+                  {t("patients.next")}
                 </button>
               </div>
             </div>

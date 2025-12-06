@@ -21,6 +21,24 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
 
+  // Cerrar menú de opciones al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (settingsMenuOpen && !target.closest('.settings-menu-container')) {
+        setSettingsMenuOpen(false);
+      }
+    };
+
+    if (settingsMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [settingsMenuOpen]);
+
   // Determinar qué enlace está activo
   const isActive = (path: string) => {
     if (path === "/dashboard") {

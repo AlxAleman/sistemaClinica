@@ -11,9 +11,11 @@ import moment from "moment";
 import { UsersIcon, CalendarIcon, HospitalIcon, CheckIcon, ChartBarIcon } from "@/components/Icons";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   
@@ -146,10 +148,10 @@ export default function DashboardPage() {
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Bienvenido, {user?.name}
+              {t("dashboard.welcome")}, {user?.name}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Sistema de Gestión Clínica - Dashboard
+              {t("dashboard.subtitle")}
             </p>
           </div>
 
@@ -162,7 +164,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Total Pacientes
+                {t("dashboard.totalPatients")}
               </h2>
               <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalPatients}</p>
             </div>
@@ -179,7 +181,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Total Citas
+                {t("dashboard.totalAppointments")}
               </h2>
               <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalAppointments}</p>
             </div>
@@ -193,7 +195,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Total Sesiones
+                {t("dashboard.totalSessions")}
               </h2>
               <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalSessions}</p>
             </div>
@@ -211,13 +213,13 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Pacientes Activos
+                  {t("dashboard.activePatients")}
                 </h3>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {kpis.activePatients}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  de {kpis.totalPatients} totales
+                  {t("dashboard.of")} {kpis.totalPatients} {t("dashboard.total")}
                 </p>
               </div>
               <UsersIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -228,13 +230,13 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Tasa de Asistencia
+                  {t("dashboard.attendanceRate")}
                 </h3>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {kpis.attendanceRate.toFixed(1)}%
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Últimos 30 días
+                  {t("dashboard.last30Days")}
                 </p>
               </div>
               <CheckIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -245,13 +247,13 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Ingresos del Mes
+                  {t("dashboard.monthlyRevenue")}
                 </h3>
                 <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                   ${kpis.revenue.month.toFixed(2)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Total: ${kpis.revenue.total.toFixed(2)}
+                  {t("dashboard.totalRevenue")}: ${kpis.revenue.total.toFixed(2)}
                 </p>
               </div>
               <ChartBarIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -262,13 +264,13 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Citas Esta Semana
+                  {t("dashboard.weekAppointments")}
                 </h3>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                   {kpis.weekAppointments}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Sesiones: {kpis.weekSessions}
+                  {t("dashboard.sessions")}: {kpis.weekSessions}
                 </p>
               </div>
               <CalendarIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -283,17 +285,17 @@ export default function DashboardPage() {
           {/* Gráfico de Citas por Estado */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Citas por Estado
+              {t("dashboard.appointmentsByStatus")}
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Programadas', value: kpis.appointmentsByStatus.scheduled, color: '#3b82f6' },
-                    { name: 'Confirmadas', value: kpis.appointmentsByStatus.confirmed, color: '#10b981' },
-                    { name: 'Completadas', value: kpis.appointmentsByStatus.completed, color: '#6b7280' },
-                    { name: 'Canceladas', value: kpis.appointmentsByStatus.cancelled, color: '#ef4444' },
-                    { name: 'No Show', value: kpis.appointmentsByStatus.noShow, color: '#f59e0b' },
+                    { name: t("appointments.scheduled"), value: kpis.appointmentsByStatus.scheduled, color: '#3b82f6' },
+                    { name: t("appointments.confirmed"), value: kpis.appointmentsByStatus.confirmed, color: '#10b981' },
+                    { name: t("appointments.completed"), value: kpis.appointmentsByStatus.completed, color: '#6b7280' },
+                    { name: t("appointments.cancelled"), value: kpis.appointmentsByStatus.cancelled, color: '#ef4444' },
+                    { name: t("appointments.noShow"), value: kpis.appointmentsByStatus.noShow, color: '#f59e0b' },
                   ]}
                   cx="50%"
                   cy="50%"
@@ -304,11 +306,11 @@ export default function DashboardPage() {
                   dataKey="value"
                 >
                   {[
-                    { name: 'Programadas', value: kpis.appointmentsByStatus.scheduled, color: '#3b82f6' },
-                    { name: 'Confirmadas', value: kpis.appointmentsByStatus.confirmed, color: '#10b981' },
-                    { name: 'Completadas', value: kpis.appointmentsByStatus.completed, color: '#6b7280' },
-                    { name: 'Canceladas', value: kpis.appointmentsByStatus.cancelled, color: '#ef4444' },
-                    { name: 'No Show', value: kpis.appointmentsByStatus.noShow, color: '#f59e0b' },
+                    { name: t("appointments.scheduled"), value: kpis.appointmentsByStatus.scheduled, color: '#3b82f6' },
+                    { name: t("appointments.confirmed"), value: kpis.appointmentsByStatus.confirmed, color: '#10b981' },
+                    { name: t("appointments.completed"), value: kpis.appointmentsByStatus.completed, color: '#6b7280' },
+                    { name: t("appointments.cancelled"), value: kpis.appointmentsByStatus.cancelled, color: '#ef4444' },
+                    { name: t("appointments.noShow"), value: kpis.appointmentsByStatus.noShow, color: '#f59e0b' },
                   ].map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -321,14 +323,14 @@ export default function DashboardPage() {
           {/* Gráfico de Actividad Temporal */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Actividad Reciente
+              {t("dashboard.recentActivity")}
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
                 data={[
-                  { name: 'Hoy', citas: kpis.todayAppointments, sesiones: kpis.todaySessions },
-                  { name: 'Semana', citas: kpis.weekAppointments, sesiones: kpis.weekSessions },
-                  { name: 'Mes', citas: kpis.monthAppointments, sesiones: kpis.monthSessions },
+                  { name: t("dashboard.today"), citas: kpis.todayAppointments, sesiones: kpis.todaySessions },
+                  { name: t("dashboard.week"), citas: kpis.weekAppointments, sesiones: kpis.weekSessions },
+                  { name: t("dashboard.month"), citas: kpis.monthAppointments, sesiones: kpis.monthSessions },
                 ]}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -342,8 +344,8 @@ export default function DashboardPage() {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="citas" fill="#3b82f6" name="Citas" />
-                <Bar dataKey="sesiones" fill="#10b981" name="Sesiones" />
+                <Bar dataKey="citas" fill="#3b82f6" name={t("dashboard.appointments")} />
+                <Bar dataKey="sesiones" fill="#10b981" name={t("dashboard.sessions")} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -354,7 +356,7 @@ export default function DashboardPage() {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-6 transition-colors">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Estadísticas del Día
+            {t("dashboard.dayStats")}
           </h2>
           <div className="flex items-center gap-2">
             <input
@@ -368,7 +370,7 @@ export default function DashboardPage() {
                 onClick={() => setSelectedDate(new Date())}
                 className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
               >
-                Hoy
+                {t("common.today")}
               </button>
             )}
           </div>
@@ -377,27 +379,27 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-indigo-600">{dayStats.appointments}</p>
-            <p className="text-sm text-gray-600">Total Citas</p>
+            <p className="text-sm text-gray-600">{t("dashboard.totalCitas")}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-green-600">{dayStats.confirmed}</p>
-            <p className="text-sm text-gray-600">Confirmadas</p>
+            <p className="text-sm text-gray-600">{t("dashboard.confirmed")}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-blue-600">{dayStats.scheduled}</p>
-            <p className="text-sm text-gray-600">Programadas</p>
+            <p className="text-sm text-gray-600">{t("dashboard.scheduled")}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-gray-600">{dayStats.completed}</p>
-            <p className="text-sm text-gray-600">Completadas</p>
+            <p className="text-sm text-gray-600">{t("dashboard.completed")}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-red-600">{dayStats.cancelled}</p>
-            <p className="text-sm text-gray-600">Canceladas</p>
+            <p className="text-sm text-gray-600">{t("dashboard.cancelled")}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-purple-600">{dayStats.sessions}</p>
-            <p className="text-sm text-gray-600">Sesiones</p>
+            <p className="text-sm text-gray-600">{t("dashboard.sessions")}</p>
           </div>
         </div>
 
@@ -405,7 +407,7 @@ export default function DashboardPage() {
         {todayAppointments.length > 0 && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              Citas del {moment(selectedDate).format("DD/MM/YYYY")}
+              {t("dashboard.appointmentsOf")} {moment(selectedDate).format("DD/MM/YYYY")}
             </h3>
             <div className="space-y-2">
               {todayAppointments.slice(0, 5).map((appointment) => (
@@ -435,12 +437,12 @@ export default function DashboardPage() {
                       }`}
                     >
                       {appointment.status === "CONFIRMED"
-                        ? "Confirmada"
+                        ? t("appointments.confirmed")
                         : appointment.status === "SCHEDULED"
-                        ? "Programada"
+                        ? t("appointments.scheduled")
                         : appointment.status === "COMPLETED"
-                        ? "Completada"
-                        : "Cancelada"}
+                        ? t("appointments.completed")
+                        : t("appointments.cancelled")}
                     </span>
                   </div>
                 </Link>
@@ -451,7 +453,7 @@ export default function DashboardPage() {
                 href={`/dashboard/appointments?date=${moment(selectedDate).format("YYYY-MM-DD")}`}
                 className="mt-3 inline-block text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
               >
-                Ver todas las citas del día ({todayAppointments.length}) →
+                {t("dashboard.seeAllAppointments")} ({todayAppointments.length}) →
               </Link>
             )}
           </div>
@@ -463,7 +465,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              Próximas Citas
+              {t("dashboard.upcomingAppointments")}
             </h2>
             <Link
               href="/dashboard/appointments"
@@ -483,7 +485,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900 dark:text-gray-100">
-                        {appointment.patient?.name || "Paciente desconocido"}
+                        {appointment.patient?.name || t("patients.unknownPatient")}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {moment(appointment.appointmentDate).format("DD/MM/YYYY HH:mm")} - {appointment.therapist?.name}
@@ -496,7 +498,7 @@ export default function DashboardPage() {
                           : "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
                       }`}
                     >
-                      {appointment.status === "CONFIRMED" ? "Confirmada" : "Programada"}
+                      {appointment.status === "CONFIRMED" ? t("appointments.confirmed") : t("appointments.scheduled")}
                     </span>
                   </div>
                 </Link>
@@ -504,7 +506,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-              No hay citas próximas programadas
+              {t("dashboard.noUpcomingAppointments")}
             </p>
           )}
         </div>
@@ -512,12 +514,12 @@ export default function DashboardPage() {
         {/* Estadísticas de la Semana */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Esta Semana
+            {t("dashboard.thisWeek")}
           </h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total de Citas</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t("dashboard.totalAppointmentsWeek")}</p>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{weekStats.appointments}</p>
               </div>
               <div className="text-blue-600 dark:text-blue-400">
@@ -526,7 +528,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Confirmadas</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t("dashboard.confirmed")}</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">{weekStats.confirmed}</p>
               </div>
               <div className="text-green-600 dark:text-green-400">
@@ -535,7 +537,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Completadas</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t("dashboard.completed")}</p>
                 <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{weekStats.completed}</p>
               </div>
               <div className="text-gray-600 dark:text-gray-400">
@@ -547,7 +549,7 @@ export default function DashboardPage() {
             href="/dashboard/appointments"
             className="mt-4 inline-block w-full text-center px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-800 text-sm font-medium transition-colors"
           >
-            Ver Calendario Completo
+            {t("dashboard.seeFullCalendar")}
           </Link>
         </div>
       </div>

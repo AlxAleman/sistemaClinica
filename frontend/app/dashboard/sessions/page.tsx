@@ -10,9 +10,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import { PlusIcon, HospitalIcon, CalendarIcon, EditIcon, TrashIcon, UsersIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function SessionsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<TreatmentSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -66,33 +68,33 @@ export default function SessionsPage() {
     <div className="px-4 py-6 sm:px-0">
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Sesiones" },
+          { label: t("common.dashboard"), href: "/dashboard" },
+          { label: t("sessions.title") },
         ]}
       />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Sesiones de Tratamiento</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("sessions.titleFull")}</h1>
         <Link
           href="/dashboard/sessions/new"
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          Nueva Sesión
+          {t("sessions.newSession")}
         </Link>
       </div>
 
       {loading ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando sesiones...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("sessions.loading")}</p>
         </div>
       ) : sessions.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <EmptyState
-            title="No hay sesiones registradas"
-            message="Comienza agregando tu primera sesión de tratamiento al sistema"
-            actionLabel="Crear primera sesión"
+            title={t("sessions.noSessions")}
+            message={t("sessions.createFirst")}
+            actionLabel={t("sessions.createFirstButton")}
             actionHref="/dashboard/sessions/new"
             icon={<HospitalIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />}
           />
@@ -111,11 +113,11 @@ export default function SessionsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                            {session.patient?.name || "Paciente desconocido"}
+                            {session.patient?.name || t("sessions.unknownPatient")}
                           </p>
                           {session.painLevel !== null && (
                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                              Dolor: {session.painLevel}/10
+                              {t("sessions.pain")}: {session.painLevel}/10
                             </span>
                           )}
                         </div>
@@ -123,7 +125,7 @@ export default function SessionsPage() {
                           <div className="sm:flex">
                             <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                               <UsersIcon className="h-4 w-4 mr-1" />{" "}
-                              {session.therapist?.name || "Terapeuta desconocido"}
+                              {session.therapist?.name || t("sessions.unknownTherapist")}
                             </p>
                             <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
                               <CalendarIcon className="h-4 w-4 mr-1" />{" "}
@@ -243,10 +245,10 @@ export default function SessionsPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar Sesión"
-        message="¿Estás seguro de que quieres eliminar esta sesión? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t("sessions.deleteTitle")}
+        message={t("sessions.deleteMessage")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
         type="danger"
       />
     </div>

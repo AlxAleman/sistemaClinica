@@ -10,9 +10,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import { PlusIcon, FileTextIcon, CalendarIcon, EditIcon, TrashIcon, CheckIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function TreatmentPlansPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [plans, setPlans] = useState<TreatmentPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -82,17 +84,17 @@ export default function TreatmentPlansPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return "Borrador";
+        return t("treatmentPlans.draft");
       case "PENDING_APPROVAL":
-        return "Pendiente de Aprobación";
+        return t("treatmentPlans.pendingApproval");
       case "APPROVED":
-        return "Aprobado";
+        return t("treatmentPlans.approved");
       case "IN_PROGRESS":
-        return "En Progreso";
+        return t("treatmentPlans.inProgress");
       case "COMPLETED":
-        return "Completado";
+        return t("treatmentPlans.completed");
       case "CANCELLED":
-        return "Cancelado";
+        return t("treatmentPlans.cancelled");
       default:
         return status;
     }
@@ -102,33 +104,33 @@ export default function TreatmentPlansPage() {
     <div className="px-4 py-6 sm:px-0">
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Planes de Tratamiento" },
+          { label: t("common.dashboard"), href: "/dashboard" },
+          { label: t("treatmentPlans.title") },
         ]}
       />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Planes de Tratamiento</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("treatmentPlans.title")}</h1>
         <Link
           href="/dashboard/treatment-plans/new"
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          Nuevo Plan
+          {t("treatmentPlans.newPlan")}
         </Link>
       </div>
 
       {loading ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando planes de tratamiento...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("treatmentPlans.loading")}</p>
         </div>
       ) : plans.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <EmptyState
-            title="No hay planes de tratamiento registrados"
-            message="Comienza agregando tu primer plan de tratamiento al sistema"
-            actionLabel="Crear primer plan"
+            title={t("treatmentPlans.noPlans")}
+            message={t("treatmentPlans.createFirst")}
+            actionLabel={t("treatmentPlans.createFirstButton")}
             actionHref="/dashboard/treatment-plans/new"
             icon={<FileTextIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />}
           />
@@ -166,10 +168,10 @@ export default function TreatmentPlansPage() {
                           <div className="sm:flex">
                             <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                               <CalendarIcon className="h-4 w-4 mr-1" />{" "}
-                              {plan.patient?.name || "Paciente desconocido"}
+                              {plan.patient?.name || t("treatmentPlans.unknownPatient")}
                             </p>
                             <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                              📋 {plan.sessionsCompleted}/{plan.sessionsPlanned} sesiones
+                              📋 {plan.sessionsCompleted}/{plan.sessionsPlanned} {t("treatmentPlans.sessions")}
                             </p>
                             {plan.totalCost && (
                               <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
@@ -287,10 +289,10 @@ export default function TreatmentPlansPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar Plan de Tratamiento"
-        message="¿Estás seguro de que quieres eliminar este plan de tratamiento? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t("treatmentPlans.deleteTitle")}
+        message={t("treatmentPlans.deleteMessage")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
         type="danger"
       />
     </div>

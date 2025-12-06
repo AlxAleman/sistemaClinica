@@ -30,12 +30,13 @@ export function useTranslation() {
       return key;
     }
 
-    // Reemplazar parámetros en el texto
-    if (params) {
-      return value.replace(/\{(\w+)\}/g, (match, paramKey) => {
-        return params[paramKey]?.toString() || match;
-      });
-    }
+          // Reemplazar parámetros en el texto
+          if (params) {
+            return value.replace(/\{(\w+)\}/g, (match, paramKey) => {
+              const paramValue = params[paramKey];
+              return paramValue !== undefined ? paramValue.toString() : match;
+            });
+          }
 
     return value;
   };

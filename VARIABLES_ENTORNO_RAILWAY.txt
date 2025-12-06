@@ -1,6 +1,5 @@
-# Variables de Entorno para Vercel
-# Copia y pega estas variables en Vercel Dashboard > Settings > Environment Variables
-# IMPORTANTE: Este archivo NO debe subirse a GitHub (ya está en .gitignore)
+# Variables de Entorno para Railway
+# Copia y pega estas variables en Railway Dashboard > Variables
 
 # ============================================
 # BASE DE DATOS (Neon)
@@ -23,10 +22,8 @@ NODE_ENV=production
 PORT=5000
 
 # ============================================
-# URLs (ACTUALIZAR DESPUÉS DEL DEPLOY)
+# URL DEL FRONTEND (ACTUALIZAR DESPUÉS)
 # ============================================
-# Reemplaza "tu-proyecto" con la URL real que Vercel te asigne
-FRONTEND_URL=https://sistema-clinica-alx.vercel.app
-# ⚠️ IMPORTANTE: NO incluyas /api al final, el frontend ya lo agrega
-NEXT_PUBLIC_API_URL=https://sistemaclinica-production-3c10.up.railway.app
+# Reemplaza "tu-proyecto" con la URL real que Vercel te asignó
+FRONTEND_URL=https://tu-proyecto.vercel.app
 

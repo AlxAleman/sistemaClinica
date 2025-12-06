@@ -816,6 +816,144 @@ async function main() {
   }
   console.log(`✅ ${documentsCreated} documentos médicos creados`);
 
+  // Crear prescripciones de ejemplo
+  console.log('💊 Creando prescripciones de ejemplo...');
+  const prescriptionsData = [
+    {
+      patientId: allPatients[0].id, // María González
+      therapistId: allTherapists[0].id, // Dr. Carlos Méndez
+      prescriptionDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000),
+      diagnosis: 'Dolor lumbar crónico, contractura muscular',
+      medications: JSON.stringify([
+        {
+          name: 'Ibuprofeno',
+          dosage: '400mg',
+          frequency: 'Cada 8 horas',
+          duration: '7 días',
+          instructions: 'Tomar con alimentos para evitar molestias gástricas',
+        },
+        {
+          name: 'Relajante muscular',
+          dosage: '10mg',
+          frequency: 'Antes de dormir',
+          duration: '5 días',
+          instructions: 'Puede causar somnolencia, evitar conducir',
+        },
+      ]),
+      instructions: 'Aplicar calor local 3 veces al día durante 15 minutos. Evitar esfuerzos físicos intensos.',
+      notes: 'Paciente refiere mejoría con tratamiento previo. Seguir con ejercicios de estiramiento.',
+    },
+    {
+      patientId: allPatients[1].id, // Juan Pérez
+      therapistId: allTherapists[1].id, // Dra. Ana Martínez
+      prescriptionDate: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000),
+      diagnosis: 'Lesión de rodilla, tendinitis',
+      medications: JSON.stringify([
+        {
+          name: 'Paracetamol',
+          dosage: '500mg',
+          frequency: 'Cada 6 horas',
+          duration: '5 días',
+          instructions: 'Solo si hay dolor',
+        },
+        {
+          name: 'Gel antiinflamatorio',
+          dosage: 'Aplicar capa fina',
+          frequency: '3 veces al día',
+          duration: '10 días',
+          instructions: 'Aplicar sobre la zona afectada con masaje suave',
+        },
+      ]),
+      instructions: 'Reposo relativo. Aplicar hielo después de ejercicios. Continuar con fisioterapia.',
+      notes: 'Paciente deportista, requiere precaución con actividad física.',
+    },
+    {
+      patientId: allPatients[2].id, // Carmen Rodríguez
+      therapistId: allTherapists[0].id, // Dr. Carlos Méndez
+      prescriptionDate: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
+      diagnosis: 'Artritis reumatoide, dolor articular',
+      medications: JSON.stringify([
+        {
+          name: 'Metotrexato',
+          dosage: '15mg',
+          frequency: 'Una vez por semana',
+          duration: 'Continuo',
+          instructions: 'Tomar con ácido fólico. Monitorear función hepática',
+        },
+        {
+          name: 'Ácido fólico',
+          dosage: '5mg',
+          frequency: 'Diario',
+          duration: 'Continuo',
+          instructions: 'Tomar el día después de metotrexato',
+        },
+        {
+          name: 'Analgésico',
+          dosage: '500mg',
+          frequency: 'Según necesidad',
+          duration: 'Según necesidad',
+          instructions: 'Máximo 3 veces al día',
+        },
+      ]),
+      instructions: 'Seguir dieta antiinflamatoria. Ejercicios de bajo impacto recomendados.',
+      notes: 'Paciente con condiciones crónicas. Coordinar con reumatólogo.',
+    },
+    {
+      patientId: allPatients[3].id, // Luis Martínez
+      therapistId: allTherapists[2].id, // Lic. Roberto Silva
+      prescriptionDate: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
+      diagnosis: 'Fractura de brazo en recuperación, rigidez articular',
+      medications: JSON.stringify([
+        {
+          name: 'Paracetamol',
+          dosage: '500mg',
+          frequency: 'Cada 8 horas',
+          duration: '5 días',
+          instructions: 'Para control del dolor',
+        },
+      ]),
+      instructions: 'Continuar con ejercicios de movilización pasiva y activa. Aplicar calor antes de ejercicios.',
+      notes: 'Paciente joven, buena evolución. Motivar a continuar con rehabilitación.',
+    },
+    {
+      patientId: allPatients[4].id, // Ana López
+      therapistId: allTherapists[1].id, // Dra. Ana Martínez
+      prescriptionDate: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
+      diagnosis: 'Dolor crónico de espalda, postura incorrecta',
+      medications: JSON.stringify([
+        {
+          name: 'Relajante muscular',
+          dosage: '10mg',
+          frequency: 'Antes de dormir',
+          duration: '7 días',
+          instructions: 'Puede causar somnolencia',
+        },
+        {
+          name: 'Analgésico tópico',
+          dosage: 'Aplicar según necesidad',
+          frequency: '2-3 veces al día',
+          duration: '10 días',
+          instructions: 'Aplicar en zona lumbar con masaje',
+        },
+      ]),
+      instructions: 'Corregir postura en el trabajo. Ejercicios de fortalecimiento de core. Evitar estar sentado por períodos prolongados.',
+      notes: 'Paciente de oficina. Recomendar pausas activas cada hora.',
+    },
+  ];
+
+  let prescriptionsCreated = 0;
+  for (const prescriptionData of prescriptionsData) {
+    try {
+      await prisma.prescription.create({
+        data: prescriptionData,
+      });
+      prescriptionsCreated++;
+    } catch (error: any) {
+      console.error(`❌ Error al crear prescripción:`, error.message);
+    }
+  }
+  console.log(`✅ ${prescriptionsCreated} prescripciones creadas`);
+
   console.log('✨ Seed completado exitosamente!');
   console.log('\n📊 Resumen:');
   console.log(`   - Pacientes: ${allPatients.length}`);
@@ -825,6 +963,7 @@ async function main() {
   console.log(`   - Evaluaciones: ${evaluationsCreated}`);
   console.log(`   - Planes de Tratamiento: ${plansCreated}`);
   console.log(`   - Documentos: ${documentsCreated}`);
+  console.log(`   - Prescripciones: ${prescriptionsCreated}`);
 }
 
 main()

@@ -10,9 +10,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import { PlusIcon, ClipboardIcon, CalendarIcon, EditIcon, TrashIcon, UsersIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function EvaluationsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -78,11 +80,11 @@ export default function EvaluationsPage() {
   const getTypeText = (type: string) => {
     switch (type) {
       case "INITIAL":
-        return "Inicial";
+        return t("evaluations.initial");
       case "PROGRESS":
-        return "Progreso";
+        return t("evaluations.progress");
       case "FINAL":
-        return "Final";
+        return t("evaluations.final");
       default:
         return type;
     }
@@ -92,33 +94,33 @@ export default function EvaluationsPage() {
     <div className="px-4 py-6 sm:px-0">
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Evaluaciones" },
+          { label: t("common.dashboard"), href: "/dashboard" },
+          { label: t("evaluations.title") },
         ]}
       />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Evaluaciones</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("evaluations.title")}</h1>
         <Link
           href="/dashboard/evaluations/new"
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          Nueva Evaluación
+          {t("evaluations.newEvaluation")}
         </Link>
       </div>
 
       {loading ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando evaluaciones...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t("evaluations.loading")}</p>
         </div>
       ) : evaluations.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow transition-colors">
           <EmptyState
-            title="No hay evaluaciones registradas"
-            message="Comienza agregando tu primera evaluación al sistema"
-            actionLabel="Crear primera evaluación"
+            title={t("evaluations.noEvaluations")}
+            message={t("evaluations.createFirst")}
+            actionLabel={t("evaluations.createFirstButton")}
             actionHref="/dashboard/evaluations/new"
             icon={<ClipboardIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />}
           />
@@ -137,7 +139,7 @@ export default function EvaluationsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                            {evaluation.patient?.name || "Paciente desconocido"}
+                            {evaluation.patient?.name || t("evaluations.unknownPatient")}
                           </p>
                           <span
                             className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(
@@ -148,7 +150,7 @@ export default function EvaluationsPage() {
                           </span>
                           {evaluation.painLevel !== null && (
                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                              Dolor: {evaluation.painLevel}/10
+                              {t("evaluations.pain")}: {evaluation.painLevel}/10
                             </span>
                           )}
                         </div>
@@ -274,10 +276,10 @@ export default function EvaluationsPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar Evaluación"
-        message="¿Estás seguro de que quieres eliminar esta evaluación? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t("evaluations.deleteTitle")}
+        message={t("evaluations.deleteMessage")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
         type="danger"
       />
     </div>

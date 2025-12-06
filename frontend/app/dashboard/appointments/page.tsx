@@ -12,9 +12,11 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import { PlusIcon, CalendarIcon, HospitalIcon, EditIcon, TrashIcon } from "@/components/Icons";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function AppointmentsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,15 +127,15 @@ export default function AppointmentsPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "SCHEDULED":
-        return "Programada";
+        return t("appointments.scheduled");
       case "CONFIRMED":
-        return "Confirmada";
+        return t("appointments.confirmed");
       case "COMPLETED":
-        return "Completada";
+        return t("appointments.completed");
       case "CANCELLED":
-        return "Cancelada";
+        return t("appointments.cancelled");
       case "NO_SHOW":
-        return "No asistió";
+        return t("appointments.noShowText");
       default:
         return status;
     }
@@ -144,7 +146,7 @@ export default function AppointmentsPage() {
       <div className="px-4 py-6 sm:px-0">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando citas...</p>
+          <p className="mt-4 text-gray-600">{t("appointments.loading")}</p>
         </div>
       </div>
     );
@@ -154,26 +156,26 @@ export default function AppointmentsPage() {
     <div className="px-4 py-6 sm:px-0">
       <Breadcrumbs
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Citas" },
+          { label: t("common.dashboard"), href: "/dashboard" },
+          { label: t("appointments.title") },
         ]}
       />
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Citas</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("appointments.title")}</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setView(view === "calendar" ? "list" : "calendar")}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
-            {view === "calendar" ? "Ver Lista" : "Ver Calendario"}
+            {view === "calendar" ? t("appointments.viewList") : t("appointments.viewCalendar")}
           </button>
           <Link
             href="/dashboard/appointments/new"
             className="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-700 hover:bg-indigo-700 dark:hover:bg-indigo-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
           >
             <PlusIcon className="h-4 w-4" />
-            Nueva Cita
+            {t("appointments.newAppointment")}
           </Link>
         </div>
       </div>
@@ -193,9 +195,9 @@ export default function AppointmentsPage() {
           {appointments.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
               <EmptyState
-                title="No hay citas registradas"
-                message="Comienza agregando tu primera cita al sistema"
-                actionLabel="Crear primera cita"
+                title={t("appointments.noAppointments")}
+                message={t("appointments.createFirst")}
+                actionLabel={t("appointments.createFirstButton")}
                 actionHref="/dashboard/appointments/new"
                 icon={<CalendarIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />}
               />
@@ -208,14 +210,14 @@ export default function AppointmentsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
                         <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                          {appointment.patient?.name || "Paciente desconocido"}
+                          {appointment.patient?.name || t("appointments.unknownPatient")}
                         </p>
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
                             appointment.status
                           )}`}
                         >
-                          {getStatusText(appointment.status)}
+                          {appointment.status === "SCHEDULED" ? t("appointments.scheduled") : appointment.status === "CONFIRMED" ? t("appointments.confirmed") : appointment.status === "COMPLETED" ? t("appointments.completed") : appointment.status === "CANCELLED" ? t("appointments.cancelled") : t("appointments.noShowText")}
                         </span>
                       </div>
                       <div className="mt-2 sm:flex sm:justify-between">
@@ -242,13 +244,13 @@ export default function AppointmentsPage() {
                         }}
                         className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
                       >
-                        Ver
+                        {t("appointments.view")}
                       </button>
                       <button
                         onClick={() => handleDeleteClick(appointment.id)}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-sm font-medium transition-colors"
                       >
-                        Eliminar
+                        {t("appointments.delete")}
                       </button>
                     </div>
                   </div>
@@ -263,10 +265,10 @@ export default function AppointmentsPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false, id: "" })}
         onConfirm={handleDeleteConfirm}
-        title="Eliminar Cita"
-        message="¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t("appointments.deleteTitle")}
+        message={t("appointments.deleteMessage")}
+        confirmText={t("appointments.delete")}
+        cancelText={t("common.cancel")}
         type="danger"
       />
     </div>
