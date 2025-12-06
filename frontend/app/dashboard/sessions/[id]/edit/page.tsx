@@ -165,7 +165,7 @@ export default function EditSessionPage() {
           {/* Paciente */}
           <PatientSelector
             patients={patients}
-            value={formData.patientId}
+            value={formData.patientId || ""}
             onChange={(patientId) => setFormData({ ...formData, patientId })}
             required
           />
@@ -173,7 +173,7 @@ export default function EditSessionPage() {
           {/* Terapeuta */}
           <TherapistSelector
             therapists={therapists}
-            value={formData.therapistId}
+            value={formData.therapistId || ""}
             onChange={(therapistId) => setFormData({ ...formData, therapistId })}
             required
           />
