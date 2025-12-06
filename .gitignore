@@ -28,9 +28,13 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.vercel
 
 # Vercel
 .vercel
+
+# Lock files (opcional - puedes mantenerlos o eliminarlos)
+# pnpm-lock.yaml
 
 # IDE
 .vscode/
