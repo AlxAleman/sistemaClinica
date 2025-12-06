@@ -10,7 +10,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
-import { SearchIcon, EditIcon, TrashIcon, CalendarIcon, HospitalIcon, PhoneIcon, EmailIcon, IdCardIcon, PlusIcon } from "@/components/Icons";
+import { SearchIcon, EditIcon, TrashIcon, CalendarIcon, HospitalIcon, PhoneIcon, EmailIcon, IdCardIcon, PlusIcon, UsersIcon } from "@/components/Icons";
 
 export default function PatientsPage() {
   const router = useRouter();
