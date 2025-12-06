@@ -64,7 +64,7 @@ export default function DashboardLayout({
                 </h1>
               </div>
               {/* Menú desktop */}
-              <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-3 overflow-x-auto flex-nowrap">
+              <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-3">
                 <Link
                   href="/dashboard"
                   className={`${
@@ -204,19 +204,23 @@ export default function DashboardLayout({
                           <ThemeToggle />
                         </div>
                       </div>
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setSettingsMenuOpen(false);
+                            logout();
+                            router.push("/login");
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          role="menuitem"
+                        >
+                          {t("common.logout")}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
-              <button
-                onClick={() => {
-                  logout();
-                  router.push("/login");
-                }}
-                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white px-3 xl:px-4 py-2 rounded-md text-xs xl:text-sm font-medium transition-colors whitespace-nowrap"
-              >
-                {t("common.logout")}
-              </button>
             </div>
             {/* Controles derecho - Mobile */}
             <div className="flex md:hidden items-center gap-2">
