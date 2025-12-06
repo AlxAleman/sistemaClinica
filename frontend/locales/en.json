@@ -9,6 +9,8 @@
     "prescriptions": "Prescriptions",
     "reports": "Reports",
     "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
     "logout": "Logout",
     "login": "Login",
     "register": "Register",
