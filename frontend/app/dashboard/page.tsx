@@ -315,7 +315,20 @@ export default function DashboardPage() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                  }}
+                  labelStyle={{
+                    color: '#111827',
+                    fontWeight: 600,
+                  }}
+                  itemStyle={{
+                    color: '#111827',
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -341,6 +354,13 @@ export default function DashboardPage() {
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
+                  }}
+                  labelStyle={{
+                    color: '#111827',
+                    fontWeight: 600,
+                  }}
+                  itemStyle={{
+                    color: '#111827',
                   }}
                 />
                 <Legend />
