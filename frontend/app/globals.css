@@ -101,6 +101,17 @@ body {
   }
 }
 
+/* Estilos para react-big-calendar - Título del calendario con mejor contraste */
+.rbc-toolbar-label {
+  color: #111827 !important; /* Gris muy oscuro para mejor contraste en modo light */
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+}
+
+.dark .rbc-toolbar-label {
+  color: #e5e7eb !important; /* Gris claro para modo dark */
+}
+
 /* Estilos para react-big-calendar - Números más visibles en modo light */
 .rbc-date-cell {
   color: #111827 !important; /* Gris muy oscuro para mejor contraste */

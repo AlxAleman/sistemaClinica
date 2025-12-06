@@ -5,7 +5,9 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function DashboardLayout({
   children,
@@ -15,6 +17,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { t } = useTranslation();
 
   // Determinar qué enlace está activo
   const isActive = (path: string) => {
@@ -67,7 +70,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Dashboard
+                  {t("common.dashboard")}
                 </Link>
                 <Link
                   href="/dashboard/patients"
@@ -77,7 +80,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Pacientes
+                  {t("common.patients")}
                 </Link>
                 <Link
                   href="/dashboard/appointments"
@@ -87,7 +90,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Citas
+                  {t("common.appointments")}
                 </Link>
                 <Link
                   href="/dashboard/sessions"
@@ -97,7 +100,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Sesiones
+                  {t("common.sessions")}
                 </Link>
                 <Link
                   href="/dashboard/treatment-plans"
@@ -107,7 +110,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Planes
+                  {t("common.treatmentPlans")}
                 </Link>
                 <Link
                   href="/dashboard/evaluations"
@@ -117,7 +120,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Evaluaciones
+                  {t("common.evaluations")}
                 </Link>
                 <Link
                   href="/dashboard/reports"
@@ -127,7 +130,7 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Reportes
+                  {t("common.reports")}
                 </Link>
                 <Link
                   href="/dashboard/prescriptions"
@@ -137,11 +140,12 @@ export default function DashboardLayout({
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                   } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
-                  Recetas
+                  {t("common.prescriptions")}
                 </Link>
               </div>
             </div>
             <div className="flex items-center gap-2 lg:gap-4">
+              <LanguageToggle />
               <ThemeToggle />
               <span className="hidden md:inline text-xs lg:text-sm text-gray-700 dark:text-gray-300 mr-2 lg:mr-4">
                 {user?.name} ({user?.role})
@@ -153,7 +157,7 @@ export default function DashboardLayout({
                 }}
                 className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
-                Cerrar Sesión
+                {t("common.logout")}
               </button>
             </div>
           </div>

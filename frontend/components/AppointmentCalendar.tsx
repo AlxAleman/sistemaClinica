@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import moment from "moment";
 import { Appointment } from "@/services/appointmentService";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Importar CSS del calendario
 if (typeof window !== "undefined") {
@@ -31,6 +32,7 @@ export default function AppointmentCalendar({
   onViewChange,
   onNavigate,
 }: AppointmentCalendarProps) {
+  const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(defaultDate);
   const [currentView, setCurrentView] = useState<View>(defaultView);
 
@@ -163,7 +165,7 @@ export default function AppointmentCalendar({
             onClick={() => setShowDatePicker(!showDatePicker)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
-            📅 Seleccionar Día
+            📅 {t("calendar.selectDay")}
           </button>
           {showDatePicker && (
             <div className="absolute z-10 top-full left-0 mt-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4">
@@ -180,7 +182,7 @@ export default function AppointmentCalendar({
             </div>
           )}
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            Día: {moment(currentDate).format("DD/MM/YYYY")}
+            {t("calendar.day")}: {moment(currentDate).format("DD/MM/YYYY")}
           </span>
         </div>
       )}
@@ -192,14 +194,14 @@ export default function AppointmentCalendar({
             onClick={() => setShowWeekRangePicker(!showWeekRangePicker)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
-            📅 Seleccionar Rango
+            📅 {t("calendar.selectRange")}
           </button>
           {showWeekRangePicker && (
             <div className="absolute z-10 top-full left-0 mt-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4 min-w-[300px]">
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Fecha Inicio
+                    {t("calendar.startDate")}
                   </label>
                   <input
                     type="date"
@@ -221,7 +223,7 @@ export default function AppointmentCalendar({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Fecha Fin
+                    {t("calendar.endDate")}
                   </label>
                   <input
                     type="date"
@@ -247,7 +249,7 @@ export default function AppointmentCalendar({
                     disabled={!weekStartDate || !weekEndDate}
                     className="flex-1 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md text-sm font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Aplicar
+                    {t("calendar.apply")}
                   </button>
                   <button
                     onClick={() => {
@@ -258,7 +260,7 @@ export default function AppointmentCalendar({
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                   >
-                    Cancelar
+                    {t("common.cancel")}
                   </button>
                 </div>
               </div>
@@ -267,10 +269,10 @@ export default function AppointmentCalendar({
           {!showWeekRangePicker && (
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {customRange
-                ? `Rango: ${moment(customRange[0]).format("DD/MM/YYYY")} - ${moment(
+                ? `${t("calendar.selectRange")}: ${moment(customRange[0]).format("DD/MM/YYYY")} - ${moment(
                     customRange[customRange.length - 1]
                   ).format("DD/MM/YYYY")}`
-                : `Semana: ${moment(currentWeekRange.start).format("DD/MM/YYYY")} - ${moment(
+                : `${t("calendar.week")}: ${moment(currentWeekRange.start).format("DD/MM/YYYY")} - ${moment(
                     currentWeekRange.end
                   ).format("DD/MM/YYYY")}`}
             </span>
@@ -298,17 +300,17 @@ export default function AppointmentCalendar({
           eventPropGetter={eventStyleGetter}
           selectable
           messages={{
-            next: "Siguiente",
-            previous: "Anterior",
-            today: "Hoy",
-            month: "Mes",
-            week: "Semana",
-            day: "Día",
-            agenda: "Agenda",
-            date: "Fecha",
-            time: "Hora",
-            event: "Evento",
-            noEventsInRange: "No hay citas en este rango",
+            next: t("common.next"),
+            previous: t("common.previous"),
+            today: t("common.today"),
+            month: t("calendar.month"),
+            week: t("calendar.week"),
+            day: t("calendar.day"),
+            agenda: t("calendar.agenda"),
+            date: t("calendar.startDate"),
+            time: t("calendar.startDate"),
+            event: t("appointments.title"),
+            noEventsInRange: t("calendar.noEvents"),
           }}
         />
       </div>
