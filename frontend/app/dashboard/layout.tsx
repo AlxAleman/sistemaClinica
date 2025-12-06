@@ -63,14 +63,14 @@ export default function DashboardLayout({
                 </h1>
               </div>
               {/* Menú desktop */}
-              <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-3">
+              <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-3 overflow-x-auto flex-nowrap">
                 <Link
                   href="/dashboard"
                   className={`${
                     isActive("/dashboard")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.dashboard")}
                 </Link>
@@ -80,7 +80,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/patients")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.patients")}
                 </Link>
@@ -90,7 +90,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/appointments")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.appointments")}
                 </Link>
@@ -100,7 +100,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/sessions")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.sessions")}
                 </Link>
@@ -110,9 +110,10 @@ export default function DashboardLayout({
                     isActive("/dashboard/treatment-plans")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
-                  {t("common.treatmentPlans")}
+                  <span className="hidden lg:inline">{t("common.treatmentPlans")}</span>
+                  <span className="lg:hidden">Planes</span>
                 </Link>
                 <Link
                   href="/dashboard/evaluations"
@@ -120,7 +121,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/evaluations")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.evaluations")}
                 </Link>
@@ -130,7 +131,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/reports")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.reports")}
                 </Link>
@@ -140,7 +141,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/prescriptions")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
                 >
                   {t("common.prescriptions")}
                 </Link>
