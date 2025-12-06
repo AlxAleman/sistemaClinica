@@ -241,11 +241,11 @@ export default function EvaluationComparisonPage() {
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className="bg-red-500 h-2 rounded-full"
-                          style={{ width: `${(comparison.initial.painLevel / 10) * 100}%` }}
+                          style={{ width: `${((comparison.initial.painLevel || 0) / 10) * 100}%` }}
                         ></div>
                       </div>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {comparison.initial.painLevel}/10
+                        {comparison.initial.painLevel || 0}/10
                       </span>
                     </div>
                   </div>
@@ -304,11 +304,11 @@ export default function EvaluationComparisonPage() {
                       <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className="bg-red-500 h-2 rounded-full"
-                          style={{ width: `${(comparison.final.painLevel / 10) * 100}%` }}
+                          style={{ width: `${((comparison.final.painLevel || 0) / 10) * 100}%` }}
                         ></div>
                       </div>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {comparison.final.painLevel}/10
+                        {comparison.final.painLevel || 0}/10
                       </span>
                     </div>
                   </div>
