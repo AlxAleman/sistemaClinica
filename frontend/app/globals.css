@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mejoras de accesibilidad y animaciones */
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  /* Focus visible mejorado */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-900;
+  }
+
+  /* Scrollbar personalizado */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+}
+
+@layer utilities {
+  /* Animaciones suaves */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Estilos para react-big-calendar - Números más visibles en modo light */
+.rbc-date-cell {
+  color: #111827 !important; /* Gris muy oscuro para mejor contraste */
+  font-weight: 500;
+}
+
+.rbc-off-range-bg .rbc-date-cell {
+  color: #9ca3af !important; /* Gris medio para días fuera del mes */
+}
+
+.rbc-today .rbc-date-cell {
+  color: #1e40af !important; /* Azul oscuro para el día de hoy */
+  font-weight: 700;
+}
+
+.rbc-day-bg {
+  color: #111827 !important;
+}
+
+.rbc-header {
+  color: #111827 !important;
+  font-weight: 600;
+}
+
+/* Estilos para react-big-calendar en dark mode - Colores más suaves */
+.dark .rbc-calendar {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark .rbc-date-cell {
+  color: #e5e7eb !important;
+  font-weight: 500;
+}
+
+.dark .rbc-off-range-bg .rbc-date-cell {
+  color: #6b7280 !important;
+}
+
+.dark .rbc-today .rbc-date-cell {
+  color: #93c5fd !important;
+  font-weight: 700;
+}
+
+.dark .rbc-header {
+  background-color: #374151;
+  border-bottom: 1px solid #4b5563;
+  color: #e5e7eb;
+}
+
+.dark .rbc-day-bg {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+.dark .rbc-off-range-bg {
+  background-color: #111827;
+}
+
+.dark .rbc-today {
+  background-color: #1e40af;
+}
+
+.dark .rbc-toolbar {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
+.dark .rbc-toolbar button {
+  background-color: #4b5563;
+  color: #e5e7eb;
+  border-color: #6b7280;
+}
+
+.dark .rbc-toolbar button:hover {
+  background-color: #6b7280;
+}
+
+.dark .rbc-toolbar button.rbc-active {
+  background-color: #6366f1;
+  color: white;
+}
+
+.dark .rbc-time-view {
+  border-color: #374151;
+}
+
+.dark .rbc-time-header-content {
+  border-color: #374151;
+}
+
+.dark .rbc-time-content {
+  border-color: #374151;
+}
+
+.dark .rbc-time-slot {
+  border-color: #374151;
+}
+
+.dark .rbc-day-slot .rbc-time-slot {
+  border-color: #374151;
+}
+
+.dark .rbc-agenda-view table {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark .rbc-agenda-view table thead {
+  background-color: #374151;
+}
+
+.dark .rbc-agenda-view table tbody tr {
+  border-color: #374151;
+}
+
+.dark .rbc-agenda-view table tbody tr:hover {
+  background-color: #374151;
+}
+

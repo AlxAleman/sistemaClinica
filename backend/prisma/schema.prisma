@@ -1,0 +1,312 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")      // Connection string con pooling (para queries)
+  // directUrl es opcional - si no está definida, Prisma usará DATABASE_URL para migraciones
+  directUrl = env("DIRECT_URL")        // Connection string directa (opcional, para migraciones)
+}
+
+// Modelo de Usuario (para autenticación)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN
+  THERAPIST
+  PATIENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+// Modelo de Paciente
+model Patient {
+  id              String   @id @default(cuid())
+  email           String?  @unique
+  name            String
+  phone           String
+  dui             String?  @unique
+  gender          Gender?
+  photoUrl        String?
+  birthDate       DateTime?
+  address         String?
+  emergencyContact String?
+  emergencyPhone  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  medicalProfile  MedicalProfile?
+  appointments    Appointment[]
+  sessions        TreatmentSession[]
+  evaluations     Evaluation[]
+  treatmentPlans  TreatmentPlan[]
+  documents       MedicalDocument[]
+  prescriptions   Prescription[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([dui])
+}
+
+// Perfil Médico del Paciente
+model MedicalProfile {
+  id                String   @id @default(cuid())
+  patientId         String   @unique
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allergies         String?
+  medicalHistory    String?
+  currentMedications String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Documentos Médicos
+model MedicalDocument {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileUrl     String
+  fileType    String
+  description String?
+  uploadedAt  DateTime @default(now())
+
+  @@index([patientId])
+}
+
+// Terapeutas
+model Therapist {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  phone         String
+  specialization String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  appointments  Appointment[]
+  sessions      TreatmentSession[]
+  availability  TherapistAvailability[]
+  prescriptions Prescription[]
+
+  @@index([email])
+}
+
+// Disponibilidad de Terapeutas
+model TherapistAvailability {
+  id          String   @id @default(cuid())
+  therapistId String
+  therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int      // 0 = Domingo, 1 = Lunes, etc.
+  startTime   String   // HH:mm
+  endTime     String   // HH:mm
+  isAvailable Boolean  @default(true)
+
+  @@index([therapistId])
+}
+
+// Citas
+model Appointment {
+  id              String   @id @default(cuid())
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId     String
+  therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  appointmentDate DateTime
+  duration        Int      @default(60) // en minutos
+  status          AppointmentStatus @default(SCHEDULED)
+  
+  // Google Calendar IDs
+  googleEventClinic  String?
+  googleEventPatient String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([therapistId])
+  @@index([appointmentDate])
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Sesiones de Tratamiento
+model TreatmentSession {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId String
+  therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  sessionDate DateTime
+  duration    Int      // en minutos
+  interventions String? // Descripción de intervenciones
+  progress    String?   // Notas de progreso
+  painLevel   Int?      // Escala 1-10
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([therapistId])
+  @@index([sessionDate])
+}
+
+// Evaluaciones
+model Evaluation {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  evaluationType EvaluationType @default(INITIAL)
+  evaluationDate DateTime
+  rangeOfMotion String?
+  strength     String?
+  painLevel    Int?      // Escala 1-10
+  functionalAssessment String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([evaluationDate])
+}
+
+enum EvaluationType {
+  INITIAL
+  PROGRESS
+  FINAL
+}
+
+// Planes de Tratamiento
+model TreatmentPlan {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  diagnosis   String?
+  goals       String?
+  sessionsPlanned Int
+  sessionsCompleted Int @default(0)
+  totalCost   Float?
+  status      TreatmentPlanStatus @default(DRAFT)
+  approvedByPatient Boolean @default(false)
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+}
+
+enum TreatmentPlanStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// Recordatorios/Notificaciones
+model Reminder {
+  id            String   @id @default(cuid())
+  appointmentId String?
+  patientId     String?
+  type          ReminderType
+  message       String
+  sentAt        DateTime?
+  status        ReminderStatus @default(PENDING)
+  scheduledFor  DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([appointmentId])
+  @@index([patientId])
+  @@index([status])
+}
+
+enum ReminderType {
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER_24H
+  APPOINTMENT_REMINDER_2H
+  TREATMENT_UPDATE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// Pre-Registros desde WhatsApp
+model PreRegistration {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String
+  email       String?
+  message     String?  // Mensaje completo del WhatsApp
+  status      PreRegistrationStatus @default(PENDING)
+  convertedToPatientId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phone])
+  @@index([status])
+}
+
+enum PreRegistrationStatus {
+  PENDING
+  CONTACTED
+  CONVERTED
+  REJECTED
+}
+
+// Recetas Médicas
+model Prescription {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId String?
+  therapist   Therapist? @relation(fields: [therapistId], references: [id], onDelete: SetNull)
+  prescriptionDate DateTime @default(now())
+  diagnosis   String?
+  medications String   // JSON string con array de medicamentos
+  instructions String? // Instrucciones adicionales
+  notes       String?
+  printed     Boolean  @default(false)
+  printedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([therapistId])
+  @@index([prescriptionDate])
+}

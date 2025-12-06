@@ -1,0 +1,81 @@
+import express, { Express } from 'express';
+import cors from 'cors';
+import { env } from './config/env';
+import { corsOptions } from './config/cors';
+import { errorHandler } from './middleware/errorHandler';
+import logger from './middleware/logger';
+import authRoutes from './routes/auth';
+import patientRoutes from './routes/patients';
+import therapistRoutes from './routes/therapists';
+import appointmentRoutes from './routes/appointments';
+import sessionRoutes from './routes/sessions';
+import treatmentPlanRoutes from './routes/treatmentPlans';
+import evaluationRoutes from './routes/evaluations';
+import reportRoutes from './routes/reports';
+import prescriptionRoutes from './routes/prescriptions';
+
+const app: Express = express();
+
+// Middlewares
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '50mb' })); // Aumentar límite para archivos base64
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Logging
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.path}`);
+  next();
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'API de Clínica de Fisioterapia',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      patients: '/api/patients',
+      therapists: '/api/therapists',
+      appointments: '/api/appointments',
+      sessions: '/api/sessions',
+      treatmentPlans: '/api/treatment-plans',
+      evaluations: '/api/evaluations',
+      reports: '/api/reports',
+      prescriptions: '/api/prescriptions'
+    }
+  });
+});
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/therapists', therapistRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/treatment-plans', treatmentPlanRoutes);
+app.use('/api/evaluations', evaluationRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
+
+// Error handler (debe ir al final)
+app.use(errorHandler);
+
+// Iniciar servidor (solo en desarrollo local)
+if (require.main === module) {
+  const PORT = env.PORT || 5000;
+  app.listen(PORT, () => {
+    logger.info(`🚀 Servidor corriendo en puerto ${PORT}`);
+    logger.info(`📝 Ambiente: ${env.NODE_ENV}`);
+    logger.info(`🌐 Frontend URL: ${env.FRONTEND_URL}`);
+  });
+}
+
+// Export para Vercel Serverless Functions
+export default app;
+

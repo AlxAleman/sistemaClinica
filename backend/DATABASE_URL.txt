@@ -1,0 +1,10 @@
+# Configuración de DATABASE_URL para backend/.env
+
+DATABASE_URL="postgresql://postgres:password@localhost:5433/clinica_fisioterapia"
+
+IMPORTANTE: 
+- Usuario: postgres
+- Contraseña: password
+- Puerto: 5433 (porque 5432 está ocupado)
+- Base de datos: clinica_fisioterapia
+
