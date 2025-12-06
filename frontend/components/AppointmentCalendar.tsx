@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
-import "moment/locale/en-gb";
+import "moment/locale/en";
 import { Appointment } from "@/services/appointmentService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguageStore } from "@/store/languageStore";
@@ -14,7 +14,7 @@ if (typeof window !== "undefined") {
   require("react-big-calendar/lib/css/react-big-calendar.css");
 }
 
-const localizer = momentLocalizer(moment);
+// El localizer se creará dinámicamente cuando cambie el idioma
 
 interface AppointmentCalendarProps {
   appointments: Appointment[];
@@ -41,6 +41,7 @@ export default function AppointmentCalendar({
   const [currentView, setCurrentView] = useState<View>(defaultView);
 
   // Configurar locale de moment según el idioma seleccionado
+  // SIEMPRE iniciar en domingo (dow: 0) independientemente del idioma
   useEffect(() => {
     if (language === "es") {
       moment.locale("es", {
@@ -57,7 +58,7 @@ export default function AppointmentCalendar({
         ],
         weekdaysShort: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
         week: {
-          dow: 1, // Lunes es el primer día de la semana
+          dow: 0, // SIEMPRE domingo es el primer día de la semana
         },
       });
     } else {
@@ -75,10 +76,23 @@ export default function AppointmentCalendar({
         ],
         weekdaysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         week: {
-          dow: 0, // Domingo es el primer día de la semana
+          dow: 0, // SIEMPRE domingo es el primer día de la semana
         },
       });
     }
+    // Forzar actualización del calendario
+    setCurrentDate((prev) => new Date(prev.getTime()));
+  }, [language]);
+
+  // Crear localizer dinámicamente con el locale actual
+  const localizer = useMemo(() => {
+    // Asegurar que el locale esté configurado antes de crear el localizer
+    if (language === "es") {
+      moment.locale("es");
+    } else {
+      moment.locale("en");
+    }
+    return momentLocalizer(moment);
   }, [language]);
 
   // Actualizar cuando cambien los props
