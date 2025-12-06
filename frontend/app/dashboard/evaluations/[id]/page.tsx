@@ -195,11 +195,11 @@ export default function EvaluationDetailPage() {
                   <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                     <div
                       className="bg-red-500 h-3 rounded-full transition-all"
-                      style={{ width: `${(evaluation.painLevel / 10) * 100}%` }}
+                      style={{ width: `${((evaluation.painLevel || 0) / 10) * 100}%` }}
                     ></div>
                   </div>
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {evaluation.painLevel}/10
+                    {evaluation.painLevel || 0}/10
                   </span>
                 </div>
               </div>
