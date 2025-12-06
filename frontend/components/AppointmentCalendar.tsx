@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
-import "moment/locale/en";
+// El inglés es el idioma por defecto de moment, no necesita import
 import { Appointment } from "@/services/appointmentService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguageStore } from "@/store/languageStore";
