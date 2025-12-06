@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as reportController from '../controllers/reportController';
 import { authenticate } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
 
 // Todas las rutas requieren autenticación
 router.use(authenticate);

@@ -7,7 +7,7 @@ import {
   updateAppointmentSchema,
 } from '../utils/validators';
 
-const router = Router();
+const router: Router = Router();
 
 // Todas las rutas requieren autenticación
 router.use(authenticate);
