@@ -275,6 +275,19 @@ export default function DashboardLayout({
                           <ThemeToggle />
                         </div>
                       </div>
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setSettingsMenuOpen(false);
+                            logout();
+                            router.push("/login");
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          role="menuitem"
+                        >
+                          {t("common.logout")}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -413,7 +426,7 @@ export default function DashboardLayout({
                 {t("common.prescriptions")}
               </Link>
               <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="px-3 mb-3">
+                <div className="px-3">
                   <div className="text-base font-medium text-gray-800 dark:text-gray-200">
                     {user?.name}
                   </div>
@@ -421,15 +434,6 @@ export default function DashboardLayout({
                     {user?.role}
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    logout();
-                    router.push("/login");
-                  }}
-                  className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  {t("common.logout")}
-                </button>
               </div>
             </div>
           </div>
