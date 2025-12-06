@@ -18,6 +18,12 @@ export const useLanguageStore = create<LanguageState>()(
     }),
     {
       name: "language-storage",
+      // Asegurar que el valor por defecto sea español si no hay valor guardado
+      onRehydrateStorage: () => (state) => {
+        if (state && !state.language) {
+          state.language = "es";
+        }
+      },
     }
   )
 );

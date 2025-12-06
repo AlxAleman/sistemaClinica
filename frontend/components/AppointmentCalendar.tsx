@@ -43,9 +43,41 @@ export default function AppointmentCalendar({
   // Configurar locale de moment según el idioma seleccionado
   useEffect(() => {
     if (language === "es") {
-      moment.locale("es");
+      moment.locale("es", {
+        months: [
+          "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ],
+        monthsShort: [
+          "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+          "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+        ],
+        weekdays: [
+          "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
+        ],
+        weekdaysShort: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+        week: {
+          dow: 1, // Lunes es el primer día de la semana
+        },
+      });
     } else {
-      moment.locale("en");
+      moment.locale("en", {
+        months: [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ],
+        monthsShort: [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ],
+        weekdays: [
+          "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+        ],
+        weekdaysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        week: {
+          dow: 0, // Domingo es el primer día de la semana
+        },
+      });
     }
   }, [language]);
 
@@ -312,6 +344,21 @@ export default function AppointmentCalendar({
           }}
           eventPropGetter={eventStyleGetter}
           selectable
+          formats={{
+            monthHeaderFormat: (date: Date) => {
+              const month = moment(date);
+              return month.format("MMMM YYYY");
+            },
+            dayFormat: (date: Date) => {
+              return moment(date).format("ddd");
+            },
+            dayHeaderFormat: (date: Date) => {
+              return moment(date).format("ddd");
+            },
+            dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) => {
+              return `${moment(start).format("MMM D")} - ${moment(end).format("MMM D, YYYY")}`;
+            },
+          }}
           messages={{
             next: t("common.next"),
             previous: t("common.previous"),

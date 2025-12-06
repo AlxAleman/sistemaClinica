@@ -63,14 +63,14 @@ export default function DashboardLayout({
                 </h1>
               </div>
               {/* Menú desktop */}
-              <div className="hidden md:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-4">
+              <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-3">
                 <Link
                   href="/dashboard"
                   className={`${
                     isActive("/dashboard")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.dashboard")}
                 </Link>
@@ -80,7 +80,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/patients")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.patients")}
                 </Link>
@@ -90,7 +90,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/appointments")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.appointments")}
                 </Link>
@@ -100,7 +100,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/sessions")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.sessions")}
                 </Link>
@@ -110,7 +110,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/treatment-plans")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.treatmentPlans")}
                 </Link>
@@ -120,7 +120,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/evaluations")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.evaluations")}
                 </Link>
@@ -130,7 +130,7 @@ export default function DashboardLayout({
                     isActive("/dashboard/reports")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.reports")}
                 </Link>
@@ -140,17 +140,19 @@ export default function DashboardLayout({
                     isActive("/dashboard/prescriptions")
                       ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                       : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 pt-1 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap`}
+                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap`}
                 >
                   {t("common.prescriptions")}
                 </Link>
               </div>
             </div>
             {/* Controles derecho - Desktop */}
-            <div className="hidden md:flex items-center gap-2 lg:gap-4">
-              <LanguageToggle />
-              <ThemeToggle />
-              <span className="hidden lg:inline text-xs xl:text-sm text-gray-700 dark:text-gray-300 mr-2 xl:mr-4">
+            <div className="hidden md:flex items-center gap-2 lg:gap-3 xl:gap-4">
+              <div className="flex items-center gap-2">
+                <LanguageToggle />
+                <ThemeToggle />
+              </div>
+              <span className="hidden lg:inline text-xs xl:text-sm text-gray-700 dark:text-gray-300 truncate max-w-[150px] xl:max-w-none">
                 {user?.name} ({user?.role})
               </span>
               <button
@@ -158,7 +160,7 @@ export default function DashboardLayout({
                   logout();
                   router.push("/login");
                 }}
-                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
+                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white px-3 xl:px-4 py-2 rounded-md text-xs xl:text-sm font-medium transition-colors whitespace-nowrap"
               >
                 {t("common.logout")}
               </button>
