@@ -25,7 +25,22 @@ export default function NewAppointmentPage() {
     therapistId: "",
     appointmentDate: "",
     duration: 60,
-  });
+  } as CreateAppointmentData);
+
+  // Actualizar formData cuando cambia el tipo
+  useEffect(() => {
+    if (type === "appointment") {
+      setFormData((prev) => ({
+        ...prev,
+        appointmentDate: (prev as any).sessionDate || (prev as any).appointmentDate || "",
+      } as CreateAppointmentData));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        sessionDate: (prev as any).appointmentDate || (prev as any).sessionDate || "",
+      } as CreateSessionData));
+    }
+  }, [type]);
 
   useEffect(() => {
     fetchData();
@@ -37,7 +52,11 @@ export default function NewAppointmentPage() {
       const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
         .toISOString()
         .slice(0, 16);
-      setFormData((prev) => ({ ...prev, appointmentDate: formattedDate }));
+      if (type === "appointment") {
+        setFormData((prev) => ({ ...prev, appointmentDate: formattedDate } as CreateAppointmentData));
+      } else {
+        setFormData((prev) => ({ ...prev, sessionDate: formattedDate } as CreateSessionData));
+      }
     }
   }, [searchParams]);
 
@@ -65,19 +84,25 @@ export default function NewAppointmentPage() {
     setLoading(true);
 
     try {
-      // Convertir fecha local a ISO string
-      const date = new Date(formData.appointmentDate);
-      const isoDate = date.toISOString();
-
       if (type === "appointment") {
+        // Convertir fecha local a ISO string para cita
+        const appointmentData = formData as CreateAppointmentData;
+        const date = new Date(appointmentData.appointmentDate);
+        const isoDate = date.toISOString();
+
         await appointmentService.create({
-          ...(formData as CreateAppointmentData),
+          ...appointmentData,
           appointmentDate: isoDate,
         });
         toast.success("Cita creada exitosamente");
       } else {
+        // Convertir fecha local a ISO string para sesión
+        const sessionData = formData as CreateSessionData;
+        const date = new Date(sessionData.sessionDate);
+        const isoDate = date.toISOString();
+
         await sessionService.create({
-          ...(formData as CreateSessionData),
+          ...sessionData,
           sessionDate: isoDate,
         });
         toast.success("Sesión creada exitosamente");
@@ -201,10 +226,16 @@ export default function NewAppointmentPage() {
             <input
               type="datetime-local"
               required
-              value={formData.appointmentDate}
-              onChange={(e) =>
-                setFormData({ ...formData, appointmentDate: e.target.value })
-              }
+              value={type === "appointment" 
+                ? (formData as CreateAppointmentData).appointmentDate || ""
+                : (formData as CreateSessionData).sessionDate || ""}
+              onChange={(e) => {
+                if (type === "appointment") {
+                  setFormData({ ...formData, appointmentDate: e.target.value } as CreateAppointmentData);
+                } else {
+                  setFormData({ ...formData, sessionDate: e.target.value } as CreateSessionData);
+                }
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
