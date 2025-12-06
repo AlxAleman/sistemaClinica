@@ -168,7 +168,7 @@ export default function SessionDetailPage() {
                     <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className="bg-red-600 dark:bg-red-500 h-2 rounded-full"
-                        style={{ width: `${(session.painLevel / 10) * 100}%` }}
+                        style={{ width: `${((session.painLevel || 0) / 10) * 100}%` }}
                       ></div>
                     </div>
                   </div>
