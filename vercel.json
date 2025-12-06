@@ -1,16 +1,20 @@
 {
   "version": 2,
-  "installCommand": "cd frontend && npm install && cd ../backend && npm install",
+  "installCommand": "npm install",
   "builds": [
     {
       "src": "frontend/package.json",
-      "use": "@vercel/next"
+      "use": "@vercel/next",
+      "config": {
+        "installCommand": "cd frontend && npm install --legacy-peer-deps"
+      }
     },
     {
       "src": "backend/src/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["backend/prisma/**"]
+        "includeFiles": ["backend/prisma/**"],
+        "installCommand": "cd backend && npm install"
       }
     }
   ],
@@ -28,4 +32,3 @@
     "NODE_ENV": "production"
   }
 }
-
