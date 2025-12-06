@@ -206,36 +206,45 @@ export default function AppointmentsPage() {
           ) : (
             <ul className="divide-y divide-gray-200 dark:divide-gray-700">
               {appointments.map((appointment) => (
-                <li key={appointment.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                <li key={appointment.id} className="px-3 sm:px-4 py-3 sm:py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <p className="text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                           {appointment.patient?.name || t("appointments.unknownPatient")}
                         </p>
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                          className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(
                             appointment.status
                           )}`}
                         >
                           {appointment.status === "SCHEDULED" ? t("appointments.scheduled") : appointment.status === "CONFIRMED" ? t("appointments.confirmed") : appointment.status === "COMPLETED" ? t("appointments.completed") : appointment.status === "CANCELLED" ? t("appointments.cancelled") : t("appointments.noShowText")}
                         </span>
                       </div>
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                            👨‍⚕️ {appointment.therapist?.name || "Terapeuta desconocido"}
+                      <div className="mt-1.5 sm:mt-2 space-y-1 sm:space-y-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-0">
+                          <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                            <span className="mr-1">👨‍⚕️</span>
+                            <span className="truncate">{appointment.therapist?.name || t("appointments.unknownTherapist")}</span>
                           </p>
-                          <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                            📅 {new Date(appointment.appointmentDate).toLocaleString("es-ES")}
+                          <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 whitespace-nowrap">
+                            <span className="mr-1">📅</span>
+                            {new Date(appointment.appointmentDate).toLocaleString("es-ES", { 
+                              day: "2-digit", 
+                              month: "2-digit", 
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
                           </p>
-                          <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                            ⏱️ {appointment.duration} min
+                          <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 whitespace-nowrap">
+                            <span className="mr-1">⏱️</span>
+                            {appointment.duration} min
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                       <button
                         onClick={() => {
                           // Guardar el estado actual del calendario en la URL
@@ -243,15 +252,16 @@ export default function AppointmentsPage() {
                           const currentDate = calendarDate.toISOString();
                           router.push(`/dashboard/appointments/${appointment.id}?returnView=${currentView}&returnDate=${encodeURIComponent(currentDate)}`);
                         }}
-                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
+                        className="inline-flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors font-medium"
                       >
                         {t("appointments.view")}
                       </button>
                       <button
                         onClick={() => handleDeleteClick(appointment.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                        className="inline-flex items-center justify-center p-1.5 sm:p-2 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        title={t("appointments.delete")}
                       >
-                        {t("appointments.delete")}
+                        <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                       </button>
                     </div>
                   </div>

@@ -144,67 +144,71 @@ export default function TreatmentPlansPage() {
                 <li key={plan.id}>
                   <Link
                     href={`/dashboard/treatment-plans/${plan.id}`}
-                    className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 sm:px-6 transition-colors"
+                    className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-3 sm:px-4 py-3 sm:py-4 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <p className="text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                             {plan.title}
                           </p>
                           <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full flex-shrink-0 ${getStatusColor(
                               plan.status
                             )}`}
                           >
                             {getStatusText(plan.status)}
                           </span>
                           {plan.approvedByPatient && (
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                              ✓ Aprobado por paciente
+                            <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 flex-shrink-0">
+                              ✓ Aprobado
                             </span>
                           )}
                         </div>
-                        <div className="mt-2 sm:flex sm:justify-between">
-                          <div className="sm:flex">
-                            <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                              <CalendarIcon className="h-4 w-4 mr-1" />{" "}
-                              {plan.patient?.name || t("treatmentPlans.unknownPatient")}
+                        <div className="mt-1.5 sm:mt-2 space-y-1 sm:space-y-0">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-0">
+                            <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                              <span className="truncate">{plan.patient?.name || t("treatmentPlans.unknownPatient")}</span>
                             </p>
-                            <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                              📋 {plan.sessionsCompleted}/{plan.sessionsPlanned} {t("treatmentPlans.sessions")}
+                            <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 whitespace-nowrap">
+                              <span className="mr-1">📋</span>
+                              {plan.sessionsCompleted}/{plan.sessionsPlanned} {t("treatmentPlans.sessions")}
                             </p>
                             {plan.totalCost && (
-                              <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                                💰 ${plan.totalCost.toFixed(2)}
+                              <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 whitespace-nowrap">
+                                <span className="mr-1">💰</span>
+                                ${plan.totalCost.toFixed(2)}
                               </p>
                             )}
                           </div>
                         </div>
                         {plan.description && (
-                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                          <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                             {plan.description}
                           </p>
                         )}
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             router.push(`/dashboard/treatment-plans/${plan.id}/edit`);
                           }}
-                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
+                          className="inline-flex items-center justify-center p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors"
+                          title={t("common.edit")}
                         >
-                          <EditIcon className="h-4 w-4" />
+                          <EditIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             handleDeleteClick(plan.id);
                           }}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                          className="inline-flex items-center justify-center p-1.5 sm:p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title={t("common.delete")}
                         >
-                          <TrashIcon className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </button>
                       </div>
                     </div>

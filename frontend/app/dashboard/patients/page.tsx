@@ -147,48 +147,48 @@ export default function PatientsPage() {
                 <li key={patient.id}>
                   <Link
                     href={`/dashboard/patients/${patient.id}`}
-                    className="block hover:bg-gray-50 px-4 py-4 sm:px-6"
+                    className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-3 sm:px-4 py-3 sm:py-4 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                         <Avatar
                           photoUrl={patient.photoUrl}
                           gender={patient.gender}
                           name={patient.name}
                           size="md"
                         />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-indigo-600 truncate">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                             {patient.name}
                           </p>
-                          <div className="mt-2 sm:flex sm:justify-between">
-                            <div className="sm:flex">
+                          <div className="mt-1.5 sm:mt-2 space-y-1 sm:space-y-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
                                 {patient.email && (
-                                  <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                    <EmailIcon className="h-4 w-4 mr-1" />
-                                    {patient.email}
+                                  <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                                    <EmailIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                                    <span className="truncate">{patient.email}</span>
                                   </p>
                                 )}
-                                <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                                  <PhoneIcon className="h-4 w-4 mr-1" />
-                                  {patient.phone}
+                                <p className={`flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 ${patient.email ? 'sm:ml-4' : ''} truncate`}>
+                                  <PhoneIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                                  <span className="truncate">{patient.phone}</span>
                                 </p>
                                 {patient.dui && (
-                                  <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                                    <IdCardIcon className="h-4 w-4 mr-1" />
-                                    {patient.dui}
+                                  <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 truncate">
+                                    <IdCardIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                                    <span className="truncate">{patient.dui}</span>
                                   </p>
                                 )}
                             </div>
-                              <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0">
+                              <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                 {patient._count && (
                                   <>
-                                    <span className="mr-4 flex items-center">
-                                      <CalendarIcon className="h-4 w-4 mr-1" />
+                                    <span className="flex items-center whitespace-nowrap">
+                                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
                                       {patient._count.appointments} {t("patients.appointmentsCount")}
                                     </span>
-                                    <span className="flex items-center">
-                                      <HospitalIcon className="h-4 w-4 mr-1" />
+                                    <span className="flex items-center whitespace-nowrap">
+                                      <HospitalIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
                                       {patient._count.sessions} {t("patients.sessionsCount")}
                                     </span>
                                   </>
@@ -197,28 +197,28 @@ export default function PatientsPage() {
                           </div>
                         </div>
                       </div>
-                          <div className="flex gap-2 ml-4">
+                          <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
                                 router.push(`/dashboard/patients/${patient.id}/edit`);
                               }}
-                              className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
-                              title="Editar paciente"
+                              className="inline-flex items-center justify-center p-1.5 sm:p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors"
+                              title={t("patients.edit")}
                             >
-                              <EditIcon className="h-4 w-4" />
-                              {t("patients.edit")}
+                              <EditIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                              <span className="hidden sm:inline ml-1 text-xs sm:text-sm font-medium">{t("patients.edit")}</span>
                             </button>
                             <button
                               onClick={(e) => {
                                 e.preventDefault();
                                 handleDeleteClick(patient.id, patient.name);
                               }}
-                              className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                              className="inline-flex items-center justify-center p-1.5 sm:p-2 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                               title={t("patients.delete")}
                             >
-                              <TrashIcon className="h-4 w-4" />
-                              {t("patients.delete")}
+                              <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                              <span className="hidden sm:inline ml-1 text-xs sm:text-sm font-medium">{t("patients.delete")}</span>
                             </button>
                           </div>
                     </div>

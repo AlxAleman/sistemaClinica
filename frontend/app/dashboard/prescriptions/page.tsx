@@ -63,7 +63,7 @@ export default function PrescriptionsPage() {
   };
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <div className="px-3 sm:px-4 py-4 sm:py-6">
       <Breadcrumbs
         items={[
           { label: "Dashboard", href: "/dashboard" },
@@ -71,14 +71,15 @@ export default function PrescriptionsPage() {
         ]}
       />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Recetas Médicas</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Recetas Médicas</h1>
         <Link
           href="/dashboard/prescriptions/new"
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
         >
           <PlusIcon className="h-4 w-4" />
-          Nueva Receta
+          <span className="hidden sm:inline">Nueva Receta</span>
+          <span className="sm:hidden">Nueva</span>
         </Link>
       </div>
 
@@ -105,70 +106,74 @@ export default function PrescriptionsPage() {
                 <li key={prescription.id}>
                   <Link
                     href={`/dashboard/prescriptions/${prescription.id}`}
-                    className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-4 py-4 sm:px-6 transition-colors"
+                    className="block hover:bg-gray-50 dark:hover:bg-gray-700/50 px-3 sm:px-4 py-3 sm:py-4 transition-colors"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <p className="text-xs sm:text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
                             {prescription.patient?.name || "Paciente desconocido"}
                           </p>
                           {prescription.printed && (
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 flex-shrink-0">
                               Impresa
                             </span>
                           )}
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            {prescription.medications.length} medicamento{prescription.medications.length !== 1 ? 's' : ''}
+                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 flex-shrink-0">
+                            {prescription.medications.length} med.
                           </span>
                         </div>
-                        <div className="mt-2 sm:flex sm:justify-between">
-                          <div className="sm:flex">
-                            <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                              <CalendarIcon className="h-4 w-4 mr-1" />{" "}
+                        <div className="mt-1.5 sm:mt-2 space-y-1 sm:space-y-0">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-0">
+                            <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                              <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
                               {moment(prescription.prescriptionDate).format("DD/MM/YYYY")}
                             </p>
                             {prescription.therapist && (
-                              <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                                👨‍⚕️ {prescription.therapist.name}
+                              <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 truncate">
+                                <span className="mr-1">👨‍⚕️</span>
+                                <span className="truncate">{prescription.therapist.name}</span>
                               </p>
                             )}
                             {prescription.diagnosis && (
-                              <p className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 sm:mt-0 sm:ml-6">
-                                📋 {prescription.diagnosis.substring(0, 40)}...
+                              <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 truncate">
+                                <span className="mr-1">📋</span>
+                                <span className="truncate">{prescription.diagnosis.substring(0, 30)}...</span>
                               </p>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             router.push(`/dashboard/prescriptions/${prescription.id}`);
                           }}
-                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
+                          className="inline-flex items-center justify-center p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors"
                           title="Ver/Imprimir"
                         >
-                          <PrinterIcon className="h-4 w-4" />
+                          <PrinterIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             router.push(`/dashboard/prescriptions/${prescription.id}/edit`);
                           }}
-                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
+                          className="inline-flex items-center justify-center p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors"
+                          title="Editar"
                         >
-                          <EditIcon className="h-4 w-4" />
+                          <EditIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             handleDeleteClick(prescription.id);
                           }}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors"
+                          className="inline-flex items-center justify-center p-1.5 sm:p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="Eliminar"
                         >
-                          <TrashIcon className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </button>
                       </div>
                     </div>
