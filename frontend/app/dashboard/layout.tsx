@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { t } = useTranslation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Determinar qué enlace está activo
   const isActive = (path: string) => {
@@ -55,13 +56,14 @@ export default function DashboardLayout({
       <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex">
+            <div className="flex items-center flex-1">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                <h1 className="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400">
                   Clínica Gestor
                 </h1>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-2 lg:space-x-4">
+              {/* Menú desktop */}
+              <div className="hidden md:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-4">
                 <Link
                   href="/dashboard"
                   className={`${
@@ -144,10 +146,11 @@ export default function DashboardLayout({
                 </Link>
               </div>
             </div>
-            <div className="flex items-center gap-2 lg:gap-4">
+            {/* Controles derecho - Desktop */}
+            <div className="hidden md:flex items-center gap-2 lg:gap-4">
               <LanguageToggle />
               <ThemeToggle />
-              <span className="hidden md:inline text-xs lg:text-sm text-gray-700 dark:text-gray-300 mr-2 lg:mr-4">
+              <span className="hidden lg:inline text-xs xl:text-sm text-gray-700 dark:text-gray-300 mr-2 xl:mr-4">
                 {user?.name} ({user?.role})
               </span>
               <button
@@ -155,13 +158,170 @@ export default function DashboardLayout({
                   logout();
                   router.push("/login");
                 }}
-                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap"
               >
                 {t("common.logout")}
               </button>
             </div>
+            {/* Controles derecho - Mobile */}
+            <div className="flex md:hidden items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                aria-expanded="false"
+              >
+                <span className="sr-only">Abrir menú principal</span>
+                {mobileMenuOpen ? (
+                  <svg
+                    className="block h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="block h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+        {/* Menú móvil */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 dark:border-gray-700">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.dashboard")}
+              </Link>
+              <Link
+                href="/dashboard/patients"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/patients")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.patients")}
+              </Link>
+              <Link
+                href="/dashboard/appointments"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/appointments")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.appointments")}
+              </Link>
+              <Link
+                href="/dashboard/sessions"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/sessions")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.sessions")}
+              </Link>
+              <Link
+                href="/dashboard/treatment-plans"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/treatment-plans")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.treatmentPlans")}
+              </Link>
+              <Link
+                href="/dashboard/evaluations"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/evaluations")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.evaluations")}
+              </Link>
+              <Link
+                href="/dashboard/reports"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/reports")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.reports")}
+              </Link>
+              <Link
+                href="/dashboard/prescriptions"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`${
+                  isActive("/dashboard/prescriptions")
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                } block px-3 py-2 rounded-md text-base font-medium`}
+              >
+                {t("common.prescriptions")}
+              </Link>
+              <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-3 mb-3">
+                  <div className="text-base font-medium text-gray-800 dark:text-gray-200">
+                    {user?.name}
+                  </div>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {user?.role}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    logout();
+                    router.push("/login");
+                  }}
+                  className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  {t("common.logout")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <ErrorBoundary>{children}</ErrorBoundary>

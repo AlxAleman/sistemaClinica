@@ -3,8 +3,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import moment from "moment";
+import "moment/locale/es";
+import "moment/locale/en-gb";
 import { Appointment } from "@/services/appointmentService";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useLanguageStore } from "@/store/languageStore";
 
 // Importar CSS del calendario
 if (typeof window !== "undefined") {
@@ -33,8 +36,18 @@ export default function AppointmentCalendar({
   onNavigate,
 }: AppointmentCalendarProps) {
   const { t } = useTranslation();
+  const { language } = useLanguageStore();
   const [currentDate, setCurrentDate] = useState(defaultDate);
   const [currentView, setCurrentView] = useState<View>(defaultView);
+
+  // Configurar locale de moment según el idioma seleccionado
+  useEffect(() => {
+    if (language === "es") {
+      moment.locale("es");
+    } else {
+      moment.locale("en");
+    }
+  }, [language]);
 
   // Actualizar cuando cambien los props
   useEffect(() => {
