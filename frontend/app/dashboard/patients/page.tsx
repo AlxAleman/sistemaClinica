@@ -81,7 +81,7 @@ export default function PatientsPage() {
   };
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <div className="px-3 sm:px-4 py-4 sm:py-6">
       <Breadcrumbs
         items={[
           { label: t("common.dashboard"), href: "/dashboard" },
@@ -89,29 +89,30 @@ export default function PatientsPage() {
         ]}
       />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("patients.title")}</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t("patients.title")}</h1>
         <Link
           href="/dashboard/patients/new"
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
         >
           <PlusIcon className="h-4 w-4" />
-          {t("patients.newPatient")}
+          <span className="hidden sm:inline">{t("patients.newPatient")}</span>
+          <span className="sm:hidden">{t("common.create")}</span>
         </Link>
       </div>
 
       {/* Búsqueda */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <SearchIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
           </div>
           <input
             type="text"
             placeholder={t("patients.searchPlaceholder")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="block w-full pl-9 sm:pl-10 pr-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
       </div>

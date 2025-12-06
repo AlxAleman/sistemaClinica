@@ -72,12 +72,12 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center flex-1">
+      <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex justify-between h-14 sm:h-16">
+            <div className="flex items-center flex-1 min-w-0">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-indigo-600 dark:text-indigo-400 truncate">
                   Clínica Gestor
                 </h1>
               </div>
@@ -457,7 +457,7 @@ export default function DashboardLayout({
           </div>
         )}
       </nav>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
     </div>

@@ -145,62 +145,62 @@ export default function DashboardPage() {
   }
 
   return (
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="px-4 py-4 sm:px-6 sm:py-6">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
               {t("dashboard.welcome")}, {user?.name}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
               {t("dashboard.subtitle")}
             </p>
           </div>
 
       {/* Estadísticas Generales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <Link
           href="/dashboard/patients"
-          className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-all"
+          className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-lg transition-all"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 truncate">
                 {t("dashboard.totalPatients")}
               </h2>
-              <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalPatients}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalPatients}</p>
             </div>
-            <div className="text-indigo-600 dark:text-indigo-400">
-              <UsersIcon className="h-8 w-8" />
+            <div className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">
+              <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8" />
             </div>
           </div>
         </Link>
 
         <Link
           href="/dashboard/appointments"
-          className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-all"
+          className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-lg transition-all"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 truncate">
                 {t("dashboard.totalAppointments")}
               </h2>
-              <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalAppointments}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalAppointments}</p>
             </div>
-            <div className="text-indigo-600 dark:text-indigo-400">
-              <CalendarIcon className="h-8 w-8" />
+            <div className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">
+              <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8" />
             </div>
           </div>
         </Link>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow sm:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 truncate">
                 {t("dashboard.totalSessions")}
               </h2>
-              <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalSessions}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalSessions}</p>
             </div>
-            <div className="text-indigo-600 dark:text-indigo-400">
-              <HospitalIcon className="h-8 w-8" />
+            <div className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">
+              <HospitalIcon className="h-6 w-6 sm:h-8 sm:w-8" />
             </div>
           </div>
         </div>
@@ -208,72 +208,72 @@ export default function DashboardPage() {
 
       {/* KPIs Avanzados */}
       {kpis && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {t("dashboard.activePatients")}
                 </h3>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                   {kpis.activePatients}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {t("dashboard.of")} {kpis.totalPatients} {t("dashboard.total")}
                 </p>
               </div>
-              <UsersIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400 flex-shrink-0 ml-2" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {t("dashboard.attendanceRate")}
                 </h3>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {kpis.attendanceRate.toFixed(1)}%
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {t("dashboard.last30Days")}
                 </p>
               </div>
-              <CheckIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 ml-2" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {t("dashboard.monthlyRevenue")}
                 </h3>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
                   ${kpis.revenue.month.toFixed(2)}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
                   {t("dashboard.totalRevenue")}: ${kpis.revenue.total.toFixed(2)}
                 </p>
               </div>
-              <ChartBarIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <ChartBarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400 flex-shrink-0 ml-2" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {t("dashboard.weekAppointments")}
                 </h3>
-                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                <p className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                   {kpis.weekAppointments}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {t("dashboard.sessions")}: {kpis.weekSessions}
                 </p>
               </div>
-              <CalendarIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2" />
             </div>
           </div>
         </div>
@@ -281,13 +281,13 @@ export default function DashboardPage() {
 
       {/* Gráficos */}
       {kpis && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* Gráfico de Citas por Estado */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
               {t("dashboard.appointmentsByStatus")}
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
               <PieChart>
                 <Pie
                   data={[
@@ -321,11 +321,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Gráfico de Actividad Temporal */}
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
               {t("dashboard.recentActivity")}
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
               <BarChart
                 data={[
                   { name: t("dashboard.today"), citas: kpis.todayAppointments, sesiones: kpis.todaySessions },
@@ -353,9 +353,9 @@ export default function DashboardPage() {
       )}
 
       {/* Selector de Fecha y Estadísticas del Día */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow mb-6 transition-colors">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+      <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow mb-4 sm:mb-6 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-3">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
             {t("dashboard.dayStats")}
           </h2>
           <div className="flex items-center gap-2">
@@ -363,12 +363,12 @@ export default function DashboardPage() {
               type="date"
               value={moment(selectedDate).format("YYYY-MM-DD")}
               onChange={(e) => setSelectedDate(new Date(e.target.value))}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="flex-1 sm:flex-none px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             {!isToday && (
               <button
                 onClick={() => setSelectedDate(new Date())}
-                className="px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors whitespace-nowrap"
               >
                 {t("common.today")}
               </button>
@@ -376,37 +376,37 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
           <div className="text-center">
-            <p className="text-2xl font-bold text-indigo-600">{dayStats.appointments}</p>
-            <p className="text-sm text-gray-600">{t("dashboard.totalCitas")}</p>
+            <p className="text-xl sm:text-2xl font-bold text-indigo-600">{dayStats.appointments}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.totalCitas")}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{dayStats.confirmed}</p>
-            <p className="text-sm text-gray-600">{t("dashboard.confirmed")}</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600">{dayStats.confirmed}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.confirmed")}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{dayStats.scheduled}</p>
-            <p className="text-sm text-gray-600">{t("dashboard.scheduled")}</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">{dayStats.scheduled}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.scheduled")}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-600">{dayStats.completed}</p>
-            <p className="text-sm text-gray-600">{t("dashboard.completed")}</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400">{dayStats.completed}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.completed")}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">{dayStats.cancelled}</p>
-            <p className="text-sm text-gray-600">{t("dashboard.cancelled")}</p>
+            <p className="text-xl sm:text-2xl font-bold text-red-600">{dayStats.cancelled}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.cancelled")}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">{dayStats.sessions}</p>
-            <p className="text-sm text-gray-600">{t("dashboard.sessions")}</p>
+            <p className="text-xl sm:text-2xl font-bold text-purple-600">{dayStats.sessions}</p>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.sessions")}</p>
           </div>
         </div>
 
         {/* Lista de citas del día seleccionado */}
         {todayAppointments.length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+          <div className="mt-4 sm:mt-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
               {t("dashboard.appointmentsOf")} {moment(selectedDate).format("DD/MM/YYYY")}
             </h3>
             <div className="space-y-2">
@@ -414,14 +414,14 @@ export default function DashboardPage() {
                 <Link
                   key={appointment.id}
                   href={`/dashboard/appointments/${appointment.id}`}
-                  className="block p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="block p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
-                        {appointment.patient?.name || "Paciente desconocido"}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {appointment.patient?.name || t("patients.unknownPatient")}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                         {moment(appointment.appointmentDate).format("HH:mm")} - {appointment.therapist?.name}
                       </p>
                     </div>
@@ -460,11 +460,11 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Próximas Citas */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
               {t("dashboard.upcomingAppointments")}
             </h2>
             <Link
@@ -480,14 +480,14 @@ export default function DashboardPage() {
                 <Link
                   key={appointment.id}
                   href={`/dashboard/appointments/${appointment.id}`}
-                  className="block p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="block p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
                         {appointment.patient?.name || t("patients.unknownPatient")}
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                         {moment(appointment.appointmentDate).format("DD/MM/YYYY HH:mm")} - {appointment.therapist?.name}
                       </p>
                     </div>
@@ -512,42 +512,42 @@ export default function DashboardPage() {
         </div>
 
         {/* Estadísticas de la Semana */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
             {t("dashboard.thisWeek")}
           </h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{t("dashboard.totalAppointmentsWeek")}</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{weekStats.appointments}</p>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.totalAppointmentsWeek")}</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{weekStats.appointments}</p>
               </div>
-              <div className="text-blue-600 dark:text-blue-400">
-                <CalendarIcon className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{t("dashboard.confirmed")}</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{weekStats.confirmed}</p>
-              </div>
-              <div className="text-green-600 dark:text-green-400">
-                <CheckIcon className="h-6 w-6" />
+              <div className="text-blue-600 dark:text-blue-400 flex-shrink-0 ml-2">
+                <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{t("dashboard.completed")}</p>
-                <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{weekStats.completed}</p>
+            <div className="flex items-center justify-between p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.confirmed")}</p>
+                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{weekStats.confirmed}</p>
               </div>
-              <div className="text-gray-600 dark:text-gray-400">
-                <CheckIcon className="h-6 w-6" />
+              <div className="text-green-600 dark:text-green-400 flex-shrink-0 ml-2">
+                <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.completed")}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400">{weekStats.completed}</p>
+              </div>
+              <div className="text-gray-600 dark:text-gray-400 flex-shrink-0 ml-2">
+                <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
             </div>
           </div>
           <Link
             href="/dashboard/appointments"
-            className="mt-4 inline-block w-full text-center px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-800 text-sm font-medium transition-colors"
+            className="mt-3 sm:mt-4 inline-block w-full text-center px-3 sm:px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-800 text-xs sm:text-sm font-medium transition-colors"
           >
             {t("dashboard.seeFullCalendar")}
           </Link>

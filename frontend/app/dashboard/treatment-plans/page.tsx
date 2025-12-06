@@ -101,7 +101,7 @@ export default function TreatmentPlansPage() {
   };
 
   return (
-    <div className="px-4 py-6 sm:px-0">
+    <div className="px-3 sm:px-4 py-4 sm:py-6">
       <Breadcrumbs
         items={[
           { label: t("common.dashboard"), href: "/dashboard" },
@@ -109,14 +109,15 @@ export default function TreatmentPlansPage() {
         ]}
       />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{t("treatmentPlans.title")}</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t("treatmentPlans.title")}</h1>
         <Link
           href="/dashboard/treatment-plans/new"
-          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
         >
           <PlusIcon className="h-4 w-4" />
-          {t("treatmentPlans.newPlan")}
+          <span className="hidden sm:inline">{t("treatmentPlans.newPlan")}</span>
+          <span className="sm:hidden">{t("common.create")}</span>
         </Link>
       </div>
 
