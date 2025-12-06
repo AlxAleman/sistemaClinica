@@ -91,11 +91,11 @@ export default function EvaluationComparisonPage() {
     });
   }
   if (comparison.progress && comparison.progress.length > 0) {
-    comparison.progress.forEach((eval, index) => {
+    comparison.progress.forEach((evaluation, index) => {
       painData.push({
         name: `Progreso ${index + 1}`,
-        dolor: eval.painLevel || 0,
-        fecha: moment(eval.evaluationDate).format("DD/MM/YYYY"),
+        dolor: evaluation.painLevel || 0,
+        fecha: moment(evaluation.evaluationDate).format("DD/MM/YYYY"),
       });
     });
   }
