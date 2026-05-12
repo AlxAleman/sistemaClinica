@@ -364,7 +364,7 @@ export default function PaymentsPage() {
             No hay pagos registrados
           </p>
           <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
-            Registra el primer pago haciendo clic en "Registrar Pago"
+            Registra el primer pago haciendo clic en &quot;Registrar Pago&quot;
           </p>
         </div>
       ) : (
