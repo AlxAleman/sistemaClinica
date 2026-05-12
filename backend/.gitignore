@@ -27,7 +27,7 @@ npm-debug.log*
 Thumbs.db
 
 # Prisma
-prisma/migrations/
+# prisma/migrations/ -- necesario para deployar en Railway con migrate deploy
 
 # Google credentials
 google-credentials.json
