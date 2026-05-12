@@ -1102,13 +1102,6 @@ export default function PatientDetailPage() {
                   <span className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-sm">🗂️</span>
                   Historial de Sesiones
                 </h2>
-                <Link
-                  href={`/dashboard/sessions/new?patientId=${id}`}
-                  className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                >
-                  <PlusIcon className="h-3.5 w-3.5" />
-                  Nueva Sesión
-                </Link>
               </div>
               {loadingSessions ? (
                 <LoadingSpinner />
@@ -1118,10 +1111,9 @@ export default function PatientDetailPage() {
                 <>
                   <div className="space-y-3">
                     {sessions.slice(0, 8).map((session) => (
-                      <Link
+                      <div
                         key={session.id}
-                        href={`/dashboard/sessions/${session.id}`}
-                        className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-all group"
+                        className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700"
                       >
                         <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400">
                           <span className="text-xs font-bold leading-none">
@@ -1154,17 +1146,13 @@ export default function PatientDetailPage() {
                             </p>
                           )}
                         </div>
-                        <span className="text-gray-300 group-hover:text-indigo-400 transition-colors flex-shrink-0 mt-1">→</span>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                   {sessions.length > 8 && (
-                    <Link
-                      href={`/dashboard/sessions?patientId=${id}`}
-                      className="block mt-3 text-center text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors"
-                    >
-                      Ver todas las sesiones ({sessions.length}) →
-                    </Link>
+                    <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
+                      Mostrando 8 de {sessions.length} sesiones. Ver el resto en la pestaña Tratamiento.
+                    </p>
                   )}
                 </>
               )}
