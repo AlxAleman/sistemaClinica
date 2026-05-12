@@ -1,37 +1,25 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")      // Connection string con pooling (para queries)
-  // directUrl es opcional - si no está definida, Prisma usará DATABASE_URL para migraciones
-  directUrl = env("DIRECT_URL")        // Connection string directa (opcional, para migraciones)
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// Modelo de Usuario (para autenticación)
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      UserRole @default(ADMIN)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([email])
-}
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
 
 enum UserRole {
   ADMIN
   THERAPIST
   PATIENT
+  RECEPCION
+  CONTABILIDAD
+  SUPERVISOR
+  EXTERNAL_THERAPIST
 }
 
 enum Gender {
@@ -40,50 +28,206 @@ enum Gender {
   OTHER
 }
 
-// Modelo de Paciente
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum TreatmentPlanStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DiagnosisStatus {
+  ACTIVE
+  RESOLVED
+  CHRONIC
+}
+
+enum AttendanceStatus {
+  PENDING
+  ATTENDED
+  NOT_ATTENDED
+  RESCHEDULED
+}
+
+enum PaymentMethod {
+  CASH
+  POS
+  TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  NOT_REQUESTED
+  REQUESTED
+  GENERATED
+  CANCELLED
+}
+
+enum EvaluationType {
+  INITIAL
+  PROGRESS
+  FINAL
+}
+
+// ─────────────────────────────────────────────
+// USUARIO
+// ─────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  role       UserRole @default(ADMIN)
+  therapistId String? // Vincula usuario con perfil de terapista
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([email])
+}
+
+// ─────────────────────────────────────────────
+// PACIENTE
+// ─────────────────────────────────────────────
+
 model Patient {
-  id              String   @id @default(cuid())
-  email           String?  @unique
-  name            String
-  phone           String
-  dui             String?  @unique
-  gender          Gender?
-  photoUrl        String?
-  birthDate       DateTime?
-  address         String?
+  id               String    @id @default(cuid())
+  email            String?   @unique
+  name             String
+  phone            String
+  dui              String?   @unique
+  gender           Gender?
+  photoUrl         String?
+  birthDate        DateTime?
+  address          String?
+  residence        String?   // Barrio/colonia/municipio de residencia
+  profession       String?
+  workplace        String?
+  insuranceCompany String?   // Aseguradora
+  affiliateNumber  String?   // Número de afiliado
   emergencyContact String?
-  emergencyPhone  String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  emergencyPhone   String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Relaciones
   medicalProfile  MedicalProfile?
+  historiaClinica HistoriaClinica?
+  diagnoses       Diagnosis[]
   appointments    Appointment[]
   sessions        TreatmentSession[]
   evaluations     Evaluation[]
   treatmentPlans  TreatmentPlan[]
   documents       MedicalDocument[]
   prescriptions   Prescription[]
+  therapistNotes  TherapistNote[]
+  payments        Payment[]
+  invoices        Invoice[]
 
   @@index([email])
   @@index([phone])
   @@index([dui])
+  @@index([isActive])
 }
 
-// Perfil Médico del Paciente
+// ─────────────────────────────────────────────
+// EXPEDIENTE CLÍNICO (Documento Maestro)
+// ─────────────────────────────────────────────
+
 model MedicalProfile {
-  id                String   @id @default(cuid())
-  patientId         String   @unique
-  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  allergies         String?
-  medicalHistory    String?
-  currentMedications String?
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  patientId            String   @unique
+  patient              Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // Historial clínico
+  allergies            String?
+  medicalHistory       String?
+  currentMedications   String?
+
+  // Cuadro clínico
+  previousCondition    String?  // Cuadro previo del paciente
+  currentCondition     String?  // Cuadro actual
+  generalObservations  String?  // Observaciones generales del expediente
+
+  notes                String?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relaciones
+  diagnoses            Diagnosis[]
+  therapistNotes       TherapistNote[]
 }
 
-// Documentos Médicos
+// ─────────────────────────────────────────────
+// DIAGNÓSTICO
+// ─────────────────────────────────────────────
+
+model Diagnosis {
+  id               String          @id @default(cuid())
+  patientId        String
+  patient          Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medicalProfileId String
+  medicalProfile   MedicalProfile  @relation(fields: [medicalProfileId], references: [id], onDelete: Cascade)
+
+  clinicalDiagnosis String          // Diagnóstico clínico formal
+  diagnosisDate     DateTime        @default(now())
+  observations      String?         // Observaciones clínicas
+  status            DiagnosisStatus @default(ACTIVE)
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Relaciones
+  treatmentPlans   TreatmentPlan[]
+
+  @@index([patientId])
+  @@index([medicalProfileId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// NOTAS DEL TERAPISTA (van al expediente)
+// ─────────────────────────────────────────────
+
+model TherapistNote {
+  id               String         @id @default(cuid())
+  patientId        String
+  patient          Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId      String
+  therapist        Therapist      @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  medicalProfileId String
+  medicalProfile   MedicalProfile @relation(fields: [medicalProfileId], references: [id], onDelete: Cascade)
+  sessionId        String?        // Opcional: nota originada desde una sesión
+
+  content          String         // Contenido de la nota clínica
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([patientId])
+  @@index([therapistId])
+  @@index([medicalProfileId])
+}
+
+// ─────────────────────────────────────────────
+// DOCUMENTOS MÉDICOS
+// ─────────────────────────────────────────────
+
 model MedicalDocument {
   id          String   @id @default(cuid())
   patientId   String
@@ -97,216 +241,346 @@ model MedicalDocument {
   @@index([patientId])
 }
 
-// Terapeutas
-model Therapist {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String
-  phone         String
-  specialization String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+// ─────────────────────────────────────────────
+// TERAPISTA
+// ─────────────────────────────────────────────
 
-  appointments  Appointment[]
-  sessions      TreatmentSession[]
-  availability  TherapistAvailability[]
-  prescriptions Prescription[]
+model Therapist {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  phone          String
+  specialization String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  appointments   Appointment[]
+  sessions       TreatmentSession[]
+  availability   TherapistAvailability[]
+  prescriptions  Prescription[]
+  therapistNotes TherapistNote[]
 
   @@index([email])
 }
 
-// Disponibilidad de Terapeutas
+// ─────────────────────────────────────────────
+// DISPONIBILIDAD DE TERAPISTAS
+// ─────────────────────────────────────────────
+
 model TherapistAvailability {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   therapistId String
   therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  dayOfWeek   Int      // 0 = Domingo, 1 = Lunes, etc.
-  startTime   String   // HH:mm
-  endTime     String   // HH:mm
-  isAvailable Boolean  @default(true)
+  dayOfWeek   Int       // 0=Domingo, 1=Lunes, ... 6=Sábado
+  startTime   String    // HH:mm
+  endTime     String    // HH:mm
+  isAvailable Boolean   @default(true)
 
   @@index([therapistId])
 }
 
-// Citas
+// ─────────────────────────────────────────────
+// CITAS / CALENDARIO
+// ─────────────────────────────────────────────
+
 model Appointment {
-  id              String   @id @default(cuid())
+  id              String            @id @default(cuid())
   patientId       String
-  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapistId     String
-  therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId     String?
+  therapist       Therapist?        @relation(fields: [therapistId], references: [id], onDelete: SetNull)
+  treatmentPlanId String?           // Cita asociada a un plan de tratamiento
+  treatmentPlan   TreatmentPlan?    @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
   appointmentDate DateTime
-  duration        Int      @default(60) // en minutos
+  duration        Int               @default(60) // minutos
   status          AppointmentStatus @default(SCHEDULED)
-  
-  // Google Calendar IDs
+  notes           String?
+  rescheduledFromId String?         // Si fue reprogramada, referencia a la cita original
+
   googleEventClinic  String?
   googleEventPatient String?
-  
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  session         TreatmentSession?
 
   @@index([patientId])
   @@index([therapistId])
   @@index([appointmentDate])
+  @@index([treatmentPlanId])
+  @@index([status])
 }
 
-enum AppointmentStatus {
-  SCHEDULED
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  NO_SHOW
+// ─────────────────────────────────────────────
+// FICHA DE TRATAMIENTO / PLAN
+// ─────────────────────────────────────────────
+
+model TreatmentPlan {
+  id                String              @id @default(cuid())
+  patientId         String
+  patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  diagnosisId       String?
+  diagnosis         Diagnosis?          @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
+
+  title             String
+  therapyType       String?             // Tipo de terapia (viene de SystemConfig)
+  description       String?
+  goals             String?             // Objetivos terapéuticos
+  frequency         String?             // Ej: "2 veces por semana"
+  sessionDuration   Int?                // Duración por sesión en minutos
+  sessionsPlanned   Int                 // Total de sesiones asignadas
+  sessionsCompleted Int                 @default(0)
+  protocol          Json?               // Array de ProtocolItem: bloques terapéuticos de cada sesión
+  totalCost         Float?
+  status            TreatmentPlanStatus @default(DRAFT)
+  startDate         DateTime?
+  endDate           DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relaciones
+  sessions          TreatmentSession[]
+  appointments      Appointment[]
+  payments          Payment[]
+
+  @@index([patientId])
+  @@index([diagnosisId])
+  @@index([status])
 }
 
-// Sesiones de Tratamiento
+// ─────────────────────────────────────────────
+// SESIONES DE TRATAMIENTO
+// ─────────────────────────────────────────────
+
 model TreatmentSession {
-  id          String   @id @default(cuid())
+  id                    String           @id @default(cuid())
+  patientId             String
+  patient               Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId           String
+  therapist             Therapist        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  treatmentPlanId       String?
+  treatmentPlan         TreatmentPlan?   @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+  appointmentId         String?          @unique
+  appointment           Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  sessionDate           DateTime
+  sessionNumber         Int?             // Número de sesión dentro del plan (1, 2, 3...)
+  duration              Int              // minutos
+  attendanceStatus      AttendanceStatus @default(PENDING)
+  attendanceConfirmedAt DateTime?        // Cuándo se confirmó la asistencia
+
+  interventions         String?
+  progress              String?
+  painLevel             Int?             // Escala 1-10
+  notes                 String?
+  sessionProtocol       Json?            // Ejecución del protocolo: [{ order, type, procedure, completed, notes }]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  payment               Payment?
+
+  @@index([patientId])
+  @@index([therapistId])
+  @@index([treatmentPlanId])
+  @@index([sessionDate])
+  @@index([attendanceStatus])
+}
+
+// ─────────────────────────────────────────────
+// PAGOS
+// ─────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(cuid())
+  patientId       String
+  patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sessionId       String?       @unique
+  session         TreatmentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  treatmentPlanId String?
+  treatmentPlan   TreatmentPlan?    @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+
+  amount          Float
+  paymentDate     DateTime      @default(now())
+  method          PaymentMethod @default(CASH)
+  status          PaymentStatus @default(COMPLETED)
+  notes           String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  invoice         Invoice?
+
+  @@index([patientId])
+  @@index([sessionId])
+  @@index([treatmentPlanId])
+  @@index([paymentDate])
+}
+
+// ─────────────────────────────────────────────
+// FACTURACIÓN
+// ─────────────────────────────────────────────
+
+model Invoice {
+  id          String        @id @default(cuid())
+  paymentId   String        @unique
+  payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapistId String
-  therapist   Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  appointmentId String?
-  sessionDate DateTime
-  duration    Int      // en minutos
-  interventions String? // Descripción de intervenciones
-  progress    String?   // Notas de progreso
-  painLevel   Int?      // Escala 1-10
-  notes       String?
+  patient     Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  requested   Boolean       @default(false)
+  generated   Boolean       @default(false)
+  externalRef String?       // Referencia del sistema externo de facturación
+  status      InvoiceStatus @default(NOT_REQUESTED)
+  requestedAt DateTime?
+  generatedAt DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([patientId])
-  @@index([therapistId])
-  @@index([sessionDate])
+  @@index([status])
 }
 
-// Evaluaciones
+// ─────────────────────────────────────────────
+// EVALUACIONES
+// ─────────────────────────────────────────────
+
 model Evaluation {
-  id          String   @id @default(cuid())
-  patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  evaluationType EvaluationType @default(INITIAL)
-  evaluationDate DateTime
-  rangeOfMotion String?
-  strength     String?
-  painLevel    Int?      // Escala 1-10
+  id                   String         @id @default(cuid())
+  patientId            String
+  patient              Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  evaluationType       EvaluationType @default(INITIAL)
+  evaluationDate       DateTime
+  rangeOfMotion        String?
+  strength             String?
+  painLevel            Int?
   functionalAssessment String?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([patientId])
   @@index([evaluationDate])
 }
 
-enum EvaluationType {
-  INITIAL
-  PROGRESS
-  FINAL
-}
+// ─────────────────────────────────────────────
+// RECETAS MÉDICAS
+// ─────────────────────────────────────────────
 
-// Planes de Tratamiento
-model TreatmentPlan {
-  id          String   @id @default(cuid())
-  patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  diagnosis   String?
-  goals       String?
-  sessionsPlanned Int
-  sessionsCompleted Int @default(0)
-  totalCost   Float?
-  status      TreatmentPlanStatus @default(DRAFT)
-  approvedByPatient Boolean @default(false)
-  approvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([patientId])
-}
-
-enum TreatmentPlanStatus {
-  DRAFT
-  PENDING_APPROVAL
-  APPROVED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-// Recordatorios/Notificaciones
-model Reminder {
-  id            String   @id @default(cuid())
-  appointmentId String?
-  patientId     String?
-  type          ReminderType
-  message       String
-  sentAt        DateTime?
-  status        ReminderStatus @default(PENDING)
-  scheduledFor  DateTime
-  createdAt     DateTime @default(now())
-
-  @@index([appointmentId])
-  @@index([patientId])
-  @@index([status])
-}
-
-enum ReminderType {
-  APPOINTMENT_CONFIRMATION
-  APPOINTMENT_REMINDER_24H
-  APPOINTMENT_REMINDER_2H
-  TREATMENT_UPDATE
-}
-
-enum ReminderStatus {
-  PENDING
-  SENT
-  FAILED
-}
-
-// Pre-Registros desde WhatsApp
-model PreRegistration {
-  id          String   @id @default(cuid())
-  name        String
-  phone       String
-  email       String?
-  message     String?  // Mensaje completo del WhatsApp
-  status      PreRegistrationStatus @default(PENDING)
-  convertedToPatientId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([phone])
-  @@index([status])
-}
-
-enum PreRegistrationStatus {
-  PENDING
-  CONTACTED
-  CONVERTED
-  REJECTED
-}
-
-// Recetas Médicas
 model Prescription {
-  id          String   @id @default(cuid())
-  patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapistId String?
-  therapist   Therapist? @relation(fields: [therapistId], references: [id], onDelete: SetNull)
-  prescriptionDate DateTime @default(now())
-  diagnosis   String?
-  medications String   // JSON string con array de medicamentos
-  instructions String? // Instrucciones adicionales
-  notes       String?
-  printed     Boolean  @default(false)
-  printedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String     @id @default(cuid())
+  patientId        String
+  patient          Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapistId      String?
+  therapist        Therapist? @relation(fields: [therapistId], references: [id], onDelete: SetNull)
+  prescriptionDate DateTime   @default(now())
+  diagnosis        String?
+  medications      String     // JSON string con array de medicamentos
+  instructions     String?
+  notes            String?
+  printed          Boolean    @default(false)
+  printedAt        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   @@index([patientId])
   @@index([therapistId])
   @@index([prescriptionDate])
 }
+
+// ─────────────────────────────────────────────
+// CONFIGURACIÓN DEL SISTEMA
+// ─────────────────────────────────────────────
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  category    String   // 'therapy_types' | 'schedules' | 'session_durations' | 'payment_methods' | 'alerts'
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+// ─────────────────────────────────────────────
+// HISTORIA CLÍNICA DE FISIOTERAPIA
+// ─────────────────────────────────────────────
+
+model HistoriaClinica {
+  id        String   @id @default(cuid())
+  patientId String   @unique
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // 1. Exploración Física
+  peso      Float?
+  talla     Float?
+  imc       Float?
+  etnia     String?
+
+  // 2. Motivo de consulta
+  motivoConsulta      String?
+  tratamientosPrevios String?
+
+  // 3. Antecedentes Patológicos y Heredofamiliares (JSON)
+  // { diabetes, alergia, hta, cancer, transfusiones, enfReumaticas,
+  //   hospitalizacion, encames, accidentes, cardiopatias, cirugias,
+  //   fracturas } cada uno: { tiene: bool, especifique: string }
+  antecedentes        Json?
+
+  // 4. Signos Vitales { ta, temperatura, pc, pb }
+  signosVitales       Json?
+
+  // 5. Espasmos / Contractura Muscular { tiene, sitio, caracteristicas }
+  espasmos            Json?
+
+  // 6. Hábitos de Salud (JSON)
+  // { tabaquismo, alcoholismo, drogas, actividadFisica, automedica, pasatiempo }
+  habitosSalud        Json?
+
+  // 7. Datos Ginecológicos { embarazada: bool|null, numHijos: int|null }
+  datosGinecologicos  Json?
+
+  // 8. Diagnóstico Médico en Rehabilitación
+  // { reflejos, sensibilidad, lenguajeOrientacion, otros }
+  diagnosticoRehabilitacion Json?
+
+  // 9. Cicatriz Quirúrgica (descripción textual)
+  cicatrizQuirurgica  String?
+
+  // 10. Traslados { velInicial, velFinal, observaciones }
+  traslados           Json?
+
+  // 11. Marcha / Deambulación
+  // { libre, claudicante, conAyuda, espastica, ataxica, otros, observaciones }
+  marchaDeambulacion  Json?
+
+  // 12. Escala de Dolor (0-10)
+  escalaDolor         Int?
+
+  // 13. Valoración Fuerza Muscular (JSON con miembro superior e inferior, D/I, inicial/final)
+  fuerzaMuscular      Json?
+
+  // 14. Goniometría Miembros Superiores (JSON con hombro, codo, antebrazo, muñeca)
+  goniometriaSuper    Json?
+
+  // 15. Goniometría Miembros Inferiores (JSON con cadera, rodilla, tobillo/pie)
+  goniometriaInfer    Json?
+
+  // 16. Valoración Postural (JSON: vistaAnterior, vistaLateral, vistaPosterior)
+  valoracionPostural  Json?
+
+  // 17. Columna (planoSagital, planoFrontal)
+  columna             Json?
+
+  fechaEvaluacion     DateTime @default(now())
+  creadoPor           String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([patientId])
+}
+

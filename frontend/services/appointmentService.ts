@@ -3,12 +3,14 @@ import api from './api';
 export interface Appointment {
   id: string;
   patientId: string;
-  therapistId: string;
+  therapistId: string | null;
   appointmentDate: string;
   duration: number;
   status: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
   googleEventClinic?: string | null;
   googleEventPatient?: string | null;
+  notes?: string | null;
+  treatmentPlanId?: string | null;
   createdAt: string;
   updatedAt: string;
   patient?: {
@@ -21,22 +23,25 @@ export interface Appointment {
     id: string;
     name: string;
     specialization?: string | null;
-  };
+  } | null;
 }
 
 export interface CreateAppointmentData {
   patientId: string;
-  therapistId: string;
+  therapistId?: string | null;
   appointmentDate: string; // ISO datetime string
   duration?: number;
+  notes?: string | null;
+  treatmentPlanId?: string | null;
 }
 
 export interface UpdateAppointmentData {
   patientId?: string;
-  therapistId?: string;
+  therapistId?: string | null;
   appointmentDate?: string;
   duration?: number;
   status?: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  notes?: string | null;
 }
 
 export interface AppointmentsResponse {
@@ -53,10 +58,11 @@ export const appointmentService = {
   getAll: async (params?: {
     patientId?: string;
     therapistId?: string;
-    date?: string; // YYYY-MM-DD
+    date?: string;
     status?: string;
     page?: number;
     limit?: number;
+    unassigned?: boolean;
   }): Promise<AppointmentsResponse> => {
     const response = await api.get<{ success: boolean; data: AppointmentsResponse }>(
       '/appointments',
@@ -98,5 +104,11 @@ export const appointmentService = {
     );
     return response.data.data;
   },
-};
 
+  claim: async (id: string): Promise<Appointment> => {
+    const response = await api.post<{ success: boolean; data: Appointment }>(
+      `/appointments/${id}/claim`
+    );
+    return response.data.data;
+  },
+};

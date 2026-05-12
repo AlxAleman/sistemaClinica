@@ -13,6 +13,25 @@
     @apply outline-none ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-gray-900;
   }
 
+  /* Inputs, selects y textareas — alto contraste en light mode */
+  input,
+  select,
+  textarea {
+    @apply text-gray-900 bg-white placeholder-gray-400;
+    @apply dark:text-gray-100 dark:bg-gray-700 dark:placeholder-gray-500;
+  }
+
+  /* Opciones dentro de <select> */
+  option {
+    @apply text-gray-900 bg-white;
+    @apply dark:text-gray-100 dark:bg-gray-700;
+  }
+
+  /* Labels */
+  label {
+    @apply text-gray-700 dark:text-gray-300;
+  }
+
   /* Scrollbar personalizado */
   ::-webkit-scrollbar {
     @apply w-2 h-2;

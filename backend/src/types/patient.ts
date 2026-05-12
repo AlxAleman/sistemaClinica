@@ -7,8 +7,14 @@ export interface CreatePatientData {
   photoUrl?: string | null;
   birthDate?: string | null;
   address?: string | null;
+  residence?: string | null;
+  profession?: string | null;
+  workplace?: string | null;
+  insuranceCompany?: string | null;
+  affiliateNumber?: string | null;
   emergencyContact?: string | null;
   emergencyPhone?: string | null;
+  isActive?: boolean;
 }
 
 export interface UpdatePatientData {
@@ -20,7 +26,12 @@ export interface UpdatePatientData {
   photoUrl?: string | null;
   birthDate?: string | null;
   address?: string | null;
+  residence?: string | null;
+  profession?: string | null;
+  workplace?: string | null;
+  insuranceCompany?: string | null;
+  affiliateNumber?: string | null;
   emergencyContact?: string | null;
   emergencyPhone?: string | null;
+  isActive?: boolean;
 }
-

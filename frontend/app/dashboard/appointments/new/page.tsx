@@ -22,7 +22,7 @@ export default function NewAppointmentPage() {
   const [type, setType] = useState<AppointmentType>("appointment");
   const [formData, setFormData] = useState<CreateAppointmentData | CreateSessionData>({
     patientId: "",
-    therapistId: "",
+    therapistId: null,
     appointmentDate: "",
     duration: 60,
   } as CreateAppointmentData);
@@ -199,17 +199,16 @@ export default function NewAppointmentPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Terapeuta *
+              Terapeuta <span className="text-gray-400 font-normal">(opcional)</span>
             </label>
             <select
-              required
-              value={formData.therapistId}
+              value={(formData as CreateAppointmentData).therapistId || ""}
               onChange={(e) =>
-                setFormData({ ...formData, therapistId: e.target.value })
+                setFormData({ ...formData, therapistId: e.target.value || null } as CreateAppointmentData)
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="">Seleccionar terapeuta</option>
+              <option value="">Sin asignar (cita disponible)</option>
               {therapists.map((therapist) => (
                 <option key={therapist.id} value={therapist.id}>
                   {therapist.name}
@@ -217,6 +216,9 @@ export default function NewAppointmentPage() {
                 </option>
               ))}
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Si no asignas un terapeuta, la cita quedará disponible para que un terapeuta la tome.
+            </p>
           </div>
 
           <div>

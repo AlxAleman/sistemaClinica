@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as sessionController from '../controllers/sessionController';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
-import { createSessionSchema, updateSessionSchema } from '../utils/validators';
+import { createSessionSchema, updateSessionSchema, confirmAttendanceSchema } from '../utils/validators';
 
 const router: Router = Router();
 
@@ -23,6 +23,8 @@ router.put(
   sessionController.updateSession
 );
 router.delete('/:id', sessionController.deleteSession);
+router.patch('/:id/attendance', validate(confirmAttendanceSchema), sessionController.confirmAttendance);
+router.get('/check/conflicts', sessionController.detectConflicts);
 
 export default router;
 

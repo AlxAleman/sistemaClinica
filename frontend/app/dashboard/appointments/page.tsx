@@ -223,10 +223,16 @@ export default function AppointmentsPage() {
                       </div>
                       <div className="mt-1.5 sm:mt-2 space-y-1 sm:space-y-0">
                         <div className="flex flex-wrap items-center gap-2 sm:gap-0">
-                          <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                            <span className="mr-1">👨‍⚕️</span>
-                            <span className="truncate">{appointment.therapist?.name || t("appointments.unknownTherapist")}</span>
-                          </p>
+                          {appointment.therapistId ? (
+                            <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                              <span className="mr-1">👨‍⚕️</span>
+                              <span className="truncate">{appointment.therapist?.name}</span>
+                            </p>
+                          ) : (
+                            <span className="px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 flex-shrink-0">
+                              Sin terapeuta
+                            </span>
+                          )}
                           <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 whitespace-nowrap">
                             <span className="mr-1">📅</span>
                             {new Date(appointment.appointmentDate).toLocaleString("es-ES", { 

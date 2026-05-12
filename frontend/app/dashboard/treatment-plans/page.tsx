@@ -66,16 +66,13 @@ export default function TreatmentPlansPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      case "IN_PROGRESS":
+      case "ACTIVE":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
       case "COMPLETED":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-      case "PENDING_APPROVAL":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       case "CANCELLED":
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+      case "DRAFT":
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
@@ -84,17 +81,13 @@ export default function TreatmentPlansPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return t("treatmentPlans.draft");
-      case "PENDING_APPROVAL":
-        return t("treatmentPlans.pendingApproval");
-      case "APPROVED":
-        return t("treatmentPlans.approved");
-      case "IN_PROGRESS":
-        return t("treatmentPlans.inProgress");
+        return "Borrador";
+      case "ACTIVE":
+        return "Activo";
       case "COMPLETED":
-        return t("treatmentPlans.completed");
+        return "Completado";
       case "CANCELLED":
-        return t("treatmentPlans.cancelled");
+        return "Cancelado";
       default:
         return status;
     }
@@ -159,11 +152,6 @@ export default function TreatmentPlansPage() {
                           >
                             {getStatusText(plan.status)}
                           </span>
-                          {plan.approvedByPatient && (
-                            <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 flex-shrink-0">
-                              ✓ Aprobado
-                            </span>
-                          )}
                         </div>
                         <div className="mt-1.5 sm:mt-2 space-y-1 sm:space-y-0">
                           <div className="flex flex-wrap items-center gap-2 sm:gap-0">

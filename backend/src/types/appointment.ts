@@ -1,7 +1,7 @@
 export interface Appointment {
   id: string;
   patientId: string;
-  therapistId: string;
+  therapistId: string | null;
   appointmentDate: string;
   duration: number;
   status: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
@@ -19,21 +19,20 @@ export interface Appointment {
     id: string;
     name: string;
     specialization?: string | null;
-  };
+  } | null;
 }
 
 export interface CreateAppointmentData {
   patientId: string;
-  therapistId: string;
+  therapistId?: string | null;
   appointmentDate: string; // ISO datetime string
   duration?: number; // en minutos, default 60
 }
 
 export interface UpdateAppointmentData {
   patientId?: string;
-  therapistId?: string;
+  therapistId?: string | null;
   appointmentDate?: string;
   duration?: number;
   status?: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 }
-

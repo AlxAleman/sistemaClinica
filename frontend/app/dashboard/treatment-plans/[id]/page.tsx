@@ -77,16 +77,13 @@ export default function TreatmentPlanDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      case "IN_PROGRESS":
+      case "ACTIVE":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
       case "COMPLETED":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-      case "PENDING_APPROVAL":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       case "CANCELLED":
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+      case "DRAFT":
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
     }
@@ -96,12 +93,8 @@ export default function TreatmentPlanDetailPage() {
     switch (status) {
       case "DRAFT":
         return "Borrador";
-      case "PENDING_APPROVAL":
-        return "Pendiente de Aprobación";
-      case "APPROVED":
-        return "Aprobado";
-      case "IN_PROGRESS":
-        return "En Progreso";
+      case "ACTIVE":
+        return "Activo";
       case "COMPLETED":
         return "Completado";
       case "CANCELLED":
@@ -158,21 +151,16 @@ export default function TreatmentPlanDetailPage() {
               >
                 {getStatusText(plan.status)}
               </span>
-              {plan.approvedByPatient && (
-                <span className="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                  ✓ Aprobado por paciente
-                </span>
-              )}
             </div>
           </div>
           <div className="flex gap-2">
-            {plan.status === "PENDING_APPROVAL" && !plan.approvedByPatient && (
+            {plan.status === "DRAFT" && (
               <button
                 onClick={handleApproveClick}
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 <CheckIcon className="h-4 w-4" />
-                Aprobar Plan
+                Activar Plan
               </button>
             )}
             <Link
@@ -220,11 +208,45 @@ export default function TreatmentPlanDetailPage() {
                 </span>
               </dd>
             </div>
+            {plan.therapyType && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Tipo de Terapia</dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{plan.therapyType}</dd>
+              </div>
+            )}
+            {plan.frequency && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Frecuencia</dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{plan.frequency}</dd>
+              </div>
+            )}
+            {plan.sessionDuration && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Duración por Sesión</dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{plan.sessionDuration} min</dd>
+              </div>
+            )}
             {plan.totalCost && (
               <div>
                 <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Costo Total</dt>
                 <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                   ${plan.totalCost.toFixed(2)}
+                </dd>
+              </div>
+            )}
+            {plan.startDate && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha Inicio</dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  {moment(plan.startDate).format("DD/MM/YYYY")}
+                </dd>
+              </div>
+            )}
+            {plan.endDate && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha Fin Estimada</dt>
+                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  {moment(plan.endDate).format("DD/MM/YYYY")}
                 </dd>
               </div>
             )}
@@ -239,9 +261,7 @@ export default function TreatmentPlanDetailPage() {
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600 dark:text-gray-400">
-                  Sesiones completadas
-                </span>
+                <span className="text-gray-600 dark:text-gray-400">Sesiones completadas</span>
                 <span className="font-medium text-gray-900 dark:text-gray-100">
                   {plan.sessionsCompleted} / {plan.sessionsPlanned}
                 </span>
@@ -253,21 +273,36 @@ export default function TreatmentPlanDetailPage() {
                 ></div>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {progressPercentage}% completado
+                {progressPercentage}% completado · {plan.sessionsPlanned - plan.sessionsCompleted} sesiones restantes
               </p>
             </div>
           </div>
+          <Link
+            href={`/dashboard/sessions?treatmentPlanId=${plan.id}`}
+            className="mt-4 inline-block text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-medium"
+          >
+            Ver sesiones →
+          </Link>
         </div>
 
-        {/* Diagnóstico */}
+        {/* Diagnóstico vinculado */}
         {plan.diagnosis && (
           <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 transition-colors">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Diagnóstico
+              Diagnóstico Vinculado
             </h2>
-            <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-              {plan.diagnosis}
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {plan.diagnosis.clinicalDiagnosis}
             </p>
+            <span className={`mt-2 inline-block px-2 py-0.5 text-xs rounded-full ${
+              plan.diagnosis.status === 'ACTIVE'
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                : plan.diagnosis.status === 'CHRONIC'
+                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+            }`}>
+              {plan.diagnosis.status === 'ACTIVE' ? 'Activo' : plan.diagnosis.status === 'CHRONIC' ? 'Crónico' : 'Resuelto'}
+            </span>
           </div>
         )}
 
@@ -313,14 +348,6 @@ export default function TreatmentPlanDetailPage() {
                 {moment(plan.updatedAt).format("DD/MM/YYYY HH:mm")}
               </dd>
             </div>
-            {plan.approvedAt && (
-              <div>
-                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha de Aprobación</dt>
-                <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {moment(plan.approvedAt).format("DD/MM/YYYY HH:mm")}
-                </dd>
-              </div>
-            )}
           </dl>
         </div>
       </div>
@@ -340,9 +367,9 @@ export default function TreatmentPlanDetailPage() {
         isOpen={approveConfirm.isOpen}
         onClose={() => setApproveConfirm({ ...approveConfirm, isOpen: false })}
         onConfirm={handleApproveConfirm}
-        title="Aprobar Plan de Tratamiento"
-        message="¿Estás seguro de que quieres aprobar este plan de tratamiento? El estado cambiará a 'Aprobado' y se marcará como aprobado por el paciente."
-        confirmText="Aprobar"
+        title="Activar Plan de Tratamiento"
+        message="¿Estás seguro de que quieres activar este plan? El estado cambiará a 'Activo' y comenzarán a contarse las sesiones."
+        confirmText="Activar"
         cancelText="Cancelar"
         type="info"
       />

@@ -117,7 +117,7 @@ export default function AppointmentCalendar({
 
       return {
         id: appointment.id,
-        title: `${appointment.patient?.name || "Paciente"} - ${appointment.therapist?.name || "Terapeuta"}`,
+        title: `${appointment.patient?.name || "Paciente"} - ${appointment.therapist?.name || "⚠ Sin terapeuta"}`,
         start,
         end,
         resource: appointment,
@@ -130,21 +130,26 @@ export default function AppointmentCalendar({
     const appointment = event.resource as Appointment;
     let backgroundColor = "#3174ad"; // Azul por defecto (SCHEDULED)
 
-    switch (appointment.status) {
-      case "CONFIRMED":
-        backgroundColor = "#28a745"; // Verde
-        break;
-      case "COMPLETED":
-        backgroundColor = "#6c757d"; // Gris
-        break;
-      case "CANCELLED":
-        backgroundColor = "#dc3545"; // Rojo
-        break;
-      case "NO_SHOW":
-        backgroundColor = "#ffc107"; // Amarillo
-        break;
-      default:
-        backgroundColor = "#3174ad"; // Azul
+    // Unassigned appointments get amber regardless of status
+    if (!appointment.therapistId) {
+      backgroundColor = "#d97706"; // Amber
+    } else {
+      switch (appointment.status) {
+        case "CONFIRMED":
+          backgroundColor = "#28a745"; // Verde
+          break;
+        case "COMPLETED":
+          backgroundColor = "#6c757d"; // Gris
+          break;
+        case "CANCELLED":
+          backgroundColor = "#dc3545"; // Rojo
+          break;
+        case "NO_SHOW":
+          backgroundColor = "#ffc107"; // Amarillo
+          break;
+        default:
+          backgroundColor = "#3174ad"; // Azul
+      }
     }
 
     return {

@@ -1,18 +1,40 @@
 import api from './api';
 
+export type TreatmentPlanStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+
+export interface ProtocolItem {
+  order: number;
+  type: string;
+  procedure: string;
+  area?: string;
+  side?: string;
+  duration?: number;
+  intensity?: string;
+  series?: number;
+  reps?: number;
+  weight?: string;
+  resistance?: string;
+  notes?: string;
+}
+
 export interface TreatmentPlan {
   id: string;
   patientId: string;
+  diagnosisId?: string | null;
   title: string;
+  therapyType?: string | null;
   description?: string | null;
-  diagnosis?: string | null;
   goals?: string | null;
+  frequency?: string | null;
+  sessionDuration?: number | null;
   sessionsPlanned: number;
   sessionsCompleted: number;
+  sessionsRemaining?: number;
+  protocol?: ProtocolItem[] | null;
   totalCost?: number | null;
-  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  approvedByPatient: boolean;
-  approvedAt?: string | null;
+  status: TreatmentPlanStatus;
+  startDate?: string | null;
+  endDate?: string | null;
   createdAt: string;
   updatedAt: string;
   patient?: {
@@ -21,28 +43,45 @@ export interface TreatmentPlan {
     email?: string | null;
     phone: string;
   };
+  diagnosis?: {
+    id: string;
+    clinicalDiagnosis: string;
+    status: string;
+  } | null;
 }
 
 export interface CreateTreatmentPlanData {
   patientId: string;
+  diagnosisId?: string | null;
   title: string;
+  therapyType?: string | null;
   description?: string | null;
-  diagnosis?: string | null;
   goals?: string | null;
+  frequency?: string | null;
+  sessionDuration?: number | null;
   sessionsPlanned: number;
+  protocol?: ProtocolItem[] | null;
   totalCost?: number | null;
-  status?: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status?: TreatmentPlanStatus;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 export interface UpdateTreatmentPlanData {
   patientId?: string;
+  diagnosisId?: string | null;
   title?: string;
+  therapyType?: string | null;
   description?: string | null;
-  diagnosis?: string | null;
   goals?: string | null;
+  frequency?: string | null;
+  sessionDuration?: number | null;
   sessionsPlanned?: number;
+  protocol?: ProtocolItem[] | null;
   totalCost?: number | null;
-  status?: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status?: TreatmentPlanStatus;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 export interface TreatmentPlansResponse {

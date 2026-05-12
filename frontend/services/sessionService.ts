@@ -1,16 +1,37 @@
 import api from './api';
 
+export interface SessionProtocolItem {
+  order: number;
+  type: string;
+  procedure: string;
+  area?: string;
+  side?: string;
+  duration?: number;
+  intensity?: string;
+  series?: number;
+  reps?: number;
+  weight?: string;
+  resistance?: string;
+  completed: boolean;
+  notes: string;
+}
+
 export interface TreatmentSession {
   id: string;
   patientId: string;
   therapistId: string;
   appointmentId?: string | null;
+  treatmentPlanId?: string | null;
+  sessionNumber?: number | null;
+  attendanceStatus?: 'PENDING' | 'ATTENDED' | 'NOT_ATTENDED' | 'RESCHEDULED' | null;
+  attendanceConfirmedAt?: string | null;
   sessionDate: string;
   duration: number;
   interventions?: string | null;
   progress?: string | null;
   painLevel?: number | null;
   notes?: string | null;
+  sessionProtocol?: SessionProtocolItem[] | null;
   createdAt: string;
   updatedAt: string;
   patient?: {
@@ -30,18 +51,25 @@ export interface CreateSessionData {
   patientId: string;
   therapistId: string;
   appointmentId?: string | null;
-  sessionDate: string; // ISO datetime string
+  treatmentPlanId?: string | null;
+  sessionNumber?: number | null;
+  attendanceStatus?: 'PENDING' | 'ATTENDED' | 'NOT_ATTENDED' | 'RESCHEDULED' | null;
+  sessionDate: string;
   duration?: number;
   interventions?: string | null;
   progress?: string | null;
   painLevel?: number | null;
   notes?: string | null;
+  sessionProtocol?: SessionProtocolItem[] | null;
 }
 
 export interface UpdateSessionData {
   patientId?: string;
   therapistId?: string;
   appointmentId?: string | null;
+  treatmentPlanId?: string | null;
+  sessionNumber?: number | null;
+  attendanceStatus?: 'PENDING' | 'ATTENDED' | 'NOT_ATTENDED' | 'RESCHEDULED' | null;
   sessionDate?: string;
   duration?: number;
   interventions?: string | null;
@@ -64,8 +92,9 @@ export const sessionService = {
   getAll: async (params?: {
     patientId?: string;
     therapistId?: string;
+    treatmentPlanId?: string;
     appointmentId?: string;
-    date?: string; // YYYY-MM-DD
+    date?: string;
     page?: number;
     limit?: number;
   }): Promise<SessionsResponse> => {
@@ -102,5 +131,18 @@ export const sessionService = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/sessions/${id}`);
   },
-};
 
+  confirmAttendance: async (
+    sessionId: string,
+    data: {
+      attendanceStatus: 'ATTENDED' | 'NOT_ATTENDED' | 'RESCHEDULED';
+      notes?: string;
+    }
+  ): Promise<TreatmentSession> => {
+    const response = await api.patch<{ success: boolean; data: TreatmentSession }>(
+      `/sessions/${sessionId}/attendance`,
+      data
+    );
+    return response.data.data;
+  },
+};

@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// Acepta datetime-local (YYYY-MM-DDTHH:mm) e ISO 8601 completo
+const datetimeStr = (msg = 'Fecha inválida') =>
+  z.string().refine((val) => !isNaN(Date.parse(val)), { message: msg });
+
 // Validaciones de autenticación
 export const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -23,8 +27,14 @@ export const createPatientSchema = z.object({
   photoUrl: z.string().url('URL inválida').optional().nullable(),
   birthDate: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
+  residence: z.string().optional().nullable(),
+  profession: z.string().optional().nullable(),
+  workplace: z.string().optional().nullable(),
+  insuranceCompany: z.string().optional().nullable(),
+  affiliateNumber: z.string().optional().nullable(),
   emergencyContact: z.string().optional().nullable(),
   emergencyPhone: z.string().optional().nullable(),
+  isActive: z.boolean().optional().default(true),
 });
 
 export const updatePatientSchema = createPatientSchema.partial();
@@ -34,6 +44,9 @@ export const medicalProfileSchema = z.object({
   allergies: z.string().optional().nullable(),
   medicalHistory: z.string().optional().nullable(),
   currentMedications: z.string().optional().nullable(),
+  previousCondition: z.string().optional().nullable(),
+  currentCondition: z.string().optional().nullable(),
+  generalObservations: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -60,10 +73,14 @@ export const updateAvailabilitySchema = createAvailabilitySchema.partial();
 // Validaciones de citas
 export const createAppointmentSchema = z.object({
   patientId: z.string().min(1, 'ID de paciente requerido'),
-  therapistId: z.string().min(1, 'ID de terapeuta requerido'),
-  appointmentDate: z.string().datetime('Fecha inválida'),
+  therapistId: z.string().min(1).optional().nullable(),
+  appointmentDate: datetimeStr(),
   duration: z.number().int().min(15).max(120).optional().default(60),
+  notes: z.string().optional().nullable(),
+  treatmentPlanId: z.string().optional().nullable(),
 });
+
+export const claimAppointmentSchema = z.object({});
 
 export const updateAppointmentSchema = createAppointmentSchema.partial().extend({
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).optional(),
@@ -73,36 +90,92 @@ export const updateAppointmentSchema = createAppointmentSchema.partial().extend(
 export const createSessionSchema = z.object({
   patientId: z.string().min(1, 'ID de paciente requerido'),
   therapistId: z.string().min(1, 'ID de terapeuta requerido'),
+  treatmentPlanId: z.string().optional().nullable(),
   appointmentId: z.string().optional().nullable(),
-  sessionDate: z.string().datetime('Fecha inválida'),
-  duration: z.number().int().min(15).max(120).optional().default(60),
+  sessionDate: datetimeStr(),
+  sessionNumber: z.number().int().min(1).optional().nullable(),
+  duration: z.number().int().min(15).max(240).optional().default(60),
+  attendanceStatus: z.enum(['PENDING', 'ATTENDED', 'NOT_ATTENDED', 'RESCHEDULED']).optional().default('PENDING'),
   interventions: z.string().optional().nullable(),
   progress: z.string().optional().nullable(),
-  painLevel: z.number().int().min(1).max(10).optional().nullable(),
+  painLevel: z.number().int().min(0).max(10).optional().nullable(),
   notes: z.string().optional().nullable(),
+  sessionProtocol: z.array(z.any()).optional().nullable(),
 });
 
 export const updateSessionSchema = createSessionSchema.partial();
 
+export const confirmAttendanceSchema = z.object({
+  attendanceStatus: z.enum(['ATTENDED', 'NOT_ATTENDED', 'RESCHEDULED']),
+  notes: z.string().optional().nullable(),
+});
+
 // Validaciones de planes de tratamiento
 export const createTreatmentPlanSchema = z.object({
   patientId: z.string().min(1, 'ID de paciente requerido'),
+  diagnosisId: z.string().optional().nullable(),
   title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
+  therapyType: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
-  diagnosis: z.string().optional().nullable(),
   goals: z.string().optional().nullable(),
+  frequency: z.string().optional().nullable(),
+  sessionDuration: z.number().int().min(15).max(240).optional().nullable(),
   sessionsPlanned: z.number().int().min(1, 'Debe planificar al menos 1 sesión'),
+  protocol: z.array(z.any()).optional().nullable(),
   totalCost: z.number().positive('El costo debe ser positivo').optional().nullable(),
-  status: z.enum(['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional().default('DRAFT'),
+  status: z.enum(['DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED']).optional().default('DRAFT'),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
 });
 
 export const updateTreatmentPlanSchema = createTreatmentPlanSchema.partial();
+
+// Validaciones de diagnóstico
+export const createDiagnosisSchema = z.object({
+  patientId: z.string().min(1, 'ID de paciente requerido'),
+  clinicalDiagnosis: z.string().min(3, 'El diagnóstico debe tener al menos 3 caracteres'),
+  diagnosisDate: z.string().optional().nullable(),
+  observations: z.string().optional().nullable(),
+  status: z.enum(['ACTIVE', 'RESOLVED', 'CHRONIC']).optional().default('ACTIVE'),
+});
+
+export const updateDiagnosisSchema = createDiagnosisSchema.partial();
+
+// Validaciones de notas del terapista
+export const createTherapistNoteSchema = z.object({
+  patientId: z.string().min(1, 'ID de paciente requerido'),
+  therapistId: z.string().min(1, 'ID de terapeuta requerido'),
+  sessionId: z.string().optional().nullable(),
+  content: z.string().min(5, 'La nota debe tener al menos 5 caracteres'),
+});
+
+// Validaciones de pagos
+export const createPaymentSchema = z.object({
+  patientId: z.string().min(1, 'ID de paciente requerido'),
+  sessionId: z.string().optional().nullable(),
+  treatmentPlanId: z.string().optional().nullable(),
+  amount: z.number().positive('El monto debe ser positivo'),
+  paymentDate: z.string().optional().nullable(),
+  method: z.enum(['CASH', 'POS', 'TRANSFER']).optional().default('CASH'),
+  notes: z.string().optional().nullable(),
+});
+
+export const updatePaymentSchema = createPaymentSchema.partial().extend({
+  status: z.enum(['PENDING', 'COMPLETED', 'CANCELLED']).optional(),
+});
+
+// Validaciones de configuración del sistema
+export const upsertConfigSchema = z.object({
+  value: z.string().min(1, 'El valor es requerido'),
+  description: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+});
 
 // Validaciones de evaluaciones
 export const createEvaluationSchema = z.object({
   patientId: z.string().min(1, 'ID de paciente requerido'),
   evaluationType: z.enum(['INITIAL', 'PROGRESS', 'FINAL']),
-  evaluationDate: z.string().datetime('Fecha inválida'),
+  evaluationDate: datetimeStr(),
   rangeOfMotion: z.string().optional().nullable(),
   strength: z.string().optional().nullable(),
   painLevel: z.number().int().min(1).max(10).optional().nullable(),

@@ -19,6 +19,12 @@ export interface Patient {
   photoUrl?: string | null;
   birthDate?: string | null;
   address?: string | null;
+  residence?: string | null;
+  profession?: string | null;
+  workplace?: string | null;
+  insuranceCompany?: string | null;
+  affiliateNumber?: string | null;
+  isActive?: boolean;
   emergencyContact?: string | null;
   emergencyPhone?: string | null;
   createdAt: string;
@@ -28,6 +34,9 @@ export interface Patient {
     medicalHistory?: string | null;
     currentMedications?: string | null;
     notes?: string | null;
+    previousCondition?: string | null;
+    currentCondition?: string | null;
+    generalObservations?: string | null;
   } | null;
   documents?: MedicalDocument[];
   _count?: {
@@ -46,6 +55,12 @@ export interface CreatePatientData {
   photoUrl?: string | null;
   birthDate?: string | null;
   address?: string | null;
+  residence?: string | null;
+  profession?: string | null;
+  workplace?: string | null;
+  insuranceCompany?: string | null;
+  affiliateNumber?: string | null;
+  isActive?: boolean;
   emergencyContact?: string | null;
   emergencyPhone?: string | null;
 }
@@ -67,6 +82,7 @@ export const patientService = {
     search?: string;
     page?: number;
     limit?: number;
+    isActive?: boolean;
   }): Promise<PatientsResponse> => {
     const response = await api.get<{ success: boolean; data: PatientsResponse }>(
       '/patients',
@@ -109,6 +125,9 @@ export const patientService = {
       medicalHistory?: string | null;
       currentMedications?: string | null;
       notes?: string | null;
+      previousCondition?: string | null;
+      currentCondition?: string | null;
+      generalObservations?: string | null;
     }
   ) => {
     const response = await api.post<{ success: boolean; data: any }>(
@@ -134,4 +153,3 @@ export const patientService = {
     return response.data.data;
   },
 };
-

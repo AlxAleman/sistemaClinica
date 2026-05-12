@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { hashPassword, comparePassword } from '../utils/hash';
 import { generateAccessToken, generateRefreshToken, TokenPayload } from '../utils/jwt';
 
-type UserRole = 'ADMIN' | 'THERAPIST' | 'PATIENT';
+type UserRole = 'ADMIN' | 'THERAPIST' | 'PATIENT' | 'RECEPCION' | 'CONTABILIDAD' | 'SUPERVISOR' | 'EXTERNAL_THERAPIST';
 
 export interface LoginCredentials {
   email: string;

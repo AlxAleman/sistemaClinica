@@ -13,6 +13,13 @@ import treatmentPlanRoutes from './routes/treatmentPlans';
 import evaluationRoutes from './routes/evaluations';
 import reportRoutes from './routes/reports';
 import prescriptionRoutes from './routes/prescriptions';
+import diagnosisRoutes from './routes/diagnoses';
+import expedienteRoutes from './routes/expediente';
+import therapistNoteRoutes from './routes/therapistNotes';
+import configRoutes from './routes/config';
+import paymentRoutes from './routes/payments';
+import invoiceRoutes from './routes/invoices';
+import historiaClinicaRoutes from './routes/historiaClinica';
 
 const app: Express = express();
 
@@ -47,7 +54,13 @@ app.get('/', (req, res) => {
       treatmentPlans: '/api/treatment-plans',
       evaluations: '/api/evaluations',
       reports: '/api/reports',
-      prescriptions: '/api/prescriptions'
+      prescriptions: '/api/prescriptions',
+      diagnoses: '/api/diagnoses',
+      expediente: '/api/expediente',
+      therapistNotes: '/api/therapist-notes',
+      config: '/api/config',
+      payments: '/api/payments',
+      invoices: '/api/invoices'
     }
   });
 });
@@ -62,6 +75,13 @@ app.use('/api/treatment-plans', treatmentPlanRoutes);
 app.use('/api/evaluations', evaluationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/diagnoses', diagnosisRoutes);
+app.use('/api/expediente', expedienteRoutes);
+app.use('/api/therapist-notes', therapistNoteRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/historia-clinica', historiaClinicaRoutes);
 
 // Error handler (debe ir al final)
 app.use(errorHandler);

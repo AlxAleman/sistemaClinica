@@ -8,11 +8,24 @@ export const createPatient = async (data: CreatePatientData) => {
       name: data.name,
       phone: data.phone,
       dui: data.dui || null,
+      gender: data.gender || null,
+      photoUrl: data.photoUrl || null,
       birthDate: data.birthDate ? new Date(data.birthDate) : null,
       address: data.address || null,
+      residence: data.residence || null,
+      profession: data.profession || null,
+      workplace: data.workplace || null,
+      insuranceCompany: data.insuranceCompany || null,
+      affiliateNumber: data.affiliateNumber || null,
       emergencyContact: data.emergencyContact || null,
       emergencyPhone: data.emergencyPhone || null,
+      isActive: data.isActive ?? true,
     },
+  });
+
+  // Crear expediente clínico automáticamente
+  await prisma.medicalProfile.create({
+    data: { patientId: patient.id },
   });
 
   return patient;
@@ -20,6 +33,7 @@ export const createPatient = async (data: CreatePatientData) => {
 
 export const getPatients = async (filters: {
   search?: string;
+  isActive?: boolean;
   page?: number;
   limit?: number;
 }) => {
@@ -28,12 +42,17 @@ export const getPatients = async (filters: {
 
   const where: any = {};
 
+  if (filters.isActive !== undefined) {
+    where.isActive = filters.isActive;
+  }
+
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
       { email: { contains: search, mode: 'insensitive' } },
       { phone: { contains: search } },
       { dui: { contains: search } },
+      { profession: { contains: search, mode: 'insensitive' } },
     ];
   }
 
@@ -132,10 +151,18 @@ export const updatePatient = async (id: string, data: UpdatePatientData) => {
       name: data.name,
       phone: data.phone,
       dui: data.dui || undefined,
+      gender: data.gender || undefined,
+      photoUrl: data.photoUrl || undefined,
       birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
       address: data.address || undefined,
+      residence: data.residence || undefined,
+      profession: data.profession || undefined,
+      workplace: data.workplace || undefined,
+      insuranceCompany: data.insuranceCompany || undefined,
+      affiliateNumber: data.affiliateNumber || undefined,
       emergencyContact: data.emergencyContact || undefined,
       emergencyPhone: data.emergencyPhone || undefined,
+      isActive: data.isActive,
     },
   });
 

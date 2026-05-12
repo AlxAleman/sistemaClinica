@@ -27,7 +27,7 @@ export const getAppointments = async (
   res: Response<ApiResponse>
 ): Promise<void> => {
   try {
-    const { patientId, therapistId, date, status, page, limit } = req.query;
+    const { patientId, therapistId, date, status, page, limit, unassigned } = req.query;
     const result = await appointmentService.getAppointments({
       patientId: patientId as string,
       therapistId: therapistId as string,
@@ -35,6 +35,7 @@ export const getAppointments = async (
       status: status as string,
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
+      unassigned: unassigned === 'true',
     });
     res.status(200).json({
       success: true,
@@ -73,14 +74,16 @@ export const updateAppointment = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const appointment = await appointmentService.updateAppointment(id, req.body);
+    const userRole = req.user?.role;
+    const appointment = await appointmentService.updateAppointment(id, req.body, userRole);
     res.status(200).json({
       success: true,
       data: appointment,
       message: 'Cita actualizada exitosamente',
     });
   } catch (error: any) {
-    res.status(400).json({
+    const status = error.message.includes('Solo un administrador') ? 403 : 400;
+    res.status(status).json({
       success: false,
       error: error.message || 'Error al actualizar cita',
     });
@@ -126,3 +129,48 @@ export const confirmAppointment = async (
   }
 };
 
+export const claimAppointment = async (
+  req: AuthRequest,
+  res: Response<ApiResponse>
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ success: false, error: 'No autenticado' });
+      return;
+    }
+
+    // Resolve the therapistId from the authenticated user
+    const user = await import('../config/database').then((m) =>
+      m.default.user.findUnique({ where: { id: userId }, select: { therapistId: true, role: true } })
+    );
+
+    if (!user) {
+      res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+      return;
+    }
+
+    if (!user.therapistId) {
+      res.status(400).json({
+        success: false,
+        error: 'Tu usuario no tiene un perfil de terapeuta vinculado',
+      });
+      return;
+    }
+
+    const appointment = await appointmentService.claimAppointment(id, user.therapistId);
+    res.status(200).json({
+      success: true,
+      data: appointment,
+      message: 'Cita tomada exitosamente',
+    });
+  } catch (error: any) {
+    const status = error.message.includes('ya tiene un terapeuta') ? 409 : 400;
+    res.status(status).json({
+      success: false,
+      error: error.message || 'Error al tomar la cita',
+    });
+  }
+};

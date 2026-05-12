@@ -8,5 +8,5 @@ cmds = ["pnpm install"]
 cmds = ["pnpm run build", "pnpm prisma generate"]
 
 [start]
-cmd = "node dist/index.js"
+cmd = "pnpm prisma migrate deploy && node dist/index.js"
 

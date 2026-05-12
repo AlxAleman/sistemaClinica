@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { treatmentPlanService, TreatmentPlan, UpdateTreatmentPlanData } from "@/services/treatmentPlanService";
+import { treatmentPlanService, TreatmentPlan, UpdateTreatmentPlanData, ProtocolItem } from "@/services/treatmentPlanService";
 import { patientService } from "@/services/patientService";
+import { diagnosisService, Diagnosis } from "@/services/diagnosisService";
+import { configService } from "@/services/configService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import PatientSelector from "@/components/PatientSelector";
-import StatusSelector from "@/components/StatusSelector";
+import ProtocolBuilder from "@/components/ProtocolBuilder";
+
+const FREQUENCY_OPTIONS = [
+  "1 vez por semana",
+  "2 veces por semana",
+  "3 veces por semana",
+  "4 veces por semana",
+  "5 veces por semana (diario)",
+  "Cada 2 semanas",
+  "1 vez al mes",
+];
 
 export default function EditTreatmentPlanPage() {
   const params = useParams();
@@ -16,22 +28,41 @@ export default function EditTreatmentPlanPage() {
   const id = params.id as string;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [plan, setPlan] = useState<TreatmentPlan | null>(null);
   const [patients, setPatients] = useState<any[]>([]);
+  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
+  const [therapyTypes, setTherapyTypes] = useState<string[]>([]);
+  const [customTherapyType, setCustomTherapyType] = useState("");
+  const [showCustomTherapy, setShowCustomTherapy] = useState(false);
+  const [protocol, setProtocol] = useState<ProtocolItem[]>([]);
+
   const [formData, setFormData] = useState<UpdateTreatmentPlanData>({
     patientId: "",
+    diagnosisId: null,
     title: "",
-    description: "",
-    diagnosis: "",
-    goals: "",
+    therapyType: null,
+    description: null,
+    goals: null,
+    frequency: null,
+    sessionDuration: null,
     sessionsPlanned: 10,
-    totalCost: undefined,
+    totalCost: null,
     status: "DRAFT",
+    startDate: null,
+    endDate: null,
   });
 
   useEffect(() => {
     fetchData();
+    configService.getTherapyTypes().then(setTherapyTypes).catch(() => setTherapyTypes([]));
   }, [id]);
+
+  useEffect(() => {
+    if (formData.patientId) {
+      diagnosisService.getByPatient(formData.patientId)
+        .then((data) => setDiagnoses(data.filter((d) => d.status === "ACTIVE")))
+        .catch(() => setDiagnoses([]));
+    }
+  }, [formData.patientId]);
 
   const fetchData = async () => {
     try {
@@ -41,25 +72,41 @@ export default function EditTreatmentPlanPage() {
         patientService.getAll({ limit: 1000 }),
       ]);
 
-      setPlan(planData);
       setPatients(patientsRes.patients);
 
-      // Prellenar formulario con datos del plan
+      const isKnownTherapyType = planData.therapyType && ![""].includes(planData.therapyType);
+
       setFormData({
         patientId: planData.patientId,
+        diagnosisId: planData.diagnosisId ?? null,
         title: planData.title,
-        description: planData.description || "",
-        diagnosis: planData.diagnosis || "",
-        goals: planData.goals || "",
+        therapyType: planData.therapyType ?? null,
+        description: planData.description ?? null,
+        goals: planData.goals ?? null,
+        frequency: planData.frequency ?? null,
+        sessionDuration: planData.sessionDuration ?? null,
         sessionsPlanned: planData.sessionsPlanned,
-        totalCost: planData.totalCost || undefined,
+        totalCost: planData.totalCost ?? null,
         status: planData.status,
+        startDate: planData.startDate ? planData.startDate.split("T")[0] : null,
+        endDate: planData.endDate ? planData.endDate.split("T")[0] : null,
       });
-    } catch (error: any) {
+      if (planData.protocol) setProtocol(planData.protocol as ProtocolItem[]);
+    } catch {
       toast.error("Error al cargar datos");
       router.push("/dashboard/treatment-plans");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTherapyTypeChange = (value: string) => {
+    if (value === "__custom__") {
+      setShowCustomTherapy(true);
+      setFormData({ ...formData, therapyType: "" });
+    } else {
+      setShowCustomTherapy(false);
+      setFormData({ ...formData, therapyType: value || null });
     }
   };
 
@@ -70,10 +117,8 @@ export default function EditTreatmentPlanPage() {
     try {
       await treatmentPlanService.update(id, {
         ...formData,
-        description: formData.description || null,
-        diagnosis: formData.diagnosis || null,
-        goals: formData.goals || null,
-        totalCost: formData.totalCost || null,
+        therapyType: showCustomTherapy ? customTherapyType || null : formData.therapyType,
+        protocol: protocol.length > 0 ? protocol : null,
       });
       toast.success("Plan de tratamiento actualizado exitosamente");
       router.push(`/dashboard/treatment-plans/${id}`);
@@ -93,10 +138,6 @@ export default function EditTreatmentPlanPage() {
         </div>
       </div>
     );
-  }
-
-  if (!plan) {
-    return null;
   }
 
   return (
@@ -127,9 +168,37 @@ export default function EditTreatmentPlanPage() {
           <PatientSelector
             patients={patients}
             value={formData.patientId || ""}
-            onChange={(patientId) => setFormData({ ...formData, patientId })}
+            onChange={(patientId) => setFormData({ ...formData, patientId, diagnosisId: null })}
             required
           />
+
+          {/* Diagnóstico */}
+          {formData.patientId && (
+            <div>
+              <label htmlFor="diagnosisId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Diagnóstico Asociado
+              </label>
+              {diagnoses.length > 0 ? (
+                <select
+                  id="diagnosisId"
+                  value={formData.diagnosisId || ""}
+                  onChange={(e) => setFormData({ ...formData, diagnosisId: e.target.value || null })}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                >
+                  <option value="">— Sin diagnóstico vinculado —</option>
+                  {diagnoses.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.clinicalDiagnosis}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  No hay diagnósticos activos para este paciente.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Título */}
           <div>
@@ -140,24 +209,38 @@ export default function EditTreatmentPlanPage() {
               type="text"
               id="title"
               required
-              value={formData.title}
+              value={formData.title || ""}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
 
-          {/* Diagnóstico */}
+          {/* Tipo de Terapia */}
           <div>
-            <label htmlFor="diagnosis" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Diagnóstico
+            <label htmlFor="therapyType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Tipo de Terapia
             </label>
-            <textarea
-              id="diagnosis"
-              rows={3}
-              value={formData.diagnosis || ""}
-              onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
+            <select
+              id="therapyType"
+              value={showCustomTherapy ? "__custom__" : (formData.therapyType || "")}
+              onChange={(e) => handleTherapyTypeChange(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-            />
+            >
+              <option value="">— Seleccionar tipo —</option>
+              {therapyTypes.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+              <option value="__custom__">Otro (especificar)...</option>
+            </select>
+            {showCustomTherapy && (
+              <input
+                type="text"
+                value={customTherapyType}
+                onChange={(e) => setCustomTherapyType(e.target.value)}
+                className="mt-2 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                placeholder="Especificar tipo de terapia..."
+              />
+            )}
           </div>
 
           {/* Descripción */}
@@ -167,9 +250,9 @@ export default function EditTreatmentPlanPage() {
             </label>
             <textarea
               id="description"
-              rows={4}
+              rows={3}
               value={formData.description || ""}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
@@ -181,15 +264,52 @@ export default function EditTreatmentPlanPage() {
             </label>
             <textarea
               id="goals"
-              rows={4}
+              rows={3}
               value={formData.goals || ""}
-              onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, goals: e.target.value || null })}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
 
+          {/* Frecuencia y Duración */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sesiones Planificadas */}
+            <div>
+              <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Frecuencia
+              </label>
+              <select
+                id="frequency"
+                value={formData.frequency || ""}
+                onChange={(e) => setFormData({ ...formData, frequency: e.target.value || null })}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">— Seleccionar frecuencia —</option>
+                {FREQUENCY_OPTIONS.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="sessionDuration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Duración por Sesión (min)
+              </label>
+              <input
+                type="number"
+                id="sessionDuration"
+                min="15"
+                step="15"
+                value={formData.sessionDuration || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, sessionDuration: e.target.value ? parseInt(e.target.value) : null })
+                }
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                placeholder="60"
+              />
+            </div>
+          </div>
+
+          {/* Sesiones y Costo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="sessionsPlanned" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Sesiones Planificadas <span className="text-red-500">*</span>
@@ -199,16 +319,14 @@ export default function EditTreatmentPlanPage() {
                 id="sessionsPlanned"
                 required
                 min="1"
-                value={formData.sessionsPlanned}
+                value={formData.sessionsPlanned || ""}
                 onChange={(e) => setFormData({ ...formData, sessionsPlanned: parseInt(e.target.value) })}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
-
-            {/* Costo Total */}
             <div>
               <label htmlFor="totalCost" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Costo Total (Opcional)
+                Costo Total
               </label>
               <input
                 type="number"
@@ -217,35 +335,72 @@ export default function EditTreatmentPlanPage() {
                 step="0.01"
                 value={formData.totalCost || ""}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    totalCost: e.target.value ? parseFloat(e.target.value) : undefined,
-                  })
+                  setFormData({ ...formData, totalCost: e.target.value ? parseFloat(e.target.value) : null })
                 }
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          {/* Fechas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Fecha de Inicio
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={formData.startDate || ""}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value || null })}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Fecha Fin Estimada
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={formData.endDate || ""}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value || null })}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
           </div>
 
+          {/* Protocolo terapéutico */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                Protocolo de sesión
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Define los pasos terapéuticos que se realizarán en cada sesión.
+              </p>
+            </div>
+            <ProtocolBuilder items={protocol} onChange={setProtocol} />
+          </div>
+
           {/* Estado */}
-          <StatusSelector
-            value={formData.status || "DRAFT"}
-            onChange={(status) =>
-              setFormData({
-                ...formData,
-                status: status as UpdateTreatmentPlanData["status"],
-              })
-            }
-            label="Estado"
-            options={[
-              { value: "DRAFT", label: "Borrador" },
-              { value: "PENDING_APPROVAL", label: "Pendiente de Aprobación" },
-              { value: "APPROVED", label: "Aprobado" },
-              { value: "IN_PROGRESS", label: "En Progreso" },
-              { value: "COMPLETED", label: "Completado" },
-              { value: "CANCELLED", label: "Cancelado" },
-            ]}
-          />
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Estado
+            </label>
+            <select
+              id="status"
+              value={formData.status || "DRAFT"}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as UpdateTreatmentPlanData["status"] })}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+            >
+              <option value="DRAFT">Borrador</option>
+              <option value="ACTIVE">Activo</option>
+              <option value="COMPLETED">Completado</option>
+              <option value="CANCELLED">Cancelado</option>
+            </select>
+          </div>
 
           <div className="flex justify-end gap-3">
             <Link
@@ -267,4 +422,3 @@ export default function EditTreatmentPlanPage() {
     </div>
   );
 }
-

@@ -1,969 +1,617 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// Hoy es la fecha base para todos los datos
+const TODAY = new Date('2026-05-09T00:00:00.000Z');
+const d = (offsetDays: number, hour: number, minute = 0) => {
+  const dt = new Date(TODAY);
+  dt.setUTCDate(dt.getUTCDate() + offsetDays);
+  dt.setUTCHours(hour, minute, 0, 0);
+  return dt;
+};
+
 async function main() {
-  console.log('🌱 Iniciando seed de datos...');
+  console.log('🌱 Iniciando seed de datos...\n');
 
-  // Crear pacientes de ejemplo
-  const patients = [
-    {
-      name: 'María González',
-      email: 'maria.gonzalez@email.com',
-      phone: '2222-1234',
-      dui: '01234567-8',
-      gender: 'FEMALE' as const,
-      birthDate: new Date('1985-05-15'),
-      address: 'Colonia Escalón, San Salvador',
-      emergencyContact: 'Carlos González',
-      emergencyPhone: '2222-5678',
-      medicalProfile: {
-        allergies: 'Penicilina, Polen',
-        medicalHistory: 'Hipertensión controlada, Sin cirugías previas',
-        currentMedications: 'Losartan 50mg diario',
-        notes: 'Paciente muy colaborativa, asiste puntualmente a sus citas',
-      },
-    },
-    {
-      name: 'Juan Pérez',
-      email: 'juan.perez@email.com',
-      phone: '2234-5678',
-      dui: '02345678-9',
-      gender: 'MALE' as const,
-      birthDate: new Date('1990-08-22'),
-      address: 'Colonia San Benito, San Salvador',
-      emergencyContact: 'Ana Pérez',
-      emergencyPhone: '2234-9012',
-      medicalProfile: {
-        allergies: 'Ninguna conocida',
-        medicalHistory: 'Lesión de rodilla en 2020, recuperación completa',
-        currentMedications: 'Ibuprofeno 400mg según necesidad',
-        notes: 'Deportista activo, requiere rehabilitación post-ejercicio',
-      },
-    },
-    {
-      name: 'Carmen Rodríguez',
-      email: 'carmen.rodriguez@email.com',
-      phone: '2245-6789',
-      dui: '03456789-0',
-      gender: 'FEMALE' as const,
-      birthDate: new Date('1978-12-03'),
-      address: 'Colonia Miramonte, San Salvador',
-      emergencyContact: 'Roberto Rodríguez',
-      emergencyPhone: '2245-3456',
-      medicalProfile: {
-        allergies: 'Látex',
-        medicalHistory: 'Artritis reumatoide, Diabetes tipo 2',
-        currentMedications: 'Metformina 500mg, Metotrexato semanal',
-        notes: 'Requiere atención especial por condiciones crónicas',
-      },
-    },
-    {
-      name: 'Luis Martínez',
-      email: 'luis.martinez@email.com',
-      phone: '2256-7890',
-      dui: '04567890-1',
-      gender: 'MALE' as const,
-      birthDate: new Date('1995-03-18'),
-      address: 'Colonia Cuscatlán, San Salvador',
-      emergencyContact: 'Sofía Martínez',
-      emergencyPhone: '2256-2345',
-      medicalProfile: {
-        allergies: 'Ninguna',
-        medicalHistory: 'Accidente de tránsito en 2023, fractura de brazo',
-        currentMedications: 'Ninguno actualmente',
-        notes: 'Joven paciente, muy motivado en su recuperación',
-      },
-    },
-    {
-      name: 'Ana López',
-      email: 'ana.lopez@email.com',
-      phone: '2267-8901',
-      dui: '05678901-2',
-      gender: 'FEMALE' as const,
-      birthDate: new Date('1988-07-25'),
-      address: 'Colonia San Francisco, San Salvador',
-      emergencyContact: 'Miguel López',
-      emergencyPhone: '2267-4567',
-      medicalProfile: {
-        allergies: 'Aspirina',
-        medicalHistory: 'Dolor crónico de espalda, Sin cirugías',
-        currentMedications: 'Paracetamol 500mg según necesidad',
-        notes: 'Trabaja en oficina, requiere ejercicios posturales',
-      },
-    },
-    {
-      name: 'Roberto Sánchez',
-      email: 'roberto.sanchez@email.com',
-      phone: '2278-9012',
-      dui: '06789012-3',
-      gender: 'MALE' as const,
-      birthDate: new Date('1982-11-10'),
-      address: 'Colonia Las Colinas, San Salvador',
-      emergencyContact: 'Patricia Sánchez',
-      emergencyPhone: '2278-5678',
-      medicalProfile: {
-        allergies: 'Ninguna conocida',
-        medicalHistory: 'Lesión de hombro en 2022, cirugía artroscópica',
-        currentMedications: 'Ninguno',
-        notes: 'En proceso de rehabilitación post-quirúrgica',
-      },
-    },
-    {
-      name: 'Sofía Hernández',
-      email: 'sofia.hernandez@email.com',
-      phone: '2289-0123',
-      dui: '07890123-4',
-      gender: 'FEMALE' as const,
-      birthDate: new Date('1992-04-30'),
-      address: 'Colonia La Mascota, San Salvador',
-      emergencyContact: 'Diego Hernández',
-      emergencyPhone: '2289-6789',
-      medicalProfile: {
-        allergies: 'Polvo, Ácaros',
-        medicalHistory: 'Asma leve, Sin otras condiciones',
-        currentMedications: 'Salbutamol inhalador según necesidad',
-        notes: 'Paciente activa, practica yoga regularmente',
-      },
-    },
-    {
-      name: 'Carlos Ramírez',
-      email: 'carlos.ramirez@email.com',
-      phone: '2290-1234',
-      dui: '08901234-5',
-      gender: 'MALE' as const,
-      birthDate: new Date('1975-09-14'),
-      address: 'Colonia San Mateo, San Salvador',
-      emergencyContact: 'Laura Ramírez',
-      emergencyPhone: '2290-7890',
-      medicalProfile: {
-        allergies: 'Ninguna',
-        medicalHistory: 'Hipertensión, Colesterol alto',
-        currentMedications: 'Amlodipino 5mg, Atorvastatina 20mg',
-        notes: 'Paciente de edad media, requiere seguimiento regular',
-      },
-    },
-    {
-      name: 'Patricia Morales',
-      email: 'patricia.morales@email.com',
-      phone: '2201-2345',
-      dui: '09012345-6',
-      gender: 'FEMALE' as const,
-      birthDate: new Date('1998-01-20'),
-      address: 'Colonia Las Palmas, San Salvador',
-      emergencyContact: 'Fernando Morales',
-      emergencyPhone: '2201-8901',
-      medicalProfile: {
-        allergies: 'Ninguna conocida',
-        medicalHistory: 'Lesión deportiva de tobillo, Sin cirugías',
-        currentMedications: 'Ninguno',
-        notes: 'Estudiante universitaria, muy comprometida con su tratamiento',
-      },
-    },
-    {
-      name: 'Miguel Torres',
-      email: 'miguel.torres@email.com',
-      phone: '2212-3456',
-      dui: '00123456-7',
-      gender: 'MALE' as const,
-      birthDate: new Date('1987-06-08'),
-      address: 'Colonia Escalón, San Salvador',
-      emergencyContact: 'Elena Torres',
-      emergencyPhone: '2212-9012',
-      medicalProfile: {
-        allergies: 'Ninguna',
-        medicalHistory: 'Dolor lumbar crónico, Sin cirugías',
-        currentMedications: 'Diclofenaco 50mg según necesidad',
-        notes: 'Trabajador de construcción, requiere fortalecimiento',
-      },
-    },
+  // ─────────────────────────────────────────────
+  // SISTEMA: Configuración inicial
+  // ─────────────────────────────────────────────
+  console.log('⚙️  Inicializando configuración del sistema...');
+  const configs = [
+    { key: 'therapy_types', value: JSON.stringify(['Fisioterapia Deportiva', 'Fisioterapia Neurológica', 'Fisioterapia Ortopédica', 'Terapia Manual', 'Electroterapia', 'Hidroterapia', 'Rehabilitación Post-Quirúrgica']), description: 'Tipos de terapia disponibles', category: 'therapy_types' },
+    { key: 'session_durations', value: JSON.stringify([30, 45, 60, 90]), description: 'Duraciones de sesión en minutos', category: 'session_durations' },
+    { key: 'clinic_hours_start', value: '07:00', description: 'Hora de apertura de la clínica', category: 'schedules' },
+    { key: 'clinic_hours_end', value: '19:00', description: 'Hora de cierre de la clínica', category: 'schedules' },
+    { key: 'currency', value: 'USD', description: 'Moneda del sistema', category: 'general' },
+    { key: 'session_price_default', value: '50.00', description: 'Precio por sesión por defecto', category: 'general' },
+    { key: 'payment_methods', value: JSON.stringify(['CASH', 'POS', 'TRANSFER']), description: 'Métodos de pago habilitados', category: 'payment_methods' },
+    { key: 'alert_no_show_threshold', value: '3', description: 'Cantidad de no-shows para generar alerta', category: 'alerts' },
   ];
 
-  console.log(`📝 Creando ${patients.length} pacientes...`);
-
-  for (const patientData of patients) {
-    const { medicalProfile, ...patientInfo } = patientData;
-    
-    // Buscar si ya existe un paciente con el mismo email o DUI
-    const existingPatient = await prisma.patient.findFirst({
-      where: {
-        OR: [
-          patientInfo.email ? { email: patientInfo.email } : {},
-          patientInfo.dui ? { dui: patientInfo.dui } : {},
-        ].filter(condition => Object.keys(condition).length > 0),
-      },
+  for (const config of configs) {
+    await prisma.systemConfig.upsert({
+      where: { key: config.key },
+      update: { value: config.value },
+      create: config,
     });
-
-    if (existingPatient) {
-      console.log(`⏭️  Paciente ya existe: ${patientInfo.name}`);
-      continue;
-    }
-
-    const patient = await prisma.patient.create({
-      data: {
-        ...patientInfo,
-        medicalProfile: {
-          create: medicalProfile,
-        },
-      },
-      include: {
-        medicalProfile: true,
-      },
-    });
-
-    console.log(`✅ Paciente creado: ${patient.name}`);
   }
+  console.log('   ✅ Configuración lista\n');
 
-  // Crear terapeutas de ejemplo
-  const therapistsData = [
-    {
-      name: 'Dr. Carlos Méndez',
-      email: 'carlos.mendez@clinica.com',
-      phone: '2222-0001',
-      specialization: 'Fisioterapia Deportiva',
-      availability: [
-        { dayOfWeek: 1, startTime: '08:00', endTime: '12:00' }, // Lunes
-        { dayOfWeek: 1, startTime: '14:00', endTime: '18:00' },
-        { dayOfWeek: 2, startTime: '08:00', endTime: '12:00' }, // Martes
-        { dayOfWeek: 2, startTime: '14:00', endTime: '18:00' },
-        { dayOfWeek: 3, startTime: '08:00', endTime: '12:00' }, // Miércoles
-        { dayOfWeek: 3, startTime: '14:00', endTime: '18:00' },
-        { dayOfWeek: 4, startTime: '08:00', endTime: '12:00' }, // Jueves
-        { dayOfWeek: 4, startTime: '14:00', endTime: '18:00' },
-        { dayOfWeek: 5, startTime: '08:00', endTime: '12:00' }, // Viernes
-      ],
-    },
-    {
-      name: 'Dra. Ana Martínez',
-      email: 'ana.martinez@clinica.com',
-      phone: '2222-0002',
-      specialization: 'Fisioterapia Neurológica',
-      availability: [
-        { dayOfWeek: 1, startTime: '09:00', endTime: '13:00' }, // Lunes
-        { dayOfWeek: 1, startTime: '15:00', endTime: '19:00' },
-        { dayOfWeek: 2, startTime: '09:00', endTime: '13:00' }, // Martes
-        { dayOfWeek: 2, startTime: '15:00', endTime: '19:00' },
-        { dayOfWeek: 3, startTime: '09:00', endTime: '13:00' }, // Miércoles
-        { dayOfWeek: 3, startTime: '15:00', endTime: '19:00' },
-        { dayOfWeek: 4, startTime: '09:00', endTime: '13:00' }, // Jueves
-        { dayOfWeek: 4, startTime: '15:00', endTime: '19:00' },
-        { dayOfWeek: 5, startTime: '09:00', endTime: '13:00' }, // Viernes
-      ],
-    },
-    {
-      name: 'Lic. Roberto Silva',
-      email: 'roberto.silva@clinica.com',
-      phone: '2222-0003',
-      specialization: 'Fisioterapia Ortopédica',
-      availability: [
-        { dayOfWeek: 1, startTime: '07:00', endTime: '11:00' }, // Lunes
-        { dayOfWeek: 1, startTime: '13:00', endTime: '17:00' },
-        { dayOfWeek: 3, startTime: '07:00', endTime: '11:00' }, // Miércoles
-        { dayOfWeek: 3, startTime: '13:00', endTime: '17:00' },
-        { dayOfWeek: 5, startTime: '07:00', endTime: '11:00' }, // Viernes
-        { dayOfWeek: 5, startTime: '13:00', endTime: '17:00' },
-        { dayOfWeek: 6, startTime: '08:00', endTime: '12:00' }, // Sábado
-      ],
-    },
-  ];
-
-  console.log(`👨‍⚕️ Creando ${therapistsData.length} terapeutas...`);
-
-  for (const therapistData of therapistsData) {
-    const { availability, ...therapistInfo } = therapistData;
-
-    // Verificar si el terapeuta ya existe
-    const existingTherapist = await prisma.therapist.findUnique({
-      where: { email: therapistInfo.email },
-    });
-
-    if (existingTherapist) {
-      console.log(`⏭️  Terapeuta ya existe: ${therapistInfo.name}`);
-      continue;
-    }
-
-    const therapist = await prisma.therapist.create({
-      data: {
-        ...therapistInfo,
-        availability: {
-          create: availability,
-        },
-      },
-      include: {
-        availability: true,
-      },
-    });
-
-    console.log(`✅ Terapeuta creado: ${therapist.name} con ${therapist.availability.length} horarios de disponibilidad`);
-  }
-
-  // Crear citas de ejemplo
-  console.log(`📅 Creando citas de ejemplo...`);
-
-  // Obtener todos los pacientes y terapeutas
-  const allPatients = await prisma.patient.findMany({ take: 10 });
-  const allTherapists = await prisma.therapist.findMany();
-
-  if (allPatients.length === 0 || allTherapists.length === 0) {
-    console.log('⚠️  No hay pacientes o terapeutas para crear citas');
-    console.log('✨ Seed completado exitosamente!');
-    return;
-  }
-
-  // Crear citas para los próximos días con diferentes estados
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const appointmentsData = [
-    // Citas para hoy
-    {
-      patientId: allPatients[0].id,
-      therapistId: allTherapists[0].id,
-      appointmentDate: new Date(today.getTime() + 9 * 60 * 60 * 1000), // 09:00 hoy
-      duration: 60,
-      status: 'SCHEDULED' as const,
-    },
-    {
-      patientId: allPatients[1].id,
-      therapistId: allTherapists[0].id,
-      appointmentDate: new Date(today.getTime() + 11 * 60 * 60 * 1000), // 11:00 hoy
-      duration: 45,
-      status: 'CONFIRMED' as const,
-    },
-    {
-      patientId: allPatients[2].id,
-      therapistId: allTherapists[1].id,
-      appointmentDate: new Date(today.getTime() + 15 * 60 * 60 * 1000), // 15:00 hoy
-      duration: 60,
-      status: 'SCHEDULED' as const,
-    },
-    // Citas para mañana
-    {
-      patientId: allPatients[3].id,
-      therapistId: allTherapists[0].id,
-      appointmentDate: new Date(today.getTime() + 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000), // 10:00 mañana
-      duration: 30,
-      status: 'SCHEDULED' as const,
-    },
-    {
-      patientId: allPatients[4].id,
-      therapistId: allTherapists[1].id,
-      appointmentDate: new Date(today.getTime() + 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000), // 14:00 mañana
-      duration: 60,
-      status: 'CONFIRMED' as const,
-    },
-    // Citas para pasado mañana
-    {
-      patientId: allPatients[5].id,
-      therapistId: allTherapists[2].id,
-      appointmentDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000), // 08:00 pasado mañana
-      duration: 60,
-      status: 'SCHEDULED' as const,
-    },
-    {
-      patientId: allPatients[6].id,
-      therapistId: allTherapists[0].id,
-      appointmentDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000), // 16:00 pasado mañana
-      duration: 45,
-      status: 'SCHEDULED' as const,
-    },
-    // Citas para la próxima semana
-    {
-      patientId: allPatients[7].id,
-      therapistId: allTherapists[1].id,
-      appointmentDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000 + 9 * 60 * 60 * 1000), // 09:00 próxima semana
-      duration: 60,
-      status: 'SCHEDULED' as const,
-    },
-    {
-      patientId: allPatients[8].id,
-      therapistId: allTherapists[2].id,
-      appointmentDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000 + 13 * 60 * 60 * 1000), // 13:00 próxima semana
-      duration: 90,
-      status: 'CONFIRMED' as const,
-    },
-    // Citas pasadas (completadas)
-    {
-      patientId: allPatients[0].id,
-      therapistId: allTherapists[0].id,
-      appointmentDate: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000), // 10:00 hace 2 días
-      duration: 60,
-      status: 'COMPLETED' as const,
-    },
-    {
-      patientId: allPatients[1].id,
-      therapistId: allTherapists[1].id,
-      appointmentDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000), // 14:00 hace 5 días
-      duration: 45,
-      status: 'COMPLETED' as const,
-    },
-    // Cita cancelada
-    {
-      patientId: allPatients[2].id,
-      therapistId: allTherapists[0].id,
-      appointmentDate: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000 + 11 * 60 * 60 * 1000), // 11:00 en 3 días
-      duration: 60,
-      status: 'CANCELLED' as const,
-    },
-  ];
-
-  let createdCount = 0;
-  let skippedCount = 0;
-
-  for (const appointmentData of appointmentsData) {
-    try {
-      // Verificar que no haya conflicto de horario
-      const existingAppointment = await prisma.appointment.findFirst({
-        where: {
-          therapistId: appointmentData.therapistId,
-          appointmentDate: {
-            gte: new Date(appointmentData.appointmentDate.getTime() - appointmentData.duration * 60000),
-            lte: new Date(appointmentData.appointmentDate.getTime() + appointmentData.duration * 60000),
-          },
-          status: {
-            notIn: ['CANCELLED', 'NO_SHOW'],
-          },
-        },
-      });
-
-      if (existingAppointment) {
-        skippedCount++;
-        continue;
-      }
-
-      await prisma.appointment.create({
-        data: appointmentData,
-      });
-
-      createdCount++;
-    } catch (error: any) {
-      console.error(`❌ Error al crear cita:`, error.message);
-      skippedCount++;
-    }
-  }
-
-  console.log(`✅ ${createdCount} citas creadas, ${skippedCount} omitidas (conflictos o errores)`);
-
-  // Crear sesiones de tratamiento
-  console.log(`💼 Creando sesiones de tratamiento...`);
-  
-  const completedAppointments = await prisma.appointment.findMany({
-    where: { status: 'COMPLETED' },
-    take: 5,
+  // ─────────────────────────────────────────────
+  // USUARIO ADMIN
+  // ─────────────────────────────────────────────
+  console.log('👤 Creando usuario administrador...');
+  const adminPassword = await bcrypt.hash('Admin123!', 10);
+  await prisma.user.upsert({
+    where: { email: 'admin@clinica.com' },
+    update: { password: adminPassword, name: 'Administrador', role: 'ADMIN' },
+    create: { email: 'admin@clinica.com', password: adminPassword, name: 'Administrador', role: 'ADMIN' },
   });
+  console.log('   ✅ admin@clinica.com / Admin123!\n');
 
-  const sessionsData = [];
-  for (let i = 0; i < completedAppointments.length; i++) {
-    const appointment = completedAppointments[i];
-    const sessionDate = new Date(appointment.appointmentDate);
-    
-    sessionsData.push({
-      patientId: appointment.patientId,
-      therapistId: appointment.therapistId,
-      appointmentId: appointment.id,
-      sessionDate: sessionDate,
-      duration: appointment.duration,
-      interventions: [
-        'Ejercicios de fortalecimiento',
-        'Estiramientos pasivos',
-        'Terapia manual',
-        'Aplicación de calor',
-        'Electroterapia',
-      ][i % 5],
-      progress: [
-        'Paciente muestra mejoría en rango de movimiento',
-        'Dolor reducido significativamente',
-        'Fuerza muscular aumentada',
-        'Movilidad mejorada',
-        'Paciente muy colaborativo',
-      ][i % 5],
-      painLevel: [7, 5, 6, 4, 5][i % 5],
-      notes: [
-        'Sesión muy productiva, paciente respondió bien al tratamiento',
-        'Continuar con ejercicios en casa',
-        'Progreso notable desde la última sesión',
-        'Paciente reporta menos dolor',
-        'Recomendar ejercicios de mantenimiento',
-      ][i % 5],
+  // ─────────────────────────────────────────────
+  // TERAPISTAS
+  // ─────────────────────────────────────────────
+  console.log('👨‍⚕️ Creando terapistas...');
+  const therapistsData = [
+    { email: 'carlos.mendez@clinica.com', name: 'Dr. Carlos Méndez', phone: '7890-1001', specialization: 'Fisioterapia Deportiva' },
+    { email: 'ana.martinez@clinica.com', name: 'Dra. Ana Martínez', phone: '7890-1002', specialization: 'Fisioterapia Neurológica' },
+    { email: 'roberto.silva@clinica.com', name: 'Lic. Roberto Silva', phone: '7890-1003', specialization: 'Fisioterapia Ortopédica' },
+  ];
+
+  const therapists: any[] = [];
+  for (const td of therapistsData) {
+    const t = await prisma.therapist.upsert({
+      where: { email: td.email },
+      update: {},
+      create: {
+        ...td,
+        availability: {
+          create: [
+            { dayOfWeek: 1, startTime: '07:00', endTime: '19:00' },
+            { dayOfWeek: 2, startTime: '07:00', endTime: '19:00' },
+            { dayOfWeek: 3, startTime: '07:00', endTime: '19:00' },
+            { dayOfWeek: 4, startTime: '07:00', endTime: '19:00' },
+            { dayOfWeek: 5, startTime: '07:00', endTime: '17:00' },
+          ],
+        },
+      },
     });
+    therapists.push(t);
+    console.log(`   ✅ ${t.name}`);
+  }
+  const [t1, t2, t3] = therapists;
+  console.log();
+
+  // ─────────────────────────────────────────────
+  // PACIENTES + EXPEDIENTE
+  // ─────────────────────────────────────────────
+  console.log('🧑‍🤝‍🧑 Creando pacientes con expedientes...');
+  const patientsData = [
+    {
+      name: 'María González', email: 'maria.gonzalez@email.com', phone: '7701-0001', dui: '01234567-8',
+      gender: 'FEMALE' as const, birthDate: new Date('1985-05-15'),
+      address: 'Col. Escalón, San Salvador', residence: 'San Salvador',
+      profession: 'Docente', workplace: 'Colegio Santa Ana',
+      insuranceCompany: 'SISA', affiliateNumber: 'SISA-00123',
+      emergencyContact: 'Carlos González', emergencyPhone: '7701-9001',
+      medical: {
+        allergies: 'Penicilina, Polen',
+        medicalHistory: 'Hipertensión controlada. Operación de rodilla 2019.',
+        currentMedications: 'Losartan 50mg diario',
+        previousCondition: 'Dolor crónico de rodilla derecha post-quirúrgico',
+        currentCondition: 'Rehabilitación de rodilla, rango de movimiento 70% recuperado',
+        generalObservations: 'Paciente muy colaborativa, asiste puntualmente. Buena adherencia al tratamiento.',
+      },
+    },
+    {
+      name: 'Juan Pérez', email: 'juan.perez@email.com', phone: '7702-0002', dui: '02345678-9',
+      gender: 'MALE' as const, birthDate: new Date('1990-08-22'),
+      address: 'Col. San Benito, San Salvador', residence: 'San Salvador',
+      profession: 'Ingeniero Civil', workplace: 'Constructora Latina',
+      emergencyContact: 'Ana Pérez', emergencyPhone: '7702-9002',
+      medical: {
+        allergies: 'Ninguna conocida',
+        medicalHistory: 'Lesión de rodilla izquierda 2023. Deportista activo.',
+        currentMedications: 'Ibuprofeno 400mg según necesidad',
+        previousCondition: 'Tendinitis rotuliana bilateral leve',
+        currentCondition: 'Dolor en rodilla izquierda tras carrera de 10k. Inflamación moderada.',
+        generalObservations: 'Atleta amateur. Corrige técnica de carrera en paralelo.',
+      },
+    },
+    {
+      name: 'Carmen Rodríguez', email: 'carmen.rodriguez@email.com', phone: '7703-0003', dui: '03456789-0',
+      gender: 'FEMALE' as const, birthDate: new Date('1968-12-03'),
+      address: 'Col. Miramonte, San Salvador', residence: 'San Salvador',
+      profession: 'Contadora', workplace: 'Despacho Rodríguez & Asociados',
+      insuranceCompany: 'La Centroamericana', affiliateNumber: 'LC-55001',
+      emergencyContact: 'Roberto Rodríguez', emergencyPhone: '7703-9003',
+      medical: {
+        allergies: 'Látex, AINES',
+        medicalHistory: 'Artritis reumatoide diagnosticada 2015. Diabetes tipo 2 controlada.',
+        currentMedications: 'Metformina 500mg, Metotrexato 10mg semanal, Ácido fólico 5mg',
+        previousCondition: 'Artritis reumatoide activa con brotes frecuentes. Manos y pies afectados.',
+        currentCondition: 'Control de síntomas. Mejoría en rigidez matutina. Dolor leve-moderado.',
+        generalObservations: 'Coordinación con reumatólogo. Ejercicios de bajo impacto únicamente.',
+      },
+    },
+    {
+      name: 'Luis Martínez', email: 'luis.martinez@email.com', phone: '7704-0004', dui: '04567890-1',
+      gender: 'MALE' as const, birthDate: new Date('1998-03-18'),
+      address: 'Col. Cuscatlán, Santa Tecla', residence: 'Santa Tecla',
+      profession: 'Estudiante', workplace: 'Universidad Don Bosco',
+      emergencyContact: 'Sofía Martínez', emergencyPhone: '7704-9004',
+      medical: {
+        allergies: 'Ninguna',
+        medicalHistory: 'Fractura de cúbito y radio derechos (accidente moto, enero 2026). Cirugía con placa y tornillos.',
+        currentMedications: 'Calcio + Vitamina D',
+        previousCondition: 'Fractura post-quirúrgica brazo derecho. Inmovilización 8 semanas.',
+        currentCondition: 'Rehabilitación activa. Fuerza 3/5. Rango de movimiento 60% restaurado.',
+        generalObservations: 'Joven muy motivado. Excelente adherencia. Progreso rápido.',
+      },
+    },
+    {
+      name: 'Ana López', email: 'ana.lopez@email.com', phone: '7705-0005', dui: '05678901-2',
+      gender: 'FEMALE' as const, birthDate: new Date('1988-07-25'),
+      address: 'Col. San Francisco, San Salvador', residence: 'San Salvador',
+      profession: 'Analista de Sistemas', workplace: 'Banco Agrícola',
+      emergencyContact: 'Miguel López', emergencyPhone: '7705-9005',
+      medical: {
+        allergies: 'Aspirina',
+        medicalHistory: 'Lumbalgia crónica desde 2021. Hernia discal L4-L5 leve.',
+        currentMedications: 'Paracetamol 500mg según necesidad, Diclofenaco gel',
+        previousCondition: 'Dolor lumbar crónico con irradiación a pierna derecha (ciática ocasional)',
+        currentCondition: 'Control del dolor. Mejora postural. Núcleo abdominal fortaleciendo.',
+        generalObservations: 'Trabajo sedentario 8h/día. Se realizan pausas activas. Ergonomía mejorada.',
+      },
+    },
+    {
+      name: 'Roberto Sánchez', email: 'roberto.sanchez@email.com', phone: '7706-0006', dui: '06789012-3',
+      gender: 'MALE' as const, birthDate: new Date('1979-11-10'),
+      address: 'Col. Las Colinas, Antiguo Cuscatlán', residence: 'Antiguo Cuscatlán',
+      profession: 'Gerente de Ventas', workplace: 'Distribuidora Centroamérica',
+      insuranceCompany: 'ASESUISA', affiliateNumber: 'ASE-77890',
+      emergencyContact: 'Patricia Sánchez', emergencyPhone: '7706-9006',
+      medical: {
+        allergies: 'Ninguna conocida',
+        medicalHistory: 'Rotura del manguito rotador hombro derecho. Artroscopía marzo 2026.',
+        currentMedications: 'Calcio + Vitamina D, Omega-3',
+        previousCondition: 'Dolor hombro derecho. Incapacidad para elevar brazo sobre 90°.',
+        currentCondition: 'Post-operatorio semana 8. Rango de movimiento: flexión 100°, abducción 80°.',
+        generalObservations: 'Evolución favorable. Trabaja con laptop, se le recomienda soporte de brazo.',
+      },
+    },
+    {
+      name: 'Sofía Hernández', email: 'sofia.hernandez@email.com', phone: '7707-0007', dui: '07890123-4',
+      gender: 'FEMALE' as const, birthDate: new Date('1995-04-30'),
+      address: 'Col. La Mascota, San Salvador', residence: 'San Salvador',
+      profession: 'Médico', workplace: 'Hospital Nacional Rosales',
+      emergencyContact: 'Diego Hernández', emergencyPhone: '7707-9007',
+      medical: {
+        allergies: 'Polvo, Ácaros',
+        medicalHistory: 'Epicondilitis lateral (codo de tenista) brazo derecho. Inicio progresivo.',
+        currentMedications: 'Ninguno actualmente',
+        previousCondition: 'Dolor lateral del codo derecho. Agravado con pronación-supinación.',
+        currentCondition: 'Mejora significativa. Dolor reducido a 3/10. Continúa con ejercicios excéntricos.',
+        generalObservations: 'Médica, usa brazo derecho intensivamente. Control ergonómico del instrumental.',
+      },
+    },
+    {
+      name: 'Carlos Ramírez', email: 'carlos.ramirez@email.com', phone: '7708-0008', dui: '08901234-5',
+      gender: 'MALE' as const, birthDate: new Date('1972-09-14'),
+      address: 'Res. San Mateo, Soyapango', residence: 'Soyapango',
+      profession: 'Electricista', workplace: 'Empresa propia',
+      emergencyContact: 'Laura Ramírez', emergencyPhone: '7708-9008',
+      medical: {
+        allergies: 'Ninguna',
+        medicalHistory: 'Síndrome del túnel carpiano bilateral. Más severo en mano derecha.',
+        currentMedications: 'Ninguno',
+        previousCondition: 'Hormigueo y dolor nocturno en manos. Pérdida de fuerza de agarre.',
+        currentCondition: 'Post-cirugía túnel carpiano mano derecha. Liberación del nervio mediano exitosa.',
+        generalObservations: 'Trabajo manual intensivo. Necesita retorno progresivo al trabajo.',
+      },
+    },
+  ];
+
+  const patients: any[] = [];
+  for (const pd of patientsData) {
+    const { medical, ...pInfo } = pd;
+    const existing = await prisma.patient.findUnique({ where: { email: pInfo.email } });
+    if (existing) {
+      const full = await prisma.patient.findUnique({ where: { id: existing.id }, include: { medicalProfile: true } });
+      patients.push(full);
+      console.log(`   ⏭️  Ya existe: ${existing.name}`);
+      continue;
+    }
+    const p = await prisma.patient.create({
+      data: {
+        ...pInfo,
+        medicalProfile: {
+          create: medical,
+        },
+      },
+      include: { medicalProfile: true },
+    });
+    patients.push(p);
+    console.log(`   ✅ ${p.name}`);
+  }
+  console.log();
+
+  // ─────────────────────────────────────────────
+  // DIAGNÓSTICOS
+  // ─────────────────────────────────────────────
+  console.log('🔬 Creando diagnósticos...');
+  const diagnosesData = [
+    { idx: 0, clinical: 'Síndrome post-quirúrgico rodilla derecha (Artroplastia)', status: 'ACTIVE' as const, observations: 'Dolor e inflamación residual. Limitación funcional moderada. Indicada fisioterapia intensiva.' },
+    { idx: 1, clinical: 'Tendinitis rotuliana rodilla izquierda', status: 'ACTIVE' as const, observations: 'Inflamación del tendón rotuliano. Relacionado con sobre-entrenamiento de carrera.' },
+    { idx: 2, clinical: 'Artritis reumatoide - compromiso manos y pies', status: 'CHRONIC' as const, observations: 'Enfermedad autoinmune controlada con Metotrexato. Fisioterapia de mantenimiento.' },
+    { idx: 3, clinical: 'Fractura consolidada de cúbito y radio derechos', status: 'ACTIVE' as const, observations: 'Fractura consolidada radiológicamente. Fisioterapia para recuperar función y fuerza.' },
+    { idx: 4, clinical: 'Hernia discal L4-L5 con lumbalgia crónica', status: 'CHRONIC' as const, observations: 'Hernia leve confirmada por RM. Manejo conservador. Sin indicación quirúrgica.' },
+    { idx: 5, clinical: 'Rotura manguito rotador hombro derecho (post-artroscopía)', status: 'ACTIVE' as const, observations: 'Post-quirúrgico semana 8. Reparación de tendón supraespinoso y subescapular.' },
+    { idx: 6, clinical: 'Epicondilitis lateral (codo de tenista) brazo derecho', status: 'RESOLVED' as const, observations: 'Episodio resuelto. Alta con programa de mantenimiento.' },
+    { idx: 7, clinical: 'Síndrome del túnel carpiano mano derecha (post-liberación)', status: 'ACTIVE' as const, observations: 'Cirugía de descompresión del nervio mediano. Rehabilitación post-quirúrgica.' },
+  ];
+
+  const diagnoses: any[] = [];
+  for (const dd of diagnosesData) {
+    const p = patients[dd.idx];
+    if (!p?.medicalProfile) { diagnoses.push(null); continue; }
+    const existing = await prisma.diagnosis.findFirst({ where: { patientId: p.id, clinicalDiagnosis: dd.clinical } });
+    if (existing) { diagnoses.push(existing); console.log(`   ⏭️  Ya existe diagnóstico para ${p.name}`); continue; }
+    const diag = await prisma.diagnosis.create({
+      data: {
+        patientId: p.id,
+        medicalProfileId: p.medicalProfile.id,
+        clinicalDiagnosis: dd.clinical,
+        status: dd.status,
+        observations: dd.observations,
+        diagnosisDate: d(-30 - dd.idx * 5, 9),
+      },
+    });
+    diagnoses.push(diag);
+    console.log(`   ✅ ${p.name}: ${dd.clinical.substring(0, 50)}...`);
+  }
+  console.log();
+
+  // ─────────────────────────────────────────────
+  // PLANES DE TRATAMIENTO
+  // ─────────────────────────────────────────────
+  console.log('📋 Creando planes de tratamiento...');
+  const plansData = [
+    { idx: 0, diagIdx: 0, title: 'Rehabilitación Post-Artroplastia Rodilla', therapyType: 'Rehabilitación Post-Quirúrgica', frequency: '3 veces por semana', sessionDuration: 60, sessionsPlanned: 24, sessionsCompleted: 14, status: 'ACTIVE' as const, totalCost: 1200, startDate: d(-45, 8), endDate: d(30, 8), description: 'Protocolo de rehabilitación completo post-reemplazo de rodilla. Incluye fortalecimiento muscular, recuperación del rango de movimiento y reentrenamiento funcional.', goals: 'Recuperar rango de movimiento completo. Fortalecer cuádriceps y gemelos. Retorno a actividades cotidianas sin dolor.' },
+    { idx: 1, diagIdx: 1, title: 'Tratamiento Tendinitis Rotuliana', therapyType: 'Fisioterapia Deportiva', frequency: '2 veces por semana', sessionDuration: 45, sessionsPlanned: 12, sessionsCompleted: 7, status: 'ACTIVE' as const, totalCost: 540, startDate: d(-28, 8), endDate: d(14, 8), description: 'Programa de tratamiento para tendinitis rotuliana con énfasis en ejercicios excéntricos y terapia manual.', goals: 'Reducir dolor a menos de 2/10. Retorno progresivo al entrenamiento. Prevención de recaídas.' },
+    { idx: 2, diagIdx: 2, title: 'Fisioterapia de Mantenimiento - Artritis Reumatoide', therapyType: 'Terapia Manual', frequency: '1 vez por semana', sessionDuration: 45, sessionsPlanned: 20, sessionsCompleted: 18, status: 'ACTIVE' as const, totalCost: 900, startDate: d(-120, 8), endDate: d(14, 8), description: 'Programa de fisioterapia de mantenimiento para control de síntomas de artritis reumatoide. Énfasis en movilidad articular y calidad de vida.', goals: 'Mantener movilidad articular. Reducir rigidez matutina. Mejorar calidad de vida.' },
+    { idx: 3, diagIdx: 3, title: 'Rehabilitación Post-Fractura Brazo Derecho', therapyType: 'Fisioterapia Ortopédica', frequency: '3 veces por semana', sessionDuration: 60, sessionsPlanned: 20, sessionsCompleted: 9, status: 'ACTIVE' as const, totalCost: 1000, startDate: d(-35, 8), endDate: d(25, 8), description: 'Rehabilitación intensiva después de fractura y cirugía de cúbito y radio. Recuperación de fuerza y función del brazo derecho.', goals: 'Recuperar fuerza muscular a 5/5. Restaurar rango de movimiento completo. Retorno a actividades académicas.' },
+    { idx: 4, diagIdx: 4, title: 'Manejo Conservador Lumbalgia Crónica', therapyType: 'Fisioterapia Ortopédica', frequency: '2 veces por semana', sessionDuration: 60, sessionsPlanned: 16, sessionsCompleted: 5, status: 'ACTIVE' as const, totalCost: 800, startDate: d(-20, 8), endDate: d(45, 8), description: 'Plan de manejo conservador para lumbalgia crónica con hernia discal L4-L5. Control del dolor y fortalecimiento del núcleo.', goals: 'Reducir dolor lumbar crónico. Fortalecer musculatura del core. Educación postural.' },
+    { idx: 5, diagIdx: 5, title: 'Rehabilitación Manguito Rotador Hombro Derecho', therapyType: 'Rehabilitación Post-Quirúrgica', frequency: '3 veces por semana', sessionDuration: 60, sessionsPlanned: 24, sessionsCompleted: 6, status: 'ACTIVE' as const, totalCost: 1200, startDate: d(-18, 8), endDate: d(55, 8), description: 'Protocolo de rehabilitación post-artroscopía de hombro. Fases progresivas de recuperación de rango de movimiento y fuerza.', goals: 'Recuperar rango de movimiento completo de hombro. Fortalecer manguito rotador. Retorno al trabajo.' },
+    { idx: 6, diagIdx: 6, title: 'Tratamiento Epicondilitis Lateral - Alta', therapyType: 'Fisioterapia Deportiva', frequency: '2 veces por semana', sessionDuration: 45, sessionsPlanned: 10, sessionsCompleted: 10, status: 'COMPLETED' as const, totalCost: 450, startDate: d(-70, 8), endDate: d(-10, 8), description: 'Tratamiento completado exitosamente. Resolución de epicondilitis lateral con ejercicios excéntricos y terapia manual.', goals: 'Resolución del dolor. Retorno a la práctica médica sin limitaciones.' },
+    { idx: 7, diagIdx: 7, title: 'Rehabilitación Post-Liberación Túnel Carpiano', therapyType: 'Fisioterapia Ortopédica', frequency: '2 veces por semana', sessionDuration: 45, sessionsPlanned: 12, sessionsCompleted: 2, status: 'ACTIVE' as const, totalCost: 540, startDate: d(-8, 8), endDate: d(50, 8), description: 'Rehabilitación post-quirúrgica del túnel carpiano. Cicatrización y recuperación de la función de la mano.', goals: 'Recuperar sensibilidad y fuerza. Retorno al trabajo manual. Prevenir recurrencia.' },
+  ];
+
+  const plans: any[] = [];
+  for (const pd of plansData) {
+    const p = patients[pd.idx];
+    const diag = diagnoses[pd.diagIdx];
+    if (!p) { plans.push(null); continue; }
+    const existing = await prisma.treatmentPlan.findFirst({ where: { patientId: p.id, title: pd.title } });
+    if (existing) { plans.push(existing); console.log(`   ⏭️  Ya existe plan: ${pd.title.substring(0, 45)}...`); continue; }
+    const plan = await prisma.treatmentPlan.create({
+      data: {
+        patientId: p.id,
+        diagnosisId: diag?.id || null,
+        title: pd.title,
+        therapyType: pd.therapyType,
+        description: pd.description,
+        goals: pd.goals,
+        frequency: pd.frequency,
+        sessionDuration: pd.sessionDuration,
+        sessionsPlanned: pd.sessionsPlanned,
+        sessionsCompleted: pd.sessionsCompleted,
+        totalCost: pd.totalCost,
+        status: pd.status,
+        startDate: pd.startDate,
+        endDate: pd.endDate,
+      },
+    });
+    plans.push(plan);
+    console.log(`   ✅ ${pd.title.substring(0, 50)}...`);
+  }
+  console.log();
+
+  // ─────────────────────────────────────────────
+  // CITAS DEL CALENDARIO (3 semanas)
+  // ─────────────────────────────────────────────
+  console.log('📅 Creando citas del calendario...');
+
+  interface AppointmentSeed {
+    patientIdx: number;
+    therapistRef: any;
+    planIdx: number | null;
+    offsetDays: number;
+    hour: number;
+    duration: number;
+    status: 'SCHEDULED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+    notes?: string;
   }
 
-  // Crear sesiones adicionales sin cita asociada
-  for (let i = 0; i < 3; i++) {
-    const patient = allPatients[i % allPatients.length];
-    const therapist = allTherapists[i % allTherapists.length];
-    const sessionDate = new Date(today.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
-    sessionDate.setHours(10 + i, 0, 0, 0);
+  const apptSeed: AppointmentSeed[] = [
+    // ── Pasado (semana -2) ──
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: -14, hour: 8,  duration: 60, status: 'COMPLETED' },
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: -14, hour: 10, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 2, therapistRef: t2, planIdx: 2, offsetDays: -14, hour: 15, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: -13, hour: 9,  duration: 60, status: 'COMPLETED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: -13, hour: 11, duration: 60, status: 'COMPLETED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: -12, hour: 14, duration: 60, status: 'COMPLETED' },
+    { patientIdx: 6, therapistRef: t2, planIdx: 6, offsetDays: -12, hour: 16, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 7, therapistRef: t3, planIdx: 7, offsetDays: -12, hour: 10, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: -11, hour: 8,  duration: 60, status: 'COMPLETED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: -11, hour: 13, duration: 60, status: 'NO_SHOW',   notes: 'Paciente no se presentó. Llamar para reprogramar.' },
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: -10, hour: 10, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 2, therapistRef: t2, planIdx: 2, offsetDays: -10, hour: 15, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: -10, hour: 11, duration: 60, status: 'CANCELLED', notes: 'Paciente canceló por gripe. Reagendada.' },
 
-    sessionsData.push({
-      patientId: patient.id,
-      therapistId: therapist.id,
-      appointmentId: null,
-      sessionDate: sessionDate,
-      duration: 60,
-      interventions: 'Terapia combinada: ejercicios + masaje',
-      progress: `Sesión ${i + 1} completada con éxito`,
-      painLevel: [8, 6, 5][i],
-      notes: 'Sesión independiente, no asociada a cita',
+    // ── Pasado (semana -1) ──
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: -7, hour: 14, duration: 60, status: 'COMPLETED' },
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: -7, hour: 8,  duration: 60, status: 'COMPLETED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: -6, hour: 9,  duration: 60, status: 'COMPLETED' },
+    { patientIdx: 7, therapistRef: t3, planIdx: 7, offsetDays: -6, hour: 11, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: -5, hour: 10, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 2, therapistRef: t2, planIdx: 2, offsetDays: -5, hour: 15, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: -5, hour: 11, duration: 60, status: 'COMPLETED' },
+    { patientIdx: 6, therapistRef: t2, planIdx: 6, offsetDays: -4, hour: 16, duration: 45, status: 'COMPLETED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: -4, hour: 14, duration: 60, status: 'COMPLETED' },
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: -3, hour: 8,  duration: 60, status: 'COMPLETED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: -3, hour: 9,  duration: 60, status: 'COMPLETED' },
+
+    // ── HOY (2026-05-09, Sábado) ──
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: 0, hour: 8,  duration: 60, status: 'CONFIRMED',  notes: 'Sesión 15 del plan. Control de flexión.' },
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: 0, hour: 9,  duration: 45, status: 'CONFIRMED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: 0, hour: 10, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 7, therapistRef: t3, planIdx: 7, offsetDays: 0, hour: 11, duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: 0, hour: 14, duration: 60, status: 'CONFIRMED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: 0, hour: 15, duration: 60, status: 'SCHEDULED' },
+
+    // ── Próxima semana - Lunes 11 ──
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: 2, hour: 8,  duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 2, therapistRef: t2, planIdx: 2, offsetDays: 2, hour: 9,  duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: 2, hour: 10, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: 2, hour: 14, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 7, therapistRef: t3, planIdx: 7, offsetDays: 2, hour: 15, duration: 45, status: 'SCHEDULED' },
+
+    // ── Próxima semana - Martes 12 ──
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: 3, hour: 9,  duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: 3, hour: 10, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 6, therapistRef: t2, planIdx: 6, offsetDays: 3, hour: 14, duration: 45, status: 'SCHEDULED' },
+
+    // ── Próxima semana - Miércoles 13 ──
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: 4, hour: 8,  duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: 4, hour: 9,  duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: 4, hour: 14, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 2, therapistRef: t2, planIdx: 2, offsetDays: 4, hour: 15, duration: 45, status: 'SCHEDULED' },
+
+    // ── Próxima semana - Jueves 14 ──
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: 5, hour: 10, duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: 5, hour: 11, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 7, therapistRef: t3, planIdx: 7, offsetDays: 5, hour: 14, duration: 45, status: 'SCHEDULED' },
+
+    // ── Próxima semana - Viernes 15 ──
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: 6, hour: 8,  duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: 6, hour: 9,  duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: 6, hour: 14, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 6, therapistRef: t2, planIdx: 6, offsetDays: 6, hour: 16, duration: 45, status: 'SCHEDULED' },
+
+    // ── Semana +2 ──
+    { patientIdx: 2, therapistRef: t2, planIdx: 2, offsetDays: 9,  hour: 9,  duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 0, therapistRef: t1, planIdx: 0, offsetDays: 9,  hour: 8,  duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 4, therapistRef: t2, planIdx: 4, offsetDays: 10, hour: 10, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 1, therapistRef: t1, planIdx: 1, offsetDays: 10, hour: 14, duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 7, therapistRef: t3, planIdx: 7, offsetDays: 12, hour: 11, duration: 45, status: 'SCHEDULED' },
+    { patientIdx: 5, therapistRef: t1, planIdx: 5, offsetDays: 11, hour: 14, duration: 60, status: 'SCHEDULED' },
+    { patientIdx: 3, therapistRef: t3, planIdx: 3, offsetDays: 11, hour: 9,  duration: 60, status: 'SCHEDULED' },
+  ];
+
+  const appointments: any[] = [];
+  let apptCreated = 0;
+  for (const a of apptSeed) {
+    const p = patients[a.patientIdx];
+    const plan = a.planIdx !== null ? plans[a.planIdx] : null;
+    if (!p) continue;
+    const apptDate = d(a.offsetDays, a.hour);
+    const existing = await prisma.appointment.findFirst({
+      where: { therapistId: a.therapistRef.id, appointmentDate: apptDate },
     });
+    if (existing) { appointments.push(existing); continue; }
+    const appt = await prisma.appointment.create({
+      data: {
+        patientId: p.id,
+        therapistId: a.therapistRef.id,
+        treatmentPlanId: plan?.id || null,
+        appointmentDate: apptDate,
+        duration: a.duration,
+        status: a.status,
+        notes: a.notes || null,
+      },
+    });
+    appointments.push(appt);
+    apptCreated++;
   }
+  console.log(`   ✅ ${apptCreated} citas creadas\n`);
+
+  // ─────────────────────────────────────────────
+  // SESIONES (solo para citas COMPLETED)
+  // ─────────────────────────────────────────────
+  console.log('💼 Creando sesiones de tratamiento...');
+
+  const sessionNotes = [
+    { interventions: 'Crioterapia + ejercicios activos de rodilla. Bicicleta estática 15 min.', progress: 'Flexión mejoró 10°. Dolor post-sesión controlado.', painLevel: 5 },
+    { interventions: 'Ejercicios excéntricos tendón rotuliano. Ultrasonido terapéutico 10 min.', progress: 'Dolor al descender escaleras reducido de 7 a 5.', painLevel: 5 },
+    { interventions: 'Movilización articular manos. Termoterapia 15 min. Ejercicios de agarre.', progress: 'Rigidez matutina de 45 min a 30 min.', painLevel: 4 },
+    { interventions: 'Movilización pasiva codo y muñeca. Electroestimulación TENS.', progress: 'Rango de movimiento de codo: 80° a 90°.', painLevel: 6 },
+    { interventions: 'Ejercicios de fortalecimiento core. Tracción lumbar manual.', progress: 'Dolor lumbar reducido de 6 a 4. Postura mejorada.', painLevel: 4 },
+    { interventions: 'Péndulo de Codman. Movilización glenohumeral suave. Frío 10 min.', progress: 'Abducción aumentó 10°. Menos dolor nocturno.', painLevel: 5 },
+    { interventions: 'Ejercicios excéntricos de codo. Masaje transversal profundo.', progress: 'Dolor funcional de 4 a 2. Casi asintomático.', painLevel: 2 },
+    { interventions: 'Movilización tendon flexores. Ejercicios de pinza fina.', progress: 'Sensibilidad recuperando. Fuerza de agarre 3/5.', painLevel: 3 },
+  ];
 
   let sessionsCreated = 0;
-  for (const sessionData of sessionsData) {
-    try {
-      await prisma.treatmentSession.create({
-        data: sessionData,
-      });
-      sessionsCreated++;
-    } catch (error: any) {
-      console.error(`❌ Error al crear sesión:`, error.message);
-    }
-  }
-  console.log(`✅ ${sessionsCreated} sesiones de tratamiento creadas`);
+  for (let i = 0; i < appointments.length; i++) {
+    const appt = appointments[i];
+    if (!appt || appt.status !== 'COMPLETED') continue;
+    const existing = await prisma.treatmentSession.findFirst({ where: { appointmentId: appt.id } });
+    if (existing) continue;
 
-  // Crear evaluaciones
-  console.log(`📊 Creando evaluaciones...`);
-  
-  const evaluationsData = [];
-  
-  // Evaluaciones iniciales para más pacientes (aumentar a 8)
-  for (let i = 0; i < Math.min(8, allPatients.length); i++) {
-    const patient = allPatients[i];
-    const evalDate = new Date(today.getTime() - (30 + i * 7) * 24 * 60 * 60 * 1000);
-    
-    evaluationsData.push({
-      patientId: patient.id,
-      evaluationType: 'INITIAL' as const,
-      evaluationDate: evalDate,
-      rangeOfMotion: [
-        'Flexión: 90°, Extensión: 0°, Rotación interna: 45°, Rotación externa: 30°',
-        'Flexión: 120°, Extensión: -10°, Rotación: Limitada',
-        'Flexión: 100°, Extensión: 5°, Rotación completa',
-        'Flexión: 80°, Extensión: 0°, Rotación limitada a 20°',
-        'Flexión: 110°, Extensión: -5°, Rotación normal',
-        'Flexión: 95°, Extensión: 0°, Rotación interna: 40°, Rotación externa: 25°',
-        'Flexión: 105°, Extensión: -3°, Rotación limitada',
-        'Flexión: 85°, Extensión: 2°, Rotación normal',
-      ][i],
-      strength: [
-        'Fuerza muscular 3/5, Resistencia baja',
-        'Fuerza muscular 4/5, Resistencia moderada',
-        'Fuerza muscular 2/5, Requiere fortalecimiento',
-        'Fuerza muscular 4/5, Buena resistencia',
-        'Fuerza muscular 3/5, Resistencia mejorable',
-        'Fuerza muscular 3/5, Resistencia baja',
-        'Fuerza muscular 4/5, Resistencia moderada',
-        'Fuerza muscular 3/5, Requiere fortalecimiento',
-      ][i],
-      painLevel: [8, 7, 9, 6, 8, 7, 9, 6][i],
-      functionalAssessment: [
-        'Limitación funcional significativa, dificultad para actividades diarias',
-        'Dificultad moderada en movimientos complejos',
-        'Limitación severa, requiere asistencia',
-        'Dificultad leve, puede realizar actividades básicas',
-        'Limitación moderada, afecta actividades laborales',
-        'Limitación funcional moderada, dificultad en movimientos',
-        'Limitación severa, requiere apoyo',
-        'Dificultad leve, puede realizar actividades básicas',
-      ][i],
-      notes: [
-        'Evaluación inicial completa, paciente presenta dolor agudo',
-        'Paciente muy motivado, buen pronóstico',
-        'Requiere tratamiento intensivo',
-        'Evaluación inicial, plan de tratamiento a definir',
-        'Paciente colaborativo, expectativas realistas',
-        'Evaluación inicial, requiere seguimiento',
-        'Paciente con dolor crónico, necesita tratamiento',
-        'Evaluación inicial, buen pronóstico',
-      ][i],
+    const seed = apptSeed[i];
+    const plan = seed.planIdx !== null ? plans[seed.planIdx] : null;
+    const notes = sessionNotes[seed.patientIdx % sessionNotes.length];
+
+    await prisma.treatmentSession.create({
+      data: {
+        patientId: appt.patientId,
+        therapistId: appt.therapistId,
+        treatmentPlanId: plan?.id || null,
+        appointmentId: appt.id,
+        sessionDate: appt.appointmentDate,
+        duration: appt.duration,
+        attendanceStatus: 'ATTENDED',
+        attendanceConfirmedAt: appt.appointmentDate,
+        interventions: notes.interventions,
+        progress: notes.progress,
+        painLevel: notes.painLevel,
+        notes: 'Sesión sin incidentes.',
+      },
     });
+    sessionsCreated++;
   }
+  console.log(`   ✅ ${sessionsCreated} sesiones creadas\n`);
 
-  // Evaluaciones de progreso (aumentar a 5)
-  for (let i = 0; i < Math.min(5, allPatients.length); i++) {
-    const patient = allPatients[i];
-    const evalDate = new Date(today.getTime() - (15 + i * 7) * 24 * 60 * 60 * 1000);
-    
-    evaluationsData.push({
-      patientId: patient.id,
-      evaluationType: 'PROGRESS' as const,
-      evaluationDate: evalDate,
-      rangeOfMotion: [
-        'Flexión: 100°, Extensión: 0°, Rotación interna: 50°, Rotación externa: 35°',
-        'Flexión: 130°, Extensión: -5°, Rotación mejorada',
-        'Flexión: 110°, Extensión: 0°, Rotación mejorando',
-        'Flexión: 105°, Extensión: -2°, Rotación interna: 55°, Rotación externa: 40°',
-        'Flexión: 125°, Extensión: -3°, Rotación mejorada',
-      ][i],
-      strength: [
-        'Fuerza muscular 4/5, Resistencia mejorada',
-        'Fuerza muscular 4/5, Resistencia buena',
-        'Fuerza muscular 3/5, Progreso notable',
-        'Fuerza muscular 4/5, Resistencia mejorando',
-        'Fuerza muscular 4/5, Buena resistencia',
-      ][i],
-      painLevel: [5, 4, 6, 5, 4][i],
-      functionalAssessment: [
-        'Mejora significativa, puede realizar más actividades',
-        'Progreso excelente, casi sin limitaciones',
-        'Mejora moderada, continúa el tratamiento',
-        'Mejora notable, puede realizar actividades diarias',
-        'Progreso bueno, reducción de limitaciones',
-      ][i],
-      notes: [
-        'Evaluación de progreso: mejoría notable desde evaluación inicial',
-        'Paciente responde muy bien al tratamiento',
-        'Continuar con el plan establecido',
-        'Progreso satisfactorio, mantener tratamiento',
-        'Mejora constante, buen pronóstico',
-      ][i],
+  // ─────────────────────────────────────────────
+  // PAGOS
+  // ─────────────────────────────────────────────
+  console.log('💰 Creando pagos...');
+  const sessions = await prisma.treatmentSession.findMany({ where: { attendanceStatus: 'ATTENDED' }, take: 20, include: { treatmentPlan: true } });
+  const methods = ['CASH', 'POS', 'TRANSFER'] as const;
+  let paymentsCreated = 0;
+  for (let i = 0; i < sessions.length; i++) {
+    const sess = sessions[i];
+    const existing = await prisma.payment.findFirst({ where: { sessionId: sess.id } });
+    if (existing) continue;
+    await prisma.payment.create({
+      data: {
+        patientId: sess.patientId,
+        sessionId: sess.id,
+        treatmentPlanId: sess.treatmentPlanId || null,
+        amount: 50,
+        paymentDate: new Date(sess.sessionDate),
+        method: methods[i % 3],
+        status: 'COMPLETED',
+        notes: `Pago sesión ${i + 1}`,
+      },
     });
+    paymentsCreated++;
   }
+  console.log(`   ✅ ${paymentsCreated} pagos creados\n`);
 
-  // Evaluaciones finales (aumentar a 4)
-  for (let i = 0; i < Math.min(4, allPatients.length); i++) {
-    const patient = allPatients[i];
-    const evalDate = new Date(today.getTime() - (3 + i) * 24 * 60 * 60 * 1000);
-    
-    evaluationsData.push({
-      patientId: patient.id,
-      evaluationType: 'FINAL' as const,
-      evaluationDate: evalDate,
-      rangeOfMotion: [
-        'Flexión: 120°, Extensión: -5°, Rotación interna: 60°, Rotación externa: 45°',
-        'Flexión: 140°, Extensión: -10°, Rotación completa',
-        'Flexión: 130°, Extensión: -8°, Rotación interna: 65°, Rotación externa: 50°',
-        'Flexión: 135°, Extensión: -7°, Rotación completa',
-      ][i],
-      strength: [
-        'Fuerza muscular 5/5, Resistencia excelente',
-        'Fuerza muscular 5/5, Resistencia óptima',
-        'Fuerza muscular 5/5, Resistencia excelente',
-        'Fuerza muscular 5/5, Resistencia óptima',
-      ][i],
-      painLevel: [2, 1, 2, 1][i],
-      functionalAssessment: [
-        'Funcionalidad restaurada, puede realizar todas las actividades',
-        'Recuperación completa, alta satisfactoria',
-        'Funcionalidad completa restaurada',
-        'Recuperación total, alta médica',
-      ][i],
-      notes: [
-        'Evaluación final: tratamiento exitoso, paciente recuperado',
-        'Alta médica, paciente completamente recuperado',
-        'Tratamiento completado con éxito',
-        'Alta satisfactoria, paciente recuperado',
-      ][i],
-    });
-  }
-
-  let evaluationsCreated = 0;
-  let evaluationsSkipped = 0;
-  for (const evalData of evaluationsData) {
-    try {
-      // Verificar si ya existe una evaluación similar para evitar duplicados exactos
-      const existing = await prisma.evaluation.findFirst({
-        where: {
-          patientId: evalData.patientId,
-          evaluationType: evalData.evaluationType,
-          evaluationDate: {
-            gte: new Date(evalData.evaluationDate.getTime() - 24 * 60 * 60 * 1000),
-            lte: new Date(evalData.evaluationDate.getTime() + 24 * 60 * 60 * 1000),
-          },
-        },
-      });
-
-      if (existing) {
-        evaluationsSkipped++;
-        continue;
-      }
-
-      await prisma.evaluation.create({
-        data: evalData,
-      });
-      evaluationsCreated++;
-    } catch (error: any) {
-      console.error(`❌ Error al crear evaluación:`, error.message);
-      evaluationsSkipped++;
-    }
-  }
-  console.log(`✅ ${evaluationsCreated} evaluaciones creadas${evaluationsSkipped > 0 ? `, ${evaluationsSkipped} omitidas (duplicados)` : ''}`);
-
-  // Crear planes de tratamiento (aumentar a 6)
-  console.log(`📋 Creando planes de tratamiento...`);
-  
-  const plansData = [];
-  
-  for (let i = 0; i < Math.min(6, allPatients.length); i++) {
-    const patient = allPatients[i];
-    const sessionsCompleted = [0, 3, 8, 10, 5, 2][i];
-    const sessionsPlanned = [10, 12, 10, 10, 15, 8][i];
-    
-    let status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-    if (sessionsCompleted === 0) {
-      status = i === 0 ? 'DRAFT' : i === 4 ? 'PENDING_APPROVAL' : 'APPROVED';
-    } else if (sessionsCompleted >= sessionsPlanned) {
-      status = 'COMPLETED';
-    } else {
-      status = 'IN_PROGRESS';
-    }
-
-    plansData.push({
-      patientId: patient.id,
-      title: [
-        'Plan de Rehabilitación Post-Quirúrgica',
-        'Plan de Tratamiento para Dolor Lumbar',
-        'Plan de Fortalecimiento Muscular',
-        'Plan de Recuperación Completa',
-        'Plan de Terapia Intensiva',
-        'Plan de Rehabilitación Funcional',
-      ][i],
-      description: [
-        'Plan integral de rehabilitación después de cirugía de rodilla',
-        'Tratamiento enfocado en reducir dolor y mejorar movilidad',
-        'Programa de fortalecimiento para recuperación funcional',
-        'Plan completo de recuperación con seguimiento regular',
-        'Tratamiento intensivo para recuperación acelerada',
-        'Programa de rehabilitación funcional personalizado',
-      ][i],
-      diagnosis: [
-        'Lesión de rodilla post-quirúrgica',
-        'Dolor lumbar crónico',
-        'Debilidad muscular generalizada',
-        'Recuperación post-traumática',
-        'Lesión deportiva severa',
-        'Disfunción musculoesquelética',
-      ][i],
-      goals: [
-        'Restaurar rango de movimiento completo',
-        'Reducir dolor a menos de 3/10',
-        'Aumentar fuerza muscular a 5/5',
-        'Recuperación funcional completa',
-        'Recuperación completa en tiempo récord',
-        'Mejorar funcionalidad y calidad de vida',
-      ][i],
-      sessionsPlanned: sessionsPlanned,
-      sessionsCompleted: sessionsCompleted,
-      totalCost: [500.00, 600.00, 500.00, 500.00, 750.00, 400.00][i],
-      status: status,
-      approvedByPatient: status !== 'DRAFT' && status !== 'PENDING_APPROVAL',
-      approvedAt: status !== 'DRAFT' && status !== 'PENDING_APPROVAL' ? new Date(today.getTime() - (30 - i * 7) * 24 * 60 * 60 * 1000) : null,
-    });
-  }
-
-  let plansCreated = 0;
-  let plansSkipped = 0;
-  for (const planData of plansData) {
-    try {
-      // Verificar si ya existe un plan similar para este paciente
-      const existing = await prisma.treatmentPlan.findFirst({
-        where: {
-          patientId: planData.patientId,
-          title: planData.title,
-        },
-      });
-
-      if (existing) {
-        plansSkipped++;
-        continue;
-      }
-
-      await prisma.treatmentPlan.create({
-        data: planData,
-      });
-      plansCreated++;
-    } catch (error: any) {
-      console.error(`❌ Error al crear plan de tratamiento:`, error.message);
-      plansSkipped++;
-    }
-  }
-  console.log(`✅ ${plansCreated} planes de tratamiento creados${plansSkipped > 0 ? `, ${plansSkipped} omitidos (duplicados)` : ''}`);
-
-  // Crear algunos documentos médicos
-  console.log(`📄 Creando documentos médicos...`);
-  
-  const documentsData = [];
-  
-  for (let i = 0; i < 3; i++) {
-    const patient = allPatients[i];
-    const docTypes = ['Radiografía', 'Resonancia Magnética', 'Análisis de Sangre'];
-    const fileTypes = ['image/jpeg', 'application/pdf', 'application/pdf'];
-    
-    documentsData.push({
-      patientId: patient.id,
-      fileName: `${docTypes[i]} - ${patient.name}.pdf`,
-      fileUrl: `https://example.com/documents/${patient.id}/${i + 1}.pdf`,
-      fileType: fileTypes[i],
-      description: [
-        'Radiografía de rodilla - Vista lateral y frontal',
-        'Resonancia magnética de columna lumbar',
-        'Análisis completo de sangre - Perfil metabólico',
-      ][i],
-      uploadedAt: new Date(today.getTime() - (10 - i * 3) * 24 * 60 * 60 * 1000),
-    });
-  }
-
-  let documentsCreated = 0;
-  for (const docData of documentsData) {
-    try {
-      await prisma.medicalDocument.create({
-        data: docData,
-      });
-      documentsCreated++;
-    } catch (error: any) {
-      console.error(`❌ Error al crear documento:`, error.message);
-    }
-  }
-  console.log(`✅ ${documentsCreated} documentos médicos creados`);
-
-  // Crear prescripciones de ejemplo
-  console.log('💊 Creando prescripciones de ejemplo...');
-  const prescriptionsData = [
-    {
-      patientId: allPatients[0].id, // María González
-      therapistId: allTherapists[0].id, // Dr. Carlos Méndez
-      prescriptionDate: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000),
-      diagnosis: 'Dolor lumbar crónico, contractura muscular',
-      medications: JSON.stringify([
-        {
-          name: 'Ibuprofeno',
-          dosage: '400mg',
-          frequency: 'Cada 8 horas',
-          duration: '7 días',
-          instructions: 'Tomar con alimentos para evitar molestias gástricas',
-        },
-        {
-          name: 'Relajante muscular',
-          dosage: '10mg',
-          frequency: 'Antes de dormir',
-          duration: '5 días',
-          instructions: 'Puede causar somnolencia, evitar conducir',
-        },
-      ]),
-      instructions: 'Aplicar calor local 3 veces al día durante 15 minutos. Evitar esfuerzos físicos intensos.',
-      notes: 'Paciente refiere mejoría con tratamiento previo. Seguir con ejercicios de estiramiento.',
-    },
-    {
-      patientId: allPatients[1].id, // Juan Pérez
-      therapistId: allTherapists[1].id, // Dra. Ana Martínez
-      prescriptionDate: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000),
-      diagnosis: 'Lesión de rodilla, tendinitis',
-      medications: JSON.stringify([
-        {
-          name: 'Paracetamol',
-          dosage: '500mg',
-          frequency: 'Cada 6 horas',
-          duration: '5 días',
-          instructions: 'Solo si hay dolor',
-        },
-        {
-          name: 'Gel antiinflamatorio',
-          dosage: 'Aplicar capa fina',
-          frequency: '3 veces al día',
-          duration: '10 días',
-          instructions: 'Aplicar sobre la zona afectada con masaje suave',
-        },
-      ]),
-      instructions: 'Reposo relativo. Aplicar hielo después de ejercicios. Continuar con fisioterapia.',
-      notes: 'Paciente deportista, requiere precaución con actividad física.',
-    },
-    {
-      patientId: allPatients[2].id, // Carmen Rodríguez
-      therapistId: allTherapists[0].id, // Dr. Carlos Méndez
-      prescriptionDate: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
-      diagnosis: 'Artritis reumatoide, dolor articular',
-      medications: JSON.stringify([
-        {
-          name: 'Metotrexato',
-          dosage: '15mg',
-          frequency: 'Una vez por semana',
-          duration: 'Continuo',
-          instructions: 'Tomar con ácido fólico. Monitorear función hepática',
-        },
-        {
-          name: 'Ácido fólico',
-          dosage: '5mg',
-          frequency: 'Diario',
-          duration: 'Continuo',
-          instructions: 'Tomar el día después de metotrexato',
-        },
-        {
-          name: 'Analgésico',
-          dosage: '500mg',
-          frequency: 'Según necesidad',
-          duration: 'Según necesidad',
-          instructions: 'Máximo 3 veces al día',
-        },
-      ]),
-      instructions: 'Seguir dieta antiinflamatoria. Ejercicios de bajo impacto recomendados.',
-      notes: 'Paciente con condiciones crónicas. Coordinar con reumatólogo.',
-    },
-    {
-      patientId: allPatients[3].id, // Luis Martínez
-      therapistId: allTherapists[2].id, // Lic. Roberto Silva
-      prescriptionDate: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
-      diagnosis: 'Fractura de brazo en recuperación, rigidez articular',
-      medications: JSON.stringify([
-        {
-          name: 'Paracetamol',
-          dosage: '500mg',
-          frequency: 'Cada 8 horas',
-          duration: '5 días',
-          instructions: 'Para control del dolor',
-        },
-      ]),
-      instructions: 'Continuar con ejercicios de movilización pasiva y activa. Aplicar calor antes de ejercicios.',
-      notes: 'Paciente joven, buena evolución. Motivar a continuar con rehabilitación.',
-    },
-    {
-      patientId: allPatients[4].id, // Ana López
-      therapistId: allTherapists[1].id, // Dra. Ana Martínez
-      prescriptionDate: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000),
-      diagnosis: 'Dolor crónico de espalda, postura incorrecta',
-      medications: JSON.stringify([
-        {
-          name: 'Relajante muscular',
-          dosage: '10mg',
-          frequency: 'Antes de dormir',
-          duration: '7 días',
-          instructions: 'Puede causar somnolencia',
-        },
-        {
-          name: 'Analgésico tópico',
-          dosage: 'Aplicar según necesidad',
-          frequency: '2-3 veces al día',
-          duration: '10 días',
-          instructions: 'Aplicar en zona lumbar con masaje',
-        },
-      ]),
-      instructions: 'Corregir postura en el trabajo. Ejercicios de fortalecimiento de core. Evitar estar sentado por períodos prolongados.',
-      notes: 'Paciente de oficina. Recomendar pausas activas cada hora.',
-    },
+  // ─────────────────────────────────────────────
+  // NOTAS DEL TERAPISTA
+  // ─────────────────────────────────────────────
+  console.log('📝 Creando notas clínicas...');
+  const notesData = [
+    { pIdx: 0, tRef: t1, content: 'Paciente muestra excelente adherencia al tratamiento. La fuerza del cuádriceps ha mejorado de 3/5 a 4/5. Continuar con progresión de carga. Próxima sesión: aumentar resistencia en bicicleta.' },
+    { pIdx: 1, tRef: t1, content: 'Se detectó mal patrón de carrera en video analysis. Se inició corrección de técnica. El dolor mejora con carga excéntrica. Recomiendo reducir volumen de entrenamiento 30% por 2 semanas.' },
+    { pIdx: 2, tRef: t2, content: 'Brote leve de artritis en manos. Se ajustó el programa reduciendo carga articular. Se coordinó con reumatólogo para posible ajuste de Metotrexato. Próxima evaluación en 2 semanas.' },
+    { pIdx: 3, tRef: t3, content: 'Excelente progreso en rehabilitación. El joven es muy disciplinado con los ejercicios en casa. Rango de movimiento del codo alcanzó 110°. Iniciando ejercicios de fuerza resistida.' },
+    { pIdx: 4, tRef: t2, content: 'La paciente ha cambiado su estación de trabajo a sugerencia de este terapeuta. Postura mejorada significativamente. El dolor bajó de 6 a 3 durante actividades laborales. Continuar con fortalecimiento de núcleo.' },
+    { pIdx: 5, tRef: t1, content: 'Post-quirúrgico evoluciona favorablemente. Se inició fase 2 del protocolo de rehabilitación. El paciente tolera bien la carga. Flexión activa del hombro ya alcanza 100°. Muy buen pronóstico.' },
   ];
 
-  let prescriptionsCreated = 0;
-  for (const prescriptionData of prescriptionsData) {
-    try {
-      await prisma.prescription.create({
-        data: prescriptionData,
-      });
-      prescriptionsCreated++;
-    } catch (error: any) {
-      console.error(`❌ Error al crear prescripción:`, error.message);
-    }
+  let notesCreated = 0;
+  for (const nd of notesData) {
+    const p = patients[nd.pIdx];
+    if (!p?.medicalProfile) continue;
+    const existing = await prisma.therapistNote.findFirst({ where: { patientId: p.id, therapistId: nd.tRef.id, content: nd.content } });
+    if (existing) continue;
+    await prisma.therapistNote.create({
+      data: {
+        patientId: p.id,
+        therapistId: nd.tRef.id,
+        medicalProfileId: p.medicalProfile.id,
+        content: nd.content,
+      },
+    });
+    notesCreated++;
   }
-  console.log(`✅ ${prescriptionsCreated} prescripciones creadas`);
+  console.log(`   ✅ ${notesCreated} notas clínicas creadas\n`);
 
-  console.log('✨ Seed completado exitosamente!');
-  console.log('\n📊 Resumen:');
-  console.log(`   - Pacientes: ${allPatients.length}`);
-  console.log(`   - Terapeutas: ${allTherapists.length}`);
-  console.log(`   - Citas: ${createdCount}`);
-  console.log(`   - Sesiones: ${sessionsCreated}`);
-  console.log(`   - Evaluaciones: ${evaluationsCreated}`);
-  console.log(`   - Planes de Tratamiento: ${plansCreated}`);
-  console.log(`   - Documentos: ${documentsCreated}`);
-  console.log(`   - Prescripciones: ${prescriptionsCreated}`);
+  // ─────────────────────────────────────────────
+  // EVALUACIONES
+  // ─────────────────────────────────────────────
+  console.log('📊 Creando evaluaciones...');
+  const evalsData = [
+    // Iniciales
+    { pIdx: 0, type: 'INITIAL' as const, daysAgo: 50, painLevel: 8, rom: 'Flexión: 60°, Extensión: 0°. Limitada.', strength: '3/5 cuádriceps, 3/5 gemelos', functional: 'No puede subir escaleras sin apoyo. Marcha con cojera.' },
+    { pIdx: 1, type: 'INITIAL' as const, daysAgo: 32, painLevel: 7, rom: 'ROM completo. Dolor a la palpación del tendón rotuliano.', strength: '4/5 bilateral', functional: 'Dolor al correr y bajar escaleras. Deporte limitado.' },
+    { pIdx: 2, type: 'INITIAL' as const, daysAgo: 125, painLevel: 6, rom: 'Flexión MCF: 60°. Rigidez matutina 60 minutos.', strength: '3/5 agarre bilateral', functional: 'Dificultad para actividades de la vida diaria. Dolor matutino severo.' },
+    { pIdx: 3, type: 'INITIAL' as const, daysAgo: 40, painLevel: 7, rom: 'Codo: 45-80°. Muñeca: 30° flex/ext. Pronosupinación 50%.', strength: '2/5 brazo derecho', functional: 'No puede usar el brazo derecho para actividades básicas.' },
+    { pIdx: 4, type: 'INITIAL' as const, daysAgo: 25, painLevel: 6, rom: 'Columna: limitación en extensión y rotación derecha.', strength: '3/5 musculatura lumbar', functional: 'Dolor al estar sentado >30 min. Limita actividad laboral.' },
+    // Progreso
+    { pIdx: 0, type: 'PROGRESS' as const, daysAgo: 20, painLevel: 4, rom: 'Flexión: 90°, Extensión: -5°. Mejora progresiva.', strength: '4/5 cuádriceps', functional: 'Sube escaleras con apoyo leve. Marcha casi normal.' },
+    { pIdx: 1, type: 'PROGRESS' as const, daysAgo: 14, painLevel: 3, rom: 'ROM completo sin dolor. Tendón menos sensible.', strength: '4/5 bilateral, mejorando', functional: 'Puede trotar 20 min sin dolor. Escaleras sin dificultad.' },
+    { pIdx: 3, type: 'PROGRESS' as const, daysAgo: 15, painLevel: 5, rom: 'Codo: 30-110°. Muñeca: 50° flex/ext. Pronosupinación 75%.', strength: '3/5 brazo derecho, mejorando', functional: 'Puede comer solo. Usa teclado con apoyo.' },
+    // Final
+    { pIdx: 6, type: 'FINAL' as const, daysAgo: 12, painLevel: 1, rom: 'ROM completo sin dolor. Prueba de Thomson negativa.', strength: '5/5 bilateral', functional: 'Actividades laborales sin limitación. Alta médica.' },
+  ];
+
+  let evalsCreated = 0;
+  for (const ev of evalsData) {
+    const p = patients[ev.pIdx];
+    if (!p) continue;
+    const evalDate = d(-ev.daysAgo, 9);
+    const existing = await prisma.evaluation.findFirst({ where: { patientId: p.id, evaluationType: ev.type, evaluationDate: evalDate } });
+    if (existing) continue;
+    await prisma.evaluation.create({
+      data: {
+        patientId: p.id,
+        evaluationType: ev.type,
+        evaluationDate: evalDate,
+        painLevel: ev.painLevel,
+        rangeOfMotion: ev.rom,
+        strength: ev.strength,
+        functionalAssessment: ev.functional,
+      },
+    });
+    evalsCreated++;
+  }
+  console.log(`   ✅ ${evalsCreated} evaluaciones creadas\n`);
+
+  // ─────────────────────────────────────────────
+  // RESUMEN FINAL
+  // ─────────────────────────────────────────────
+  const totals = await Promise.all([
+    prisma.patient.count(),
+    prisma.therapist.count(),
+    prisma.appointment.count(),
+    prisma.treatmentSession.count(),
+    prisma.treatmentPlan.count(),
+    prisma.payment.count(),
+    prisma.evaluation.count(),
+    prisma.therapistNote.count(),
+    prisma.diagnosis.count(),
+  ]);
+
+  console.log('✨ Seed completado!\n');
+  console.log('📊 Totales en base de datos:');
+  console.log(`   👥 Pacientes:             ${totals[0]}`);
+  console.log(`   👨‍⚕️ Terapistas:            ${totals[1]}`);
+  console.log(`   📅 Citas:                 ${totals[2]}`);
+  console.log(`   💼 Sesiones:              ${totals[3]}`);
+  console.log(`   📋 Planes de tratamiento: ${totals[4]}`);
+  console.log(`   💰 Pagos:                 ${totals[5]}`);
+  console.log(`   📊 Evaluaciones:          ${totals[6]}`);
+  console.log(`   📝 Notas clínicas:        ${totals[7]}`);
+  console.log(`   🔬 Diagnósticos:          ${totals[8]}`);
+  console.log('\n🔐 Credenciales: admin@clinica.com / Admin123!');
 }
 
 main()
@@ -971,7 +619,4 @@ main()
     console.error('❌ Error en seed:', e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
-
+  .finally(() => prisma.$disconnect());

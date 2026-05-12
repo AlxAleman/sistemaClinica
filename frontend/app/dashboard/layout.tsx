@@ -20,24 +20,23 @@ export default function DashboardLayout({
   const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
-  // Cerrar menú de opciones al hacer clic fuera
+  // Cerrar menús al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (settingsMenuOpen && !target.closest('.settings-menu-container')) {
         setSettingsMenuOpen(false);
       }
+      if (moreMenuOpen && !target.closest('.more-menu-container')) {
+        setMoreMenuOpen(false);
+      }
     };
 
-    if (settingsMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [settingsMenuOpen]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [settingsMenuOpen, moreMenuOpen]);
 
   // Determinar qué enlace está activo
   const isActive = (path: string) => {
@@ -82,88 +81,66 @@ export default function DashboardLayout({
                 </h1>
               </div>
               {/* Menú desktop */}
-              <div className="hidden md:ml-4 lg:ml-6 md:flex md:space-x-1 lg:space-x-2 xl:space-x-3">
-                <Link
-                  href="/dashboard"
-                  className={`${
-                    isActive("/dashboard")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.dashboard")}
-                </Link>
-                <Link
-                  href="/dashboard/patients"
-                  className={`${
-                    isActive("/dashboard/patients")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.patients")}
-                </Link>
-                <Link
-                  href="/dashboard/appointments"
-                  className={`${
-                    isActive("/dashboard/appointments")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.appointments")}
-                </Link>
-                <Link
-                  href="/dashboard/sessions"
-                  className={`${
-                    isActive("/dashboard/sessions")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.sessions")}
-                </Link>
-                <Link
-                  href="/dashboard/treatment-plans"
-                  className={`${
-                    isActive("/dashboard/treatment-plans")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  <span className="hidden lg:inline">{t("common.treatmentPlans")}</span>
-                  <span className="lg:hidden">Planes</span>
-                </Link>
-                <Link
-                  href="/dashboard/evaluations"
-                  className={`${
-                    isActive("/dashboard/evaluations")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.evaluations")}
-                </Link>
-                <Link
-                  href="/dashboard/reports"
-                  className={`${
-                    isActive("/dashboard/reports")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.reports")}
-                </Link>
-                <Link
-                  href="/dashboard/prescriptions"
-                  className={`${
-                    isActive("/dashboard/prescriptions")
-                      ? "border-indigo-500 text-gray-900 dark:text-gray-100"
-                      : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
-                  } inline-flex items-center px-1 lg:px-2 xl:px-3 pt-1 border-b-2 text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0`}
-                >
-                  {t("common.prescriptions")}
-                </Link>
+              <div className="hidden md:ml-4 lg:ml-6 md:flex md:items-center md:space-x-1 lg:space-x-2">
+                {/* Ítems principales */}
+                {[
+                  { href: "/dashboard", label: t("common.dashboard") },
+                  { href: "/dashboard/patients", label: t("common.patients") },
+                  { href: "/dashboard/expedientes", label: "Expedientes" },
+                  { href: "/dashboard/appointments", label: t("common.appointments") },
+                ].map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`${
+                      isActive(item.href)
+                        ? "border-indigo-500 text-gray-900 dark:text-gray-100"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
+                    } inline-flex items-center px-2 xl:px-3 pt-1 border-b-2 text-sm font-medium transition-colors whitespace-nowrap`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+
+                {/* Dropdown "Más" */}
+                <div className="relative more-menu-container h-full flex items-center">
+                  <button
+                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                    className={`${
+                      ["/dashboard/reports", "/dashboard/payments", "/dashboard/prescriptions"].some(p => pathname.startsWith(p))
+                        ? "border-indigo-500 text-gray-900 dark:text-gray-100"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
+                    } inline-flex items-center gap-1 px-2 xl:px-3 pt-1 pb-0 border-b-2 text-sm font-medium transition-colors whitespace-nowrap h-full`}
+                  >
+                    Más
+                    <svg className={`h-4 w-4 transition-transform ${moreMenuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {moreMenuOpen && (
+                    <div className="absolute left-0 top-full mt-1 w-52 rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 z-50 py-1">
+                      {[
+                        { href: "/dashboard/reports", label: t("common.reports") || "Reportes" },
+                        { href: "/dashboard/payments", label: "Pagos" },
+                        { href: "/dashboard/prescriptions", label: t("common.prescriptions") || "Recetas" },
+                        { href: "/dashboard/config", label: "Configuración" },
+                      ].map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMoreMenuOpen(false)}
+                          className={`${
+                            pathname.startsWith(item.href)
+                              ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          } block px-4 py-2 text-sm transition-colors`}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             {/* Controles derecho - Desktop */}
@@ -355,102 +332,33 @@ export default function DashboardLayout({
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 dark:border-gray-700">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.dashboard")}
-              </Link>
-              <Link
-                href="/dashboard/patients"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/patients")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.patients")}
-              </Link>
-              <Link
-                href="/dashboard/appointments"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/appointments")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.appointments")}
-              </Link>
-              <Link
-                href="/dashboard/sessions"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/sessions")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.sessions")}
-              </Link>
-              <Link
-                href="/dashboard/treatment-plans"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/treatment-plans")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.treatmentPlans")}
-              </Link>
-              <Link
-                href="/dashboard/evaluations"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/evaluations")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.evaluations")}
-              </Link>
-              <Link
-                href="/dashboard/reports"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/reports")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.reports")}
-              </Link>
-              <Link
-                href="/dashboard/prescriptions"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`${
-                  isActive("/dashboard/prescriptions")
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
-                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                } block px-3 py-2 rounded-md text-base font-medium`}
-              >
-                {t("common.prescriptions")}
-              </Link>
+              {[
+                { href: "/dashboard", label: t("common.dashboard") },
+                { href: "/dashboard/patients", label: t("common.patients") },
+                { href: "/dashboard/expedientes", label: "Expedientes" },
+                { href: "/dashboard/appointments", label: t("common.appointments") },
+                { href: "/dashboard/reports", label: t("common.reports") || "Reportes" },
+                { href: "/dashboard/payments", label: "Pagos" },
+                { href: "/dashboard/prescriptions", label: t("common.prescriptions") || "Recetas" },
+                { href: "/dashboard/config", label: "Configuración" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`${
+                    isActive(item.href)
+                      ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  } block px-3 py-2 rounded-md text-base font-medium`}
+                >
+                  {item.label}
+                </Link>
+              ))}
               <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
                 <div className="px-3">
-                  <div className="text-base font-medium text-gray-800 dark:text-gray-200">
-                    {user?.name}
-                  </div>
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {user?.role}
-                  </div>
+                  <div className="text-base font-medium text-gray-800 dark:text-gray-200">{user?.name}</div>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{user?.role}</div>
                 </div>
               </div>
             </div>

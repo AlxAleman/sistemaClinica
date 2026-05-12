@@ -120,7 +120,7 @@ export const getDashboardKPIs = async (): Promise<DashboardKPIs> => {
   const treatmentPlans = await prisma.treatmentPlan.findMany({
     where: {
       status: {
-        in: ['APPROVED', 'IN_PROGRESS', 'COMPLETED'],
+        in: ['ACTIVE', 'COMPLETED'],
       },
     },
     select: {
@@ -366,7 +366,7 @@ export const getClinicalProgressReport = async (filters?: ReportFilters): Promis
         treatmentPlans: {
           total: patient.treatmentPlans.length,
           completed: patient.treatmentPlans.filter((p) => p.status === 'COMPLETED').length,
-          inProgress: patient.treatmentPlans.filter((p) => p.status === 'IN_PROGRESS').length,
+          inProgress: patient.treatmentPlans.filter((p) => p.status === 'ACTIVE').length,
         },
       };
     });
