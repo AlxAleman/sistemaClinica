@@ -236,9 +236,11 @@ model MedicalDocument {
   fileUrl     String
   fileType    String
   description String?
+  category    String   @default("otro")
   uploadedAt  DateTime @default(now())
 
   @@index([patientId])
+  @@index([patientId, category])
 }
 
 // ─────────────────────────────────────────────

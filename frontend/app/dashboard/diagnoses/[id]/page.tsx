@@ -68,7 +68,7 @@ export default function DiagnosisDetailPage() {
     try {
       await diagnosisService.delete(id);
       toast.success("Diagnóstico eliminado exitosamente");
-      router.push(`/dashboard/expediente/${diagnosis.patientId}`);
+      router.push(`/dashboard/patients/${diagnosis.patientId}`);
     } catch (error: any) {
       toast.error("Error al eliminar el diagnóstico");
     }
@@ -152,14 +152,14 @@ export default function DiagnosisDetailPage() {
         items={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Pacientes", href: "/dashboard/patients" },
-          { label: "Expediente", href: `/dashboard/expediente/${diagnosis.patientId}` },
+          { label: "Expediente", href: `/dashboard/patients/${diagnosis.patientId}` },
           { label: "Diagnóstico" },
         ]}
       />
 
       <div className="mb-6">
         <Link
-          href={`/dashboard/expediente/${diagnosis.patientId}`}
+          href={`/dashboard/patients/${diagnosis.patientId}`}
           className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
         >
           ← Volver al expediente

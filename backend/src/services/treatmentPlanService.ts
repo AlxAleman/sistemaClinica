@@ -173,9 +173,7 @@ export const updateSessionsCompleted = async (treatmentPlanId: string) => {
     where: { id: treatmentPlanId },
     data: {
       sessionsCompleted: count,
-      status: count > 0 && count >= (await prisma.treatmentPlan.findUnique({
-        where: { id: treatmentPlanId }, select: { sessionsPlanned: true },
-      }))!.sessionsPlanned ? 'COMPLETED' : count > 0 ? 'ACTIVE' : undefined,
+      status: count > 0 ? 'ACTIVE' : undefined,
     },
   });
 

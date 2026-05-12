@@ -129,43 +129,56 @@ export const uploadMedicalDocument = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { fileName, fileUrl, fileType, description } = req.body;
-    
-    if (!fileName || !fileUrl || !fileType) {
-      res.status(400).json({
-        success: false,
-        error: 'fileName, fileUrl y fileType son requeridos',
-      });
-      return;
-    }
+    const { description, category } = req.body;
+    const cat = category || 'otro';
 
-    // Validar que fileUrl no sea demasiado largo (base64 puede ser muy grande)
-    if (fileUrl.length > 10 * 1024 * 1024) { // 10MB en base64
-      res.status(400).json({
-        success: false,
-        error: 'El archivo es demasiado grande',
-      });
-      return;
+    let finalFileName: string;
+    let finalFileUrl: string;
+    let finalFileType: string;
+
+    if (req.file) {
+      // ── Ruta R2: archivo multipart ──
+      const { buildR2Key, uploadToR2, r2Enabled } = await import('../services/r2Service');
+
+      if (!r2Enabled()) {
+        res.status(503).json({ success: false, error: 'R2 no está configurado en el servidor' });
+        return;
+      }
+
+      const patient = await patientService.getPatientById(id);
+      const key = buildR2Key(id, patient.name, cat, req.file.originalname);
+      finalFileUrl = await uploadToR2(key, req.file.buffer, req.file.mimetype);
+      finalFileName = req.body.fileName || req.file.originalname;
+      finalFileType = req.file.mimetype;
+
+    } else {
+      // ── Ruta legacy: JSON con base64 ──
+      const { fileName, fileUrl, fileType } = req.body;
+      if (!fileName || !fileUrl || !fileType) {
+        res.status(400).json({ success: false, error: 'fileName, fileUrl y fileType son requeridos' });
+        return;
+      }
+      if (fileUrl.length > 15 * 1024 * 1024) {
+        res.status(400).json({ success: false, error: 'El archivo es demasiado grande' });
+        return;
+      }
+      finalFileName = fileName;
+      finalFileUrl = fileUrl;
+      finalFileType = fileType;
     }
 
     const document = await patientService.createMedicalDocument(id, {
-      fileName,
-      fileUrl,
-      fileType,
+      fileName: finalFileName,
+      fileUrl: finalFileUrl,
+      fileType: finalFileType,
       description: description || null,
+      category: cat,
     });
 
-    res.status(201).json({
-      success: true,
-      data: document,
-      message: 'Documento subido exitosamente',
-    });
+    res.status(201).json({ success: true, data: document, message: 'Documento subido exitosamente' });
   } catch (error: any) {
     console.error('Error al subir documento:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Error al subir documento',
-    });
+    res.status(500).json({ success: false, error: error.message || 'Error al subir documento' });
   }
 };
 

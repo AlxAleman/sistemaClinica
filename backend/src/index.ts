@@ -20,6 +20,7 @@ import configRoutes from './routes/config';
 import paymentRoutes from './routes/payments';
 import invoiceRoutes from './routes/invoices';
 import historiaClinicaRoutes from './routes/historiaClinica';
+import userRoutes from './routes/users';
 
 const app: Express = express();
 
@@ -82,6 +83,7 @@ app.use('/api/config', configRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/historia-clinica', historiaClinicaRoutes);
+app.use('/api/users', userRoutes);
 
 // Error handler (debe ir al final)
 app.use(errorHandler);

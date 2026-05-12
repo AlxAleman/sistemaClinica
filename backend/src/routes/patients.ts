@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import * as patientController from '../controllers/patientController';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
@@ -7,6 +8,16 @@ import {
   updatePatientSchema,
   medicalProfileSchema,
 } from '../utils/validators';
+
+// Multer en memoria (los bytes van directo a R2)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 const router: Router = Router();
 
@@ -36,7 +47,8 @@ router.post(
 );
 
 // Rutas de documentos médicos
-router.post('/:id/documents', patientController.uploadMedicalDocument);
+// Acepta multipart/form-data (campo "file") O JSON con base64 (legacy)
+router.post('/:id/documents', upload.single('file'), patientController.uploadMedicalDocument);
 
 export default router;
 

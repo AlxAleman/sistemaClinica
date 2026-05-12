@@ -54,7 +54,7 @@ export default function NewDiagnosisPage() {
         observations: formData.observations || null,
       });
       toast.success("Diagnóstico creado exitosamente");
-      router.push(`/dashboard/expediente/${formData.patientId}?tab=diagnosticos`);
+      router.push(`/dashboard/patients/${formData.patientId}?tab=diagnosticos`);
     } catch (error: any) {
       toast.error(error.message || "Error al crear el diagnóstico");
     } finally {
@@ -70,7 +70,7 @@ export default function NewDiagnosisPage() {
           { label: "Pacientes", href: "/dashboard/patients" },
           ...(patientIdParam
             ? [
-                { label: patientName || "Paciente", href: `/dashboard/expediente/${patientIdParam}` },
+                { label: patientName || "Paciente", href: `/dashboard/patients/${patientIdParam}` },
               ]
             : []),
           { label: "Nuevo Diagnóstico" },
@@ -79,7 +79,7 @@ export default function NewDiagnosisPage() {
 
       <div className="mb-6">
         <Link
-          href={patientIdParam ? `/dashboard/expediente/${patientIdParam}` : "/dashboard/patients"}
+          href={patientIdParam ? `/dashboard/patients/${patientIdParam}` : "/dashboard/patients"}
           className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
         >
           ← Volver al expediente
@@ -165,7 +165,7 @@ export default function NewDiagnosisPage() {
 
           <div className="flex justify-end gap-3 pt-2">
             <Link
-              href={patientIdParam ? `/dashboard/expediente/${patientIdParam}` : "/dashboard/patients"}
+              href={patientIdParam ? `/dashboard/patients/${patientIdParam}` : "/dashboard/patients"}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
             >
               Cancelar

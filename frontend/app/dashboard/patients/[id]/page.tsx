@@ -10,9 +10,10 @@ import { therapistService } from "@/services/therapistService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import moment from "moment";
+import "moment/locale/es";
+moment.locale("es");
 import Avatar from "@/components/Avatar";
 import ImageModal from "@/components/ImageModal";
-import DocumentsList from "@/components/DocumentsList";
 import DocumentUpload from "@/components/DocumentUpload";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -42,9 +43,15 @@ export default function PatientDetailPage() {
   const [historia, setHistoria] = useState<HistoriaClinica | null>(null);
   const [loadingHistoria, setLoadingHistoria] = useState(true);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("general");
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab && ["general","expediente","tratamiento","historial"].includes(tab)) {
+      setActiveTab(tab as TabId);
+    }
+  }, []);
 
   // Treatment plan accordion & session management
   const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set());
@@ -52,6 +59,17 @@ export default function PatientDetailPage() {
   const [loadingPlanSessions, setLoadingPlanSessions] = useState<Record<string, boolean>>({});
   const [therapists, setTherapists] = useState<{ id: string; name: string; specialization?: string | null }[]>([]);
   const [addSessionModal, setAddSessionModal] = useState<{ planId: string; plan: TreatmentPlan; editingSessionId?: string } | null>(null);
+  const [finalizePlanConfirm, setFinalizePlanConfirm] = useState<TreatmentPlan | null>(null);
+  const [finalizingPlan, setFinalizingPlan] = useState(false);
+  const [extendPlanModal, setExtendPlanModal] = useState<TreatmentPlan | null>(null);
+  const [extendSessions, setExtendSessions] = useState(5);
+
+  // Historial pagination
+  const [completedPlansPage, setCompletedPlansPage] = useState(1);
+  const [completedPlansPerPage, setCompletedPlansPerPage] = useState(5);
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [sessionsPerPage, setSessionsPerPage] = useState(5);
+  const [activeDocCategory, setActiveDocCategory] = useState<string>("todos");
   const [sessionForm, setSessionForm] = useState({
     sessionDate: "", therapistId: "", duration: 60,
     attendanceStatus: "ATTENDED" as "ATTENDED" | "NOT_ATTENDED" | "RESCHEDULED" | "PENDING",
@@ -174,6 +192,39 @@ export default function PatientDetailPage() {
       toast.error(err.response?.data?.error || "Error al guardar la sesión");
     } finally {
       setSavingSession(false);
+    }
+  };
+
+  const handleFinalizePlan = async () => {
+    if (!finalizePlanConfirm) return;
+    setFinalizingPlan(true);
+    try {
+      const updated = await treatmentPlanService.update(finalizePlanConfirm.id, {
+        status: 'COMPLETED',
+        endDate: new Date().toISOString(),
+      });
+      setTreatmentPlans(prev => prev.map(p => p.id === updated.id ? updated : p));
+      setFinalizePlanConfirm(null);
+      toast.success("Tratamiento finalizado y movido al historial");
+    } catch {
+      toast.error("Error al finalizar el tratamiento");
+    } finally {
+      setFinalizingPlan(false);
+    }
+  };
+
+  const handleExtendPlan = async () => {
+    if (!extendPlanModal) return;
+    try {
+      const updated = await treatmentPlanService.update(extendPlanModal.id, {
+        sessionsPlanned: extendPlanModal.sessionsPlanned + extendSessions,
+      });
+      setTreatmentPlans(prev => prev.map(p => p.id === updated.id ? updated : p));
+      setExtendPlanModal(null);
+      setExtendSessions(5);
+      toast.success(`Se agregaron ${extendSessions} sesiones al tratamiento`);
+    } catch {
+      toast.error("Error al extender el tratamiento");
     }
   };
 
@@ -857,9 +908,13 @@ export default function PatientDetailPage() {
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
                 <EmptyState text="No hay planes de tratamiento registrados." />
               </div>
+            ) : treatmentPlans.filter(p => p.status !== 'COMPLETED').length === 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                <EmptyState text="No hay planes de tratamiento activos. Los tratamientos completados están en la pestaña Historial." />
+              </div>
             ) : (
               <div className="space-y-3">
-                {treatmentPlans.map((plan) => {
+                {treatmentPlans.filter(p => p.status !== 'COMPLETED').map((plan) => {
                   const pct = plan.sessionsPlanned > 0
                     ? Math.round((plan.sessionsCompleted / plan.sessionsPlanned) * 100)
                     : 0;
@@ -896,6 +951,26 @@ export default function PatientDetailPage() {
                               <PlusIcon className="h-3 w-3" />
                               Sesión
                             </button>
+                            {plan.sessionsCompleted >= plan.sessionsPlanned && plan.sessionsPlanned > 0 && (
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setExtendPlanModal(plan); setExtendSessions(5); }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-lg transition-colors"
+                                  title="Agregar más sesiones"
+                                >
+                                  <PlusIcon className="h-3 w-3" />
+                                  + Sesiones
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFinalizePlanConfirm(plan); }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 rounded-lg transition-colors"
+                                  title="Finalizar tratamiento"
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                  Finalizar
+                                </button>
+                              </>
+                            )}
                             <Link
                               href={`/dashboard/treatment-plans/${plan.id}/edit`}
                               onClick={(e) => e.stopPropagation()}
@@ -1093,94 +1168,336 @@ export default function PatientDetailPage() {
         )}
 
         {/* ── TAB: Historial y Documentos ── */}
-        {activeTab === "historial" && (
+        {activeTab === "historial" && (() => {
+          // ── helpers de paginación ──
+          const completedPlans = treatmentPlans.filter(p => p.status === 'COMPLETED');
+          const totalCompletedPages = Math.max(1, Math.ceil(completedPlans.length / completedPlansPerPage));
+          const pagedCompletedPlans = completedPlans.slice((completedPlansPage - 1) * completedPlansPerPage, completedPlansPage * completedPlansPerPage);
+
+          const sortedSessions = [...sessions].sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime());
+          const totalSessionPages = Math.max(1, Math.ceil(sortedSessions.length / sessionsPerPage));
+          const pagedSessions = sortedSessions.slice((sessionsPage - 1) * sessionsPerPage, sessionsPage * sessionsPerPage);
+
+          const DOC_CATEGORIES = [
+            { value: "todos",      label: "Todos",             icon: "🗂️" },
+            { value: "receta",     label: "Recetas",           icon: "💊" },
+            { value: "radiografia",label: "Radiografías",      icon: "🩻" },
+            { value: "laboratorio",label: "Laboratorio",       icon: "🧪" },
+            { value: "referencia", label: "Referencias",       icon: "📋" },
+            { value: "informe",    label: "Informes",          icon: "📄" },
+            { value: "otro",       label: "Otros",             icon: "📁" },
+          ] as const;
+
+          const allDocs = patient.documents ?? [];
+          const filteredDocs = activeDocCategory === "todos" ? allDocs : allDocs.filter(d => (d as any).category === activeDocCategory);
+
+          const CAT_UPLOAD_LABEL: Record<string, string> = {
+            receta: "receta",  radiografia: "radiografía", laboratorio: "examen",
+            referencia: "referencia", informe: "informe", otro: "documento",
+          };
+
+          const Paginator = ({ page, total, perPage, onPage, onPerPage, perPageOptions = [5, 10, 20] }: {
+            page: number; total: number; perPage: number;
+            onPage: (p: number) => void; onPerPage: (n: number) => void;
+            perPageOptions?: number[];
+          }) => (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700 mt-2">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span>Mostrar</span>
+                <select
+                  value={perPage}
+                  onChange={e => { onPerPage(Number(e.target.value)); onPage(1); }}
+                  className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {perPageOptions.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <span>por página · {total} en total</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => onPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >‹</button>
+                {Array.from({ length: Math.min(5, Math.max(1, Math.ceil(total / perPage))) }, (_, i) => {
+                  const totalPgs = Math.max(1, Math.ceil(total / perPage));
+                  let pg: number;
+                  if (totalPgs <= 5) pg = i + 1;
+                  else if (page <= 3) pg = i + 1;
+                  else if (page >= totalPgs - 2) pg = totalPgs - 4 + i;
+                  else pg = page - 2 + i;
+                  return (
+                    <button key={pg} onClick={() => onPage(pg)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${pg === page ? "bg-indigo-600 text-white" : "border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                    >{pg}</button>
+                  );
+                })}
+                <button
+                  onClick={() => onPage(Math.min(Math.max(1, Math.ceil(total / perPage)), page + 1))}
+                  disabled={page >= Math.max(1, Math.ceil(total / perPage))}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >›</button>
+              </div>
+            </div>
+          );
+
+          return (
           <div className="space-y-6">
-            {/* Historial de sesiones */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between mb-5">
+
+            {/* ── SECCIÓN 1: Tratamientos completados ── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-sm">✅</span>
+                  Tratamientos Completados
+                  {completedPlans.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium">{completedPlans.length}</span>
+                  )}
+                </h2>
+              </div>
+              <div className="p-6">
+                {loadingPlans ? (<LoadingSpinner />) : completedPlans.length === 0 ? (
+                  <EmptyState text="No hay tratamientos completados aún." />
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {pagedCompletedPlans.map((plan) => {
+                        const pct = plan.sessionsPlanned > 0 ? Math.round((plan.sessionsCompleted / plan.sessionsPlanned) * 100) : 100;
+                        const isExpanded = expandedPlans.has(plan.id);
+                        const sessionsForPlan = planSessions[plan.id] ?? [];
+                        const isLoadingS = loadingPlanSessions[plan.id] ?? false;
+                        return (
+                          <div key={plan.id} className="border border-green-100 dark:border-green-900/30 rounded-xl overflow-hidden">
+                            <div className="p-4 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors" onClick={() => togglePlan(plan.id)}>
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{plan.title}</p>
+                                    <PlanStatusBadge status={plan.status} />
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                    {plan.therapyType && <span className="text-xs text-gray-500 dark:text-gray-400">{plan.therapyType}</span>}
+                                    {plan.endDate && <span className="text-xs text-gray-400 dark:text-gray-500">Finalizado: {moment(plan.endDate).format("DD/MM/YYYY")}</span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                                  <span>{plan.sessionsCompleted}/{plan.sessionsPlanned} ses.</span>
+                                  <span className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>▾</span>
+                                </div>
+                              </div>
+                              <div className="mt-2.5">
+                                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                                  <div className="h-1.5 rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="border-t border-gray-100 dark:border-gray-700">
+                                {(plan.goals || plan.description) && (
+                                  <div className="px-5 py-3 bg-indigo-50/60 dark:bg-indigo-900/10 border-b border-indigo-100 dark:border-indigo-900/20">
+                                    {plan.goals && <p className="text-xs font-medium text-indigo-700 dark:text-indigo-400">Objetivos: {plan.goals}</p>}
+                                    {plan.description && <p className="text-xs text-indigo-600/80 dark:text-indigo-400/70 mt-0.5">{plan.description}</p>}
+                                  </div>
+                                )}
+                                {isLoadingS ? (
+                                  <div className="py-6 flex justify-center"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500" /></div>
+                                ) : sessionsForPlan.length === 0 ? (
+                                  <div className="py-6 text-center"><p className="text-xs text-gray-400 dark:text-gray-500">Sin sesiones registradas</p></div>
+                                ) : (
+                                  <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                                    {[...sessionsForPlan].sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()).map((session) => (
+                                      <div key={session.id} className="px-5 py-3 flex gap-3 hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
+                                        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-green-50 dark:bg-green-900/20 flex flex-col items-center justify-center">
+                                          <span className="text-xs font-bold text-green-700 dark:text-green-400 leading-none">{moment(session.sessionDate).format("DD")}</span>
+                                          <span className="text-[8px] uppercase font-medium text-green-500 leading-none mt-0.5">{moment(session.sessionDate).format("MMM")}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{moment(session.sessionDate).format("HH:mm")} h</span>
+                                            {session.sessionNumber != null && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full">#{session.sessionNumber}</span>}
+                                            <AttendanceBadge status={session.attendanceStatus} />
+                                            {session.painLevel != null && <PainBadge level={session.painLevel} />}
+                                          </div>
+                                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
+                                            <UsersIcon className="h-3 w-3" />{session.therapist?.name ?? "Sin terapeuta"}
+                                            <span className="mx-1">·</span><CalendarIcon className="h-3 w-3" />{session.duration} min
+                                          </p>
+                                          {session.progress && <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5 line-clamp-1">{session.progress}</p>}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {sessionsForPlan.some(s => s.painLevel != null) && (
+                                  <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/30">
+                                    <ProgressChart sessions={sessionsForPlan} />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <Paginator page={completedPlansPage} total={completedPlans.length} perPage={completedPlansPerPage} onPage={setCompletedPlansPage} onPerPage={setCompletedPlansPerPage} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── SECCIÓN 2: Historial de sesiones ── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   <span className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-sm">🗂️</span>
                   Historial de Sesiones
+                  {sessions.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-xs font-medium">{sessions.length}</span>
+                  )}
                 </h2>
               </div>
-              {loadingSessions ? (
-                <LoadingSpinner />
-              ) : sessions.length === 0 ? (
-                <EmptyState text="No hay sesiones registradas para este paciente." />
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    {sessions.slice(0, 8).map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-700"
-                      >
-                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400">
-                          <span className="text-xs font-bold leading-none">
-                            {moment(session.sessionDate).format("DD")}
-                          </span>
-                          <span className="text-[9px] uppercase font-medium opacity-70 leading-none">
-                            {moment(session.sessionDate).format("MMM")}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {moment(session.sessionDate).format("HH:mm")} h
-                            </span>
-                            {session.painLevel != null && (
-                              <PainBadge level={session.painLevel} />
-                            )}
-                            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                              <CalendarIcon className="h-3.5 w-3.5" />
-                              {session.duration} min
-                            </span>
+              <div className="p-6">
+                {loadingSessions ? (<LoadingSpinner />) : sessions.length === 0 ? (
+                  <EmptyState text="No hay sesiones registradas para este paciente." />
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {pagedSessions.map((session) => (
+                        <div key={session.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center justify-center">
+                            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 leading-none">{moment(session.sessionDate).format("DD")}</span>
+                            <span className="text-[9px] uppercase font-medium text-indigo-500 leading-none mt-0.5">{moment(session.sessionDate).format("MMM")}</span>
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                            <UsersIcon className="h-3.5 w-3.5" />
-                            {session.therapist?.name || "Terapeuta desconocido"}
-                          </p>
-                          {session.progress && (
-                            <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
-                              {session.progress}
-                            </p>
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{moment(session.sessionDate).format("HH:mm")} h</span>
+                              <span className="text-xs text-gray-400 dark:text-gray-500">{moment(session.sessionDate).format("dddd, DD MMMM YYYY")}</span>
+                              <AttendanceBadge status={session.attendanceStatus} />
+                              {session.painLevel != null && <PainBadge level={session.painLevel} />}
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <UsersIcon className="h-3 w-3" />{session.therapist?.name || "Sin terapeuta"}
+                              </p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3" />{session.duration} min
+                              </p>
+                            </div>
+                            {session.progress && <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 line-clamp-1"><span className="font-medium">Progreso:</span> {session.progress}</p>}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  {sessions.length > 8 && (
-                    <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
-                      Mostrando 8 de {sessions.length} sesiones. Ver el resto en la pestaña Tratamiento.
-                    </p>
+                      ))}
+                    </div>
+                    <Paginator page={sessionsPage} total={sortedSessions.length} perPage={sessionsPerPage} onPage={setSessionsPage} onPerPage={setSessionsPerPage} perPageOptions={[5, 10, 20, 50]} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── SECCIÓN 3: Documentos médicos ── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-sm">📁</span>
+                  Documentos Médicos
+                  {allDocs.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{allDocs.length}</span>
                   )}
-                </>
-              )}
-            </div>
+                </h2>
+              </div>
 
-            {/* Subir documento */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-sm">📎</span>
-                Subir Examen o Documento
-              </h2>
-              <DocumentUpload
-                patientId={id}
-                onUploadComplete={() => {
-                  setRefreshKey((prev) => prev + 1);
-                  fetchPatient();
-                }}
-              />
-            </div>
+              {/* Category tabs */}
+              <div className="px-6 pt-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex gap-1 overflow-x-auto pb-3 scrollbar-none">
+                  {DOC_CATEGORIES.map(cat => {
+                    const count = cat.value === "todos" ? allDocs.length : allDocs.filter(d => (d as any).category === cat.value).length;
+                    return (
+                      <button
+                        key={cat.value}
+                        onClick={() => setActiveDocCategory(cat.value)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                          activeDocCategory === cat.value
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        <span>{cat.icon}</span>
+                        {cat.label}
+                        {count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${activeDocCategory === cat.value ? "bg-white/20" : "bg-gray-100 dark:bg-gray-700 text-gray-500"}`}>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-            {/* Lista de documentos */}
-            <DocumentsList
-              key={refreshKey}
-              documents={patient.documents || []}
-              patientName={patient.name}
-            />
+              <div className="p-6 space-y-4">
+                {/* Upload zone for active category */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Subir {activeDocCategory === "todos" ? "documento" : (CAT_UPLOAD_LABEL[activeDocCategory] ?? "documento")}
+                  </p>
+                  <DocumentUpload
+                    patientId={id}
+                    preselectedCategory={activeDocCategory === "todos" ? "otro" : activeDocCategory as any}
+                    onUploadComplete={() => fetchPatient()}
+                  />
+                </div>
+
+                {/* Documents list */}
+                {filteredDocs.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3 text-2xl">
+                      {DOC_CATEGORIES.find(c => c.value === activeDocCategory)?.icon ?? "📁"}
+                    </div>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No hay documentos en esta categoría</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      {filteredDocs.length} documento{filteredDocs.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className="space-y-2">
+                      {filteredDocs.map((doc) => {
+                        const isImage = doc.fileType.startsWith("image/");
+                        const isPdf = doc.fileType === "application/pdf";
+                        return (
+                          <div
+                            key={doc.id}
+                            className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-all cursor-pointer group"
+                            onClick={() => {
+                              const a = window.document.createElement("a");
+                              a.href = doc.fileUrl; a.target = "_blank";
+                              window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a);
+                            }}
+                          >
+                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                              {isImage ? (
+                                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              ) : isPdf ? (
+                                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{doc.fileName}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                {new Date(doc.uploadedAt).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" })}
+                                {doc.description && <span className="ml-2 text-gray-500 dark:text-gray-400">· {doc.description}</span>}
+                              </p>
+                            </div>
+                            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Modals */}
@@ -1191,6 +1508,50 @@ export default function PatientDetailPage() {
           isOpen={isImageModalOpen}
           onClose={() => setIsImageModalOpen(false)}
         />
+      )}
+
+      {/* ── Confirmar finalizar tratamiento ── */}
+      <ConfirmDialog
+        isOpen={!!finalizePlanConfirm}
+        onClose={() => setFinalizePlanConfirm(null)}
+        onConfirm={handleFinalizePlan}
+        title="Finalizar tratamiento"
+        message={`¿Confirmas que el tratamiento "${finalizePlanConfirm?.title}" está completado? Se moverá al historial del paciente.`}
+        confirmText={finalizingPlan ? "Finalizando..." : "Finalizar"}
+        cancelText="Cancelar"
+        type="warning"
+      />
+
+      {/* ── Modal agregar sesiones ── */}
+      {extendPlanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setExtendPlanModal(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Agregar sesiones</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{extendPlanModal.title}</p>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              ¿Cuántas sesiones agregar?
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={extendSessions}
+              onChange={(e) => setExtendSessions(Math.max(1, parseInt(e.target.value) || 1))}
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 mb-1"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
+              Total pasará de {extendPlanModal.sessionsPlanned} a {extendPlanModal.sessionsPlanned + extendSessions} sesiones
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setExtendPlanModal(null)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleExtendPlan} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+                Agregar sesiones
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

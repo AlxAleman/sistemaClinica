@@ -211,6 +211,7 @@ export const createMedicalDocument = async (
     fileUrl: string;
     fileType: string;
     description?: string | null;
+    category?: string;
   }
 ) => {
   const patient = await prisma.patient.findUnique({ where: { id: patientId } });
@@ -225,6 +226,7 @@ export const createMedicalDocument = async (
       fileUrl: data.fileUrl,
       fileType: data.fileType,
       description: data.description || null,
+      category: data.category || 'otro',
     },
   });
 

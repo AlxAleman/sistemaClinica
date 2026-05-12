@@ -118,7 +118,7 @@ export default function NewTreatmentPlanPage() {
       toast.success("Plan de tratamiento creado exitosamente");
 
       if (patientIdParam) {
-        router.push(`/dashboard/expediente/${patientIdParam}`);
+        router.push(`/dashboard/patients/${patientIdParam}`);
       } else {
         router.push(`/dashboard/treatment-plans/${plan.id}`);
       }

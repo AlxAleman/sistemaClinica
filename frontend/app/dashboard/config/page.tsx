@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { configService, SystemConfig } from "@/services/configService";
+import { userService, AppUser, CreateUserData, UserRole } from "@/services/userService";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -45,13 +46,37 @@ export default function ConfigPage() {
   });
   const [savingSessions, setSavingSessions] = useState(false);
 
+  // Usuarios
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [savingUser, setSavingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [deleteUserDialog, setDeleteUserDialog] = useState<AppUser | null>(null);
+  const [userPrefix, setUserPrefix] = useState("Dr.");
+  const [userForm, setUserForm] = useState<CreateUserData>({
+    name: "", email: "", password: "", role: "THERAPIST", phone: "", specialization: "",
+  });
+  const [editUserForm, setEditUserForm] = useState<{ role: UserRole; password: string }>({
+    role: "THERAPIST", password: "",
+  });
+
   // Restaurar defaults
   const [restoreDialog, setRestoreDialog] = useState(false);
   const [restoringDefaults, setRestoringDefaults] = useState(false);
 
   useEffect(() => {
     fetchAllConfigs();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await userService.getAll();
+      setUsers(data);
+    } catch {
+      // silencioso
+    }
+  };
 
   const fetchAllConfigs = async () => {
     try {
@@ -193,6 +218,80 @@ export default function ConfigPage() {
     } finally {
       setSavingSessions(false);
     }
+  };
+
+  const handleCreateUser = async () => {
+    if (!userForm.name || !userForm.email || !userForm.password) {
+      toast.error("Nombre, correo y contraseña son obligatorios");
+      return;
+    }
+    setSavingUser(true);
+    try {
+      const created = await userService.create({ ...userForm, name: `${userPrefix} ${userForm.name}` });
+      setUsers((prev) => [...prev, created]);
+      setShowUserForm(false);
+      setUserPrefix("Dr.");
+      setUserForm({ name: "", email: "", password: "", role: "THERAPIST", phone: "", specialization: "" });
+      toast.success("Usuario creado exitosamente");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error al crear usuario");
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    setSavingUser(true);
+    try {
+      const updated = await userService.update(editingUser.id, {
+        role: editUserForm.role,
+        ...(editUserForm.password ? { password: editUserForm.password } : {}),
+      });
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setEditingUser(null);
+      toast.success("Usuario actualizado");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error al actualizar usuario");
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserDialog) return;
+    try {
+      await userService.delete(deleteUserDialog.id);
+      setUsers((prev) => prev.filter((u) => u.id !== deleteUserDialog.id));
+      setDeleteUserDialog(null);
+      toast.success("Usuario eliminado");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Error al eliminar usuario");
+    }
+  };
+
+  const roleLabel = (role: UserRole) => {
+    const labels: Record<UserRole, string> = {
+      ADMIN: "Administrador",
+      THERAPIST: "Terapeuta",
+      RECEPCION: "Recepción",
+      CONTABILIDAD: "Contabilidad",
+      SUPERVISOR: "Supervisor",
+      EXTERNAL_THERAPIST: "Terapeuta Externo",
+    };
+    return labels[role] ?? role;
+  };
+
+  const roleColor = (role: UserRole) => {
+    const colors: Record<UserRole, string> = {
+      ADMIN: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+      THERAPIST: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+      RECEPCION: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      CONTABILIDAD: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+      SUPERVISOR: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+      EXTERNAL_THERAPIST: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+    };
+    return colors[role] ?? "bg-gray-100 text-gray-700";
   };
 
   const handleRestoreDefaults = async () => {
@@ -490,6 +589,169 @@ export default function ConfigPage() {
           </div>
         </div>
 
+        {/* Sección: Usuarios y Terapeutas */}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Usuarios y Terapeutas</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Gestiona los accesos al sistema</p>
+            </div>
+            <button
+              onClick={() => setShowUserForm(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
+            >
+              + Nuevo usuario
+            </button>
+          </div>
+
+          {/* Formulario nuevo usuario */}
+          {showUserForm && (
+            <div className="mb-6 p-4 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Crear nuevo usuario</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre completo *</label>
+                  <div className="flex gap-2">
+                    <select value={userPrefix} onChange={(e) => setUserPrefix(e.target.value)}
+                      className="w-24 shrink-0 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                      <option>Dr.</option>
+                      <option>Dra.</option>
+                      <option>Lic.</option>
+                      <option>Lcda.</option>
+                      <option>Lic.</option>
+                      <option>Ing.</option>
+                    </select>
+                    <input type="text" value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      placeholder="Ej: María López" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico *</label>
+                  <input type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="correo@clinica.com" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña temporal *</label>
+                  <input type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                    autoComplete="new-password"
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="Mínimo 6 caracteres" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Rol *</label>
+                  <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value as UserRole })}
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option value="THERAPIST">Terapeuta</option>
+                    <option value="ADMIN">Administrador</option>
+                    <option value="RECEPCION">Recepción</option>
+                    <option value="CONTABILIDAD">Contabilidad</option>
+                    <option value="SUPERVISOR">Supervisor</option>
+                    <option value="EXTERNAL_THERAPIST">Terapeuta Externo</option>
+                  </select>
+                </div>
+                {(userForm.role === "THERAPIST" || userForm.role === "EXTERNAL_THERAPIST") && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teléfono</label>
+                      <input type="text" value={userForm.phone} onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                        className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        placeholder="Ej: 7777-1234" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Especialización</label>
+                      <input type="text" value={userForm.specialization} onChange={(e) => setUserForm({ ...userForm, specialization: e.target.value })}
+                        className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        placeholder="Ej: Fisioterapia Deportiva" />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button onClick={handleCreateUser} disabled={savingUser}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50">
+                  {savingUser ? "Guardando..." : "Crear usuario"}
+                </button>
+                <button onClick={() => { setShowUserForm(false); setUserForm({ name: "", email: "", password: "", role: "THERAPIST", phone: "", specialization: "" }); }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Lista de usuarios */}
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {users.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic py-2">No hay usuarios registrados</p>
+            ) : (
+              users.map((u) => (
+                <div key={u.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{u.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleColor(u.role)}`}>
+                      {roleLabel(u.role)}
+                    </span>
+                    <button onClick={() => { setEditingUser(u); setEditUserForm({ role: u.role, password: "" }); }}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                      Editar
+                    </button>
+                    <button onClick={() => setDeleteUserDialog(u)}
+                      className="text-xs text-red-500 dark:text-red-400 hover:underline">
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Modal editar usuario */}
+        {editingUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Editar usuario</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{editingUser.name} — {editingUser.email}</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rol</label>
+                  <select value={editUserForm.role} onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value as UserRole })}
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option value="THERAPIST">Terapeuta</option>
+                    <option value="ADMIN">Administrador</option>
+                    <option value="RECEPCION">Recepción</option>
+                    <option value="CONTABILIDAD">Contabilidad</option>
+                    <option value="SUPERVISOR">Supervisor</option>
+                    <option value="EXTERNAL_THERAPIST">Terapeuta Externo</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva contraseña <span className="text-gray-400 font-normal">(dejar vacío para no cambiar)</span></label>
+                  <input type="password" value={editUserForm.password} onChange={(e) => setEditUserForm({ ...editUserForm, password: e.target.value })}
+                    autoComplete="new-password"
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    placeholder="Nueva contraseña..." />
+                </div>
+              </div>
+              <div className="mt-5 flex gap-3 justify-end">
+                <button onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={handleUpdateUser} disabled={savingUser}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50">
+                  {savingUser ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Sección: Sesiones */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
           <div className="mb-4">
@@ -533,6 +795,17 @@ export default function ConfigPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteUserDialog}
+        onClose={() => setDeleteUserDialog(null)}
+        onConfirm={handleDeleteUser}
+        title="Eliminar usuario"
+        message={`¿Estás seguro que deseas eliminar a ${deleteUserDialog?.name}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+      />
 
       <ConfirmDialog
         isOpen={restoreDialog}

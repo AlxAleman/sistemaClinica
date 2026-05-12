@@ -1,11 +1,14 @@
 import api from './api';
 
+export type DocumentCategory = 'receta' | 'radiografia' | 'laboratorio' | 'referencia' | 'informe' | 'otro';
+
 export interface MedicalDocument {
   id: string;
   fileName: string;
   fileUrl: string;
   fileType: string;
   description?: string | null;
+  category: DocumentCategory;
   uploadedAt: string;
 }
 
@@ -144,6 +147,7 @@ export const patientService = {
       fileUrl: string;
       fileType: string;
       description?: string | null;
+      category?: string;
     }
   ): Promise<MedicalDocument> => {
     const response = await api.post<{ success: boolean; data: MedicalDocument }>(
