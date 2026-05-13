@@ -63,6 +63,23 @@ export default function PatientDetailPage() {
   const [diagnosesPage, setDiagnosesPage] = useState(1);
   const DIAGNOSES_PER_PAGE = 5;
   const [deleteDiagnosisId, setDeleteDiagnosisId] = useState<string | null>(null);
+  const [deleteDocumentId, setDeleteDocumentId] = useState<string | null>(null);
+
+  const handleDeleteDocument = async () => {
+    if (!deleteDocumentId) return;
+    try {
+      await api.delete(`/patients/${id}/documents/${deleteDocumentId}`);
+      setPatient(prev => prev ? {
+        ...prev,
+        documents: prev.documents.filter((d: any) => d.id !== deleteDocumentId),
+      } : prev);
+      toast.success("Documento eliminado");
+    } catch {
+      toast.error("Error al eliminar el documento");
+    } finally {
+      setDeleteDocumentId(null);
+    }
+  };
 
   const handleDeleteDiagnosis = async () => {
     if (!deleteDiagnosisId) return;
@@ -1652,30 +1669,41 @@ export default function PatientDetailPage() {
                         return (
                           <div
                             key={doc.id}
-                            className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-all cursor-pointer group"
-                            onClick={() => {
-                              const a = window.document.createElement("a");
-                              a.href = doc.fileUrl; a.target = "_blank";
-                              window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a);
-                            }}
+                            className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-all group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
-                              {isImage ? (
-                                <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              ) : isPdf ? (
-                                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                              ) : (
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                              )}
+                            <div
+                              className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                              onClick={() => {
+                                const a = window.document.createElement("a");
+                                a.href = doc.fileUrl; a.target = "_blank";
+                                window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a);
+                              }}
+                            >
+                              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                                {isImage ? (
+                                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                ) : isPdf ? (
+                                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                ) : (
+                                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{doc.fileName}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                  {new Date(doc.uploadedAt).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" })}
+                                  {doc.description && <span className="ml-2 text-gray-500 dark:text-gray-400">· {doc.description}</span>}
+                                </p>
+                              </div>
+                              <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{doc.fileName}</p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                {new Date(doc.uploadedAt).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" })}
-                                {doc.description && <span className="ml-2 text-gray-500 dark:text-gray-400">· {doc.description}</span>}
-                              </p>
-                            </div>
-                            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteDocumentId(doc.id); }}
+                              className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                              title="Eliminar documento"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
                           </div>
                         );
                       })}
@@ -1760,6 +1788,17 @@ export default function PatientDetailPage() {
         onConfirm={handleDeleteDiagnosis}
         title="Eliminar Diagnóstico"
         message="¿Estás seguro de que deseas eliminar este diagnóstico? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteDocumentId}
+        onClose={() => setDeleteDocumentId(null)}
+        onConfirm={handleDeleteDocument}
+        title="Eliminar documento"
+        message="¿Eliminar este documento? Se borrará también de Cloudflare R2 y no se podrá recuperar."
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"

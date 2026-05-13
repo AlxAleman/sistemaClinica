@@ -49,6 +49,7 @@ router.post(
 // Rutas de documentos médicos
 // Acepta multipart/form-data (campo "file") O JSON con base64 (legacy)
 router.post('/:id/documents', upload.single('file'), patientController.uploadMedicalDocument);
+router.delete('/:id/documents/:documentId', patientController.deleteMedicalDocument);
 
 export default router;
 

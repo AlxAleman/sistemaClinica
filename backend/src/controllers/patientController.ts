@@ -146,7 +146,7 @@ export const uploadMedicalDocument = async (
       }
 
       const patient = await patientService.getPatientById(id);
-      const key = buildR2Key(id, patient.name, cat, req.file.originalname);
+      const key = buildR2Key(id, patient.name, patient.dui, cat, req.file.originalname);
       finalFileUrl = await uploadToR2(key, req.file.buffer, req.file.mimetype);
       finalFileName = req.body.fileName || req.file.originalname;
       finalFileType = req.file.mimetype;
@@ -179,6 +179,22 @@ export const uploadMedicalDocument = async (
   } catch (error: any) {
     console.error('Error al subir documento:', error);
     res.status(500).json({ success: false, error: error.message || 'Error al subir documento' });
+  }
+};
+
+export const deleteMedicalDocument = async (
+  req: AuthRequest,
+  res: Response<ApiResponse>
+): Promise<void> => {
+  try {
+    const { id, documentId } = req.params;
+    await patientService.deleteMedicalDocument(id, documentId);
+    res.status(200).json({ success: true, message: 'Documento eliminado exitosamente' });
+  } catch (error: any) {
+    res.status(error.message === 'Documento no encontrado' ? 404 : 500).json({
+      success: false,
+      error: error.message || 'Error al eliminar documento',
+    });
   }
 };
 

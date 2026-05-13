@@ -26,36 +26,35 @@ const CATEGORY_FOLDERS: Record<string, string> = {
 };
 
 /**
- * Construye la key en R2: patients/{patientId}/recetas/filename.ext
+ * Construye la key en R2: patients/{patientId}-{nombre}-{dui}/{categoria}/filename.ext
  */
 export const buildR2Key = (
   patientId: string,
   patientName: string,
+  dui: string | null | undefined,
   category: string,
   originalFileName: string,
 ): string => {
-  // Normalizar nombre del paciente: sin espacios ni caracteres especiales
-  const safeName = patientName
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')  // quitar tildes
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+  const normalize = (s: string) =>
+    s.toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+  const safeName = normalize(patientName);
+  const safeDui  = dui ? normalize(dui) : '';
+  const folderName = safeDui
+    ? `${patientId}-${safeName}-${safeDui}`
+    : `${patientId}-${safeName}`;
 
   const folder = CATEGORY_FOLDERS[category] ?? 'otros';
   const timestamp = Date.now();
   const ext = originalFileName.split('.').pop() ?? '';
-  const baseName = originalFileName
-    .replace(/\.[^.]+$/, '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]/g, '-')
-    .slice(0, 50);
+  const baseName = normalize(originalFileName.replace(/\.[^.]+$/, '')).slice(0, 50);
 
-  const fileName = `${timestamp}-${baseName}.${ext}`;
-  return `patients/${patientId}-${safeName}/${folder}/${fileName}`;
+  return `patients/${folderName}/${folder}/${timestamp}-${baseName}.${ext}`;
 };
 
 /**

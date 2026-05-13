@@ -204,6 +204,22 @@ export const createMedicalProfile = async (
   return profile;
 };
 
+export const deleteMedicalDocument = async (patientId: string, documentId: string) => {
+  const doc = await prisma.medicalDocument.findFirst({
+    where: { id: documentId, patientId },
+  });
+
+  if (!doc) {
+    throw new Error('Documento no encontrado');
+  }
+
+  // Eliminar el archivo de R2 primero
+  const { deleteFromR2 } = await import('./r2Service');
+  await deleteFromR2(doc.fileUrl);
+
+  await prisma.medicalDocument.delete({ where: { id: documentId } });
+};
+
 export const createMedicalDocument = async (
   patientId: string,
   data: {
