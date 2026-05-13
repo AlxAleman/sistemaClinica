@@ -54,7 +54,7 @@ export default function NewDiagnosisPage() {
         observations: formData.observations || null,
       });
       toast.success("Diagnóstico creado exitosamente");
-      router.push(`/dashboard/patients/${formData.patientId}?tab=diagnosticos`);
+      router.push(`/dashboard/patients/${formData.patientId}?tab=expediente`);
     } catch (error: any) {
       toast.error(error.message || "Error al crear el diagnóstico");
     } finally {

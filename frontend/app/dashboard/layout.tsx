@@ -123,7 +123,6 @@ export default function DashboardLayout({
                         { href: "/dashboard/reports", label: t("common.reports") || "Reportes" },
                         { href: "/dashboard/payments", label: "Pagos" },
                         { href: "/dashboard/prescriptions", label: t("common.prescriptions") || "Recetas" },
-                        { href: "/dashboard/config", label: "Configuración" },
                       ].map((item) => (
                         <Link
                           key={item.href}
@@ -200,6 +199,16 @@ export default function DashboardLayout({
                         </div>
                       </div>
                       <div className="py-1">
+                        <Link
+                          href="/dashboard/config"
+                          onClick={() => setSettingsMenuOpen(false)}
+                          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          role="menuitem"
+                        >
+                          Configuración
+                        </Link>
+                      </div>
+                      <div className="py-1">
                         <button
                           onClick={() => {
                             setSettingsMenuOpen(false);
@@ -269,6 +278,16 @@ export default function DashboardLayout({
                           </label>
                           <ThemeToggle />
                         </div>
+                      </div>
+                      <div className="py-1">
+                        <Link
+                          href="/dashboard/config"
+                          onClick={() => setSettingsMenuOpen(false)}
+                          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          role="menuitem"
+                        >
+                          Configuración
+                        </Link>
                       </div>
                       <div className="py-1">
                         <button

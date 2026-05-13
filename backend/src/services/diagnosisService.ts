@@ -60,7 +60,7 @@ export const getDiagnosesByPatient = async (patientId: string) => {
 
   const diagnoses = await prisma.diagnosis.findMany({
     where: { patientId },
-    orderBy: { diagnosisDate: 'desc' },
+    orderBy: { createdAt: 'desc' },
     include: {
       _count: {
         select: {

@@ -20,7 +20,7 @@ async function main() {
   // ─────────────────────────────────────────────
   console.log('⚙️  Inicializando configuración del sistema...');
   const configs = [
-    { key: 'therapy_types', value: JSON.stringify(['Fisioterapia Deportiva', 'Fisioterapia Neurológica', 'Fisioterapia Ortopédica', 'Terapia Manual', 'Electroterapia', 'Hidroterapia', 'Rehabilitación Post-Quirúrgica']), description: 'Tipos de terapia disponibles', category: 'therapy_types' },
+    { key: 'therapy_types', value: JSON.stringify(['Fisioterapia General', 'Rehabilitación Lumbar', 'Rehabilitación de Hombro', 'Rehabilitación de Rodilla', 'Rehabilitación de Cadera/Pelvis', 'Terapia Deportiva', 'Electroterapia', 'Ultrasonido Terapéutico', 'Masoterapia', 'Hidroterapia', 'Movilización Manual', 'Estiramiento y Flexibilidad', 'Fortalecimiento Muscular', 'Drenaje Linfático', 'Vendaje Neuromuscular (Kinesiotape)', 'Ejercicio Terapéutico', 'Reentrenamiento de Marcha', 'Equilibrio y Coordinación', 'Neurorehabilitación', 'Liberación Miofascial', 'RPG (Reeducación Postural Global)', 'Pilates Terapéutico', 'Rehabilitación Post-Operatoria', 'Rehabilitación Pediátrica', 'Fisioterapia Oncológica', 'Terapia Vestibular (Vértigo/Mareos)', 'Punción Seca']), description: 'Tipos de terapia disponibles', category: 'therapy_types' },
     { key: 'session_durations', value: JSON.stringify([30, 45, 60, 90]), description: 'Duraciones de sesión en minutos', category: 'session_durations' },
     { key: 'clinic_hours_start', value: '07:00', description: 'Hora de apertura de la clínica', category: 'schedules' },
     { key: 'clinic_hours_end', value: '19:00', description: 'Hora de cierre de la clínica', category: 'schedules' },

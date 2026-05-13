@@ -22,6 +22,28 @@ const FREQUENCY_OPTIONS = [
   "1 vez al mes",
 ];
 
+const SESSIONS_PER_WEEK: Record<string, number> = {
+  "1 vez por semana": 1,
+  "2 veces por semana": 2,
+  "3 veces por semana": 3,
+  "4 veces por semana": 4,
+  "5 veces por semana (diario)": 5,
+  "Cada 2 semanas": 0.5,
+};
+
+function calcEndDate(startDate: string, frequency: string, sessionsPlanned: number): string | null {
+  const start = new Date(startDate + "T12:00:00");
+  if (frequency === "1 vez al mes") {
+    start.setMonth(start.getMonth() + sessionsPlanned);
+  } else {
+    const perWeek = SESSIONS_PER_WEEK[frequency];
+    if (!perWeek) return null;
+    const weeks = Math.ceil(sessionsPlanned / perWeek);
+    start.setDate(start.getDate() + weeks * 7);
+  }
+  return start.toISOString().split("T")[0];
+}
+
 export default function EditTreatmentPlanPage() {
   const params = useParams();
   const router = useRouter();
@@ -34,6 +56,22 @@ export default function EditTreatmentPlanPage() {
   const [customTherapyType, setCustomTherapyType] = useState("");
   const [showCustomTherapy, setShowCustomTherapy] = useState(false);
   const [protocol, setProtocol] = useState<ProtocolItem[]>([]);
+  const [endDateIsAuto, setEndDateIsAuto] = useState(false);
+
+  const applyEndDateCalc = (
+    current: UpdateTreatmentPlanData,
+    overrides: Partial<UpdateTreatmentPlanData>
+  ): UpdateTreatmentPlanData => {
+    const merged = { ...current, ...overrides };
+    if (merged.startDate && merged.frequency && merged.sessionsPlanned) {
+      const calculated = calcEndDate(merged.startDate, merged.frequency, merged.sessionsPlanned);
+      if (calculated) {
+        setEndDateIsAuto(true);
+        return { ...merged, endDate: calculated };
+      }
+    }
+    return merged;
+  };
 
   const [formData, setFormData] = useState<UpdateTreatmentPlanData>({
     patientId: "",
@@ -280,7 +318,7 @@ export default function EditTreatmentPlanPage() {
               <select
                 id="frequency"
                 value={formData.frequency || ""}
-                onChange={(e) => setFormData({ ...formData, frequency: e.target.value || null })}
+                onChange={(e) => setFormData(applyEndDateCalc(formData, { frequency: e.target.value || null }))}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="">— Seleccionar frecuencia —</option>
@@ -320,7 +358,7 @@ export default function EditTreatmentPlanPage() {
                 required
                 min="1"
                 value={formData.sessionsPlanned || ""}
-                onChange={(e) => setFormData({ ...formData, sessionsPlanned: parseInt(e.target.value) })}
+                onChange={(e) => setFormData(applyEndDateCalc(formData, { sessionsPlanned: parseInt(e.target.value) }))}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
@@ -353,21 +391,36 @@ export default function EditTreatmentPlanPage() {
                 type="date"
                 id="startDate"
                 value={formData.startDate || ""}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value || null })}
+                onChange={(e) => setFormData(applyEndDateCalc(formData, { startDate: e.target.value || null }))}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
             <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Fecha Fin Estimada
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Fecha Fin Estimada
+                </label>
+                {endDateIsAuto && (
+                  <span className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
+                    Auto-calculada
+                  </span>
+                )}
+              </div>
               <input
                 type="date"
                 id="endDate"
                 value={formData.endDate || ""}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value || null })}
+                onChange={(e) => {
+                  setFormData({ ...formData, endDate: e.target.value || null });
+                  setEndDateIsAuto(false);
+                }}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
               />
+              {!formData.frequency && (
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                  Cambia la frecuencia o sesiones para recalcular automáticamente.
+                </p>
+              )}
             </div>
           </div>
 
