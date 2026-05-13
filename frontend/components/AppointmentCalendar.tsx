@@ -4,30 +4,61 @@ import { useState, useMemo, useEffect } from "react";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
-// El inglés es el idioma por defecto de moment, no necesita import
 import { Appointment } from "@/services/appointmentService";
+import { TreatmentSession } from "@/services/sessionService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguageStore } from "@/store/languageStore";
 
-// Importar CSS del calendario
 if (typeof window !== "undefined") {
   require("react-big-calendar/lib/css/react-big-calendar.css");
 }
 
-// El localizer se creará dinámicamente cuando cambie el idioma
+export type CalendarEventType = "appointment" | "session";
+
+export interface UnifiedCalendarEvent extends Event {
+  id: string;
+  eventType: CalendarEventType;
+  resource: Appointment | TreatmentSession;
+}
 
 interface AppointmentCalendarProps {
   appointments: Appointment[];
+  sessions?: TreatmentSession[];
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void;
-  onSelectEvent?: (event: Appointment) => void;
+  onSelectEvent?: (event: UnifiedCalendarEvent) => void;
   defaultDate?: Date;
   defaultView?: View;
   onViewChange?: (view: View) => void;
   onNavigate?: (date: Date) => void;
 }
 
+// ── Color palettes ────────────────────────────────────────────────────────────
+
+const appointmentColor = (appt: Appointment): string => {
+  if (!appt.therapistId) return "#d97706"; // amber — sin terapeuta
+  switch (appt.status) {
+    case "CONFIRMED":  return "#16a34a"; // green-600
+    case "COMPLETED":  return "#6b7280"; // gray-500
+    case "CANCELLED":  return "#dc2626"; // red-600
+    case "NO_SHOW":    return "#f59e0b"; // amber-500
+    default:           return "#4f46e5"; // indigo-600 — SCHEDULED
+  }
+};
+
+const sessionColor = (s: TreatmentSession): string => {
+  switch (s.attendanceStatus) {
+    case "ATTENDED":      return "#0d9488"; // teal-600
+    case "NOT_ATTENDED":  return "#b45309"; // amber-700
+    case "RESCHEDULED":   return "#7c3aed"; // violet-600
+    default:              return "#0891b2"; // cyan-600 — PENDING
+  }
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function AppointmentCalendar({
   appointments,
+  sessions = [],
   onSelectSlot,
   onSelectEvent,
   defaultDate = new Date(),
@@ -39,190 +70,168 @@ export default function AppointmentCalendar({
   const { language } = useLanguageStore();
   const [currentDate, setCurrentDate] = useState(defaultDate);
   const [currentView, setCurrentView] = useState<View>(defaultView);
-
-  // Configurar locale de moment según el idioma seleccionado
-  // SIEMPRE iniciar en domingo (dow: 0) independientemente del idioma
-  useEffect(() => {
-    if (language === "es") {
-      moment.locale("es", {
-        months: [
-          "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-        ],
-        monthsShort: [
-          "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-          "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
-        ],
-        weekdays: [
-          "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
-        ],
-        weekdaysShort: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
-        week: {
-          dow: 0, // SIEMPRE domingo es el primer día de la semana
-        },
-      });
-    } else {
-      moment.locale("en", {
-        months: [
-          "January", "February", "March", "April", "May", "June",
-          "July", "August", "September", "October", "November", "December"
-        ],
-        monthsShort: [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-        ],
-        weekdays: [
-          "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-        ],
-        weekdaysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-        week: {
-          dow: 0, // SIEMPRE domingo es el primer día de la semana
-        },
-      });
-    }
-    // Forzar actualización del calendario
-    setCurrentDate((prev) => new Date(prev.getTime()));
-  }, [language]);
-
-  // Crear localizer dinámicamente con el locale actual
-  const localizer = useMemo(() => {
-    // Asegurar que el locale esté configurado antes de crear el localizer
-    if (language === "es") {
-      moment.locale("es");
-    } else {
-      moment.locale("en");
-    }
-    return momentLocalizer(moment);
-  }, [language]);
-
-  // Actualizar cuando cambien los props
-  useEffect(() => {
-    setCurrentDate(defaultDate);
-  }, [defaultDate]);
-
-  useEffect(() => {
-    setCurrentView(defaultView);
-  }, [defaultView]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showWeekRangePicker, setShowWeekRangePicker] = useState(false);
   const [weekStartDate, setWeekStartDate] = useState<Date | null>(null);
   const [weekEndDate, setWeekEndDate] = useState<Date | null>(null);
   const [customRange, setCustomRange] = useState<Date[] | null>(null);
 
-  // Convertir citas a eventos del calendario
-  const events: Event[] = useMemo(() => {
-    return appointments.map((appointment) => {
-      const start = new Date(appointment.appointmentDate);
-      const end = new Date(start.getTime() + appointment.duration * 60000);
+  // Locale setup
+  useEffect(() => {
+    const cfg = language === "es"
+      ? {
+          months: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+          monthsShort: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+          weekdays: ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+          weekdaysShort: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+          week: { dow: 0 },
+        }
+      : {
+          months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+          monthsShort: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+          weekdays: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+          weekdaysShort: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+          week: { dow: 0 },
+        };
+    moment.locale(language === "es" ? "es" : "en", cfg);
+    setCurrentDate(prev => new Date(prev.getTime()));
+  }, [language]);
 
+  const localizer = useMemo(() => {
+    moment.locale(language === "es" ? "es" : "en");
+    return momentLocalizer(moment);
+  }, [language]);
+
+  useEffect(() => { setCurrentDate(defaultDate); }, [defaultDate]);
+  useEffect(() => { setCurrentView(defaultView); }, [defaultView]);
+
+  // ── Build unified event list ────────────────────────────────────────────────
+
+  const events: UnifiedCalendarEvent[] = useMemo(() => {
+    const apptEvents: UnifiedCalendarEvent[] = appointments.map(a => {
+      const start = new Date(a.appointmentDate);
+      const end = new Date(start.getTime() + a.duration * 60000);
       return {
-        id: appointment.id,
-        title: `${appointment.patient?.name || "Paciente"} - ${appointment.therapist?.name || "⚠ Sin terapeuta"}`,
+        id: a.id,
+        eventType: "appointment" as const,
+        title: `${a.patient?.name ?? "Paciente"} · Cita`,
         start,
         end,
-        resource: appointment,
+        resource: a,
       };
     });
-  }, [appointments]);
 
-  // Colores según el estado de la cita
+    const sessionEvents: UnifiedCalendarEvent[] = sessions.map(s => {
+      const start = new Date(s.sessionDate);
+      const end = new Date(start.getTime() + s.duration * 60000);
+      const planTitle = (s as any).treatmentPlan?.title ?? "Sesión";
+      return {
+        id: s.id,
+        eventType: "session" as const,
+        title: `${s.patient?.name ?? "Paciente"} · Sesión`,
+        start,
+        end,
+        resource: s,
+        tooltip: planTitle,
+      };
+    });
+
+    return [...apptEvents, ...sessionEvents];
+  }, [appointments, sessions]);
+
+  // ── Styles ──────────────────────────────────────────────────────────────────
+
   const eventStyleGetter = (event: Event) => {
-    const appointment = event.resource as Appointment;
-    let backgroundColor = "#3174ad"; // Azul por defecto (SCHEDULED)
-
-    // Unassigned appointments get amber regardless of status
-    if (!appointment.therapistId) {
-      backgroundColor = "#d97706"; // Amber
-    } else {
-      switch (appointment.status) {
-        case "CONFIRMED":
-          backgroundColor = "#28a745"; // Verde
-          break;
-        case "COMPLETED":
-          backgroundColor = "#6c757d"; // Gris
-          break;
-        case "CANCELLED":
-          backgroundColor = "#dc3545"; // Rojo
-          break;
-        case "NO_SHOW":
-          backgroundColor = "#ffc107"; // Amarillo
-          break;
-        default:
-          backgroundColor = "#3174ad"; // Azul
-      }
-    }
+    const e = event as UnifiedCalendarEvent;
+    const color = e.eventType === "appointment"
+      ? appointmentColor(e.resource as Appointment)
+      : sessionColor(e.resource as TreatmentSession);
 
     return {
       style: {
-        backgroundColor,
-        borderRadius: "5px",
-        opacity: 0.8,
+        backgroundColor: color,
+        borderRadius: "6px",
+        opacity: 0.92,
         color: "white",
         border: "0px",
         display: "block",
+        fontSize: "11px",
+        fontWeight: 500,
+        paddingLeft: "4px",
       },
     };
   };
 
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
   const handleNavigate = (newDate: Date) => {
     setCurrentDate(newDate);
-    if (onNavigate) {
-      onNavigate(newDate);
-    }
+    onNavigate?.(newDate);
   };
 
   const handleViewChange = (view: View) => {
     setCurrentView(view);
-    // Resetear los selectores cuando cambia la vista
     setShowDatePicker(false);
     setShowWeekRangePicker(false);
-    // Si cambia de vista, resetear el rango personalizado
-    if (view !== "week") {
-      setCustomRange(null);
-      setWeekStartDate(null);
-      setWeekEndDate(null);
-    }
-    if (onViewChange) {
-      onViewChange(view);
-    }
-  };
-
-  const handleDateSelect = (selectedDate: Date) => {
-    setCurrentDate(selectedDate);
-    setShowDatePicker(false);
+    if (view !== "week") { setCustomRange(null); setWeekStartDate(null); setWeekEndDate(null); }
+    onViewChange?.(view);
   };
 
   const handleWeekRangeApply = () => {
     if (weekStartDate && weekEndDate) {
-      // Crear un rango personalizado
       const range: Date[] = [];
       const start = moment(weekStartDate).startOf("day");
       const end = moment(weekEndDate).endOf("day");
-      
-      let current = start.clone();
-      while (current.isSameOrBefore(end, "day")) {
-        range.push(current.toDate());
-        current.add(1, "day");
-      }
-      
+      let cur = start.clone();
+      while (cur.isSameOrBefore(end, "day")) { range.push(cur.toDate()); cur.add(1, "day"); }
       setCustomRange(range);
       setCurrentDate(weekStartDate);
       setShowWeekRangePicker(false);
     }
   };
 
-  // Calcular el rango de la semana actual
-  const getCurrentWeekRange = () => {
-    const start = moment(currentDate).startOf("week").toDate();
-    const end = moment(currentDate).endOf("week").toDate();
-    return { start, end };
+  const currentWeekRange = {
+    start: moment(currentDate).startOf("week").toDate(),
+    end:   moment(currentDate).endOf("week").toDate(),
   };
 
-  const currentWeekRange = getCurrentWeekRange();
+  // ── Legend ──────────────────────────────────────────────────────────────────
+
+  const Legend = () => (
+    <div className="flex flex-wrap items-center gap-3 mb-3 text-xs text-gray-600 dark:text-gray-400">
+      <span className="font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Citas:</span>
+      {[
+        { color: "#4f46e5", label: "Programada" },
+        { color: "#16a34a", label: "Confirmada" },
+        { color: "#6b7280", label: "Completada" },
+        { color: "#dc2626", label: "Cancelada" },
+        { color: "#d97706", label: "Sin terapeuta" },
+      ].map(({ color, label }) => (
+        <span key={label} className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+          {label}
+        </span>
+      ))}
+      <span className="ml-2 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sesiones:</span>
+      {[
+        { color: "#0891b2", label: "Pendiente" },
+        { color: "#0d9488", label: "Realizada" },
+        { color: "#b45309", label: "No asistió" },
+        { color: "#7c3aed", label: "Reagendada" },
+      ].map(({ color, label }) => (
+        <span key={label} className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
 
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow transition-colors">
-      {/* Controles adicionales para vista Día */}
+      <Legend />
+
+      {/* Day picker */}
       {currentView === "day" && (
         <div className="mb-4 flex items-center gap-2 flex-wrap relative">
           <button
@@ -236,10 +245,7 @@ export default function AppointmentCalendar({
               <input
                 type="date"
                 value={moment(currentDate).format("YYYY-MM-DD")}
-                onChange={(e) => {
-                  const selectedDate = new Date(e.target.value);
-                  handleDateSelect(selectedDate);
-                }}
+                onChange={e => { handleNavigate(new Date(e.target.value)); setShowDatePicker(false); }}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 autoFocus
               />
@@ -251,7 +257,7 @@ export default function AppointmentCalendar({
         </div>
       )}
 
-      {/* Controles adicionales para vista Semana */}
+      {/* Week range picker */}
       {currentView === "week" && (
         <div className="mb-4 flex items-center gap-2 flex-wrap relative">
           <button
@@ -264,68 +270,27 @@ export default function AppointmentCalendar({
             <div className="absolute z-10 top-full left-0 mt-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4 min-w-[300px]">
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t("calendar.startDate")}
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("calendar.startDate")}</label>
                   <input
                     type="date"
-                    value={
-                      weekStartDate
-                        ? moment(weekStartDate).format("YYYY-MM-DD")
-                        : moment(currentWeekRange.start).format("YYYY-MM-DD")
-                    }
-                    onChange={(e) => {
-                      const date = new Date(e.target.value);
-                      setWeekStartDate(date);
-                      // Si no hay fecha de fin, establecerla automáticamente 6 días después
-                      if (!weekEndDate) {
-                        setWeekEndDate(moment(date).add(6, "days").toDate());
-                      }
-                    }}
+                    value={weekStartDate ? moment(weekStartDate).format("YYYY-MM-DD") : moment(currentWeekRange.start).format("YYYY-MM-DD")}
+                    onChange={e => { const d = new Date(e.target.value); setWeekStartDate(d); if (!weekEndDate) setWeekEndDate(moment(d).add(6,"days").toDate()); }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t("calendar.endDate")}
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t("calendar.endDate")}</label>
                   <input
                     type="date"
-                    value={
-                      weekEndDate
-                        ? moment(weekEndDate).format("YYYY-MM-DD")
-                        : moment(currentWeekRange.end).format("YYYY-MM-DD")
-                    }
-                    onChange={(e) => {
-                      setWeekEndDate(new Date(e.target.value));
-                    }}
-                    min={
-                      weekStartDate
-                        ? moment(weekStartDate).format("YYYY-MM-DD")
-                        : undefined
-                    }
+                    value={weekEndDate ? moment(weekEndDate).format("YYYY-MM-DD") : moment(currentWeekRange.end).format("YYYY-MM-DD")}
+                    onChange={e => setWeekEndDate(new Date(e.target.value))}
+                    min={weekStartDate ? moment(weekStartDate).format("YYYY-MM-DD") : undefined}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleWeekRangeApply}
-                    disabled={!weekStartDate || !weekEndDate}
-                    className="flex-1 px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md text-sm font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {t("calendar.apply")}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowWeekRangePicker(false);
-                      setWeekStartDate(null);
-                      setWeekEndDate(null);
-                      setCustomRange(null);
-                    }}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {t("common.cancel")}
-                  </button>
+                  <button onClick={handleWeekRangeApply} disabled={!weekStartDate || !weekEndDate} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors">{t("calendar.apply")}</button>
+                  <button onClick={() => { setShowWeekRangePicker(false); setWeekStartDate(null); setWeekEndDate(null); setCustomRange(null); }} className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">{t("common.cancel")}</button>
                 </div>
               </div>
             </div>
@@ -333,12 +298,8 @@ export default function AppointmentCalendar({
           {!showWeekRangePicker && (
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {customRange
-                ? `${t("calendar.selectRange")}: ${moment(customRange[0]).format("DD/MM/YYYY")} - ${moment(
-                    customRange[customRange.length - 1]
-                  ).format("DD/MM/YYYY")}`
-                : `${t("calendar.week")}: ${moment(currentWeekRange.start).format("DD/MM/YYYY")} - ${moment(
-                    currentWeekRange.end
-                  ).format("DD/MM/YYYY")}`}
+                ? `${moment(customRange[0]).format("DD/MM/YYYY")} - ${moment(customRange[customRange.length-1]).format("DD/MM/YYYY")}`
+                : `${moment(currentWeekRange.start).format("DD/MM/YYYY")} - ${moment(currentWeekRange.end).format("DD/MM/YYYY")}`}
             </span>
           )}
         </div>
@@ -356,27 +317,15 @@ export default function AppointmentCalendar({
           onNavigate={handleNavigate}
           onView={handleViewChange}
           onSelectSlot={onSelectSlot}
-          onSelectEvent={(event) => {
-            if (onSelectEvent && event.resource) {
-              onSelectEvent(event.resource as Appointment);
-            }
-          }}
+          onSelectEvent={event => onSelectEvent?.(event as UnifiedCalendarEvent)}
           eventPropGetter={eventStyleGetter}
           selectable
           formats={{
-            monthHeaderFormat: (date: Date) => {
-              const month = moment(date);
-              return month.format("MMMM YYYY");
-            },
-            dayFormat: (date: Date) => {
-              return moment(date).format("ddd");
-            },
-            dayHeaderFormat: (date: Date) => {
-              return moment(date).format("ddd");
-            },
-            dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) => {
-              return `${moment(start).format("MMM D")} - ${moment(end).format("MMM D, YYYY")}`;
-            },
+            monthHeaderFormat: (date: Date) => moment(date).format("MMMM YYYY"),
+            dayFormat: (date: Date) => moment(date).format("ddd"),
+            dayHeaderFormat: (date: Date) => moment(date).format("ddd"),
+            dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+              `${moment(start).format("MMM D")} - ${moment(end).format("MMM D, YYYY")}`,
           }}
           messages={{
             next: t("common.next"),
@@ -396,4 +345,3 @@ export default function AppointmentCalendar({
     </div>
   );
 }
-
