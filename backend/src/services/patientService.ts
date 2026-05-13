@@ -170,9 +170,18 @@ export const updatePatient = async (id: string, data: UpdatePatientData) => {
 };
 
 export const deletePatient = async (id: string) => {
-  await prisma.patient.delete({
-    where: { id },
+  // Borrar todos los archivos del paciente en R2 antes de eliminar de la BD
+  const documents = await prisma.medicalDocument.findMany({
+    where: { patientId: id },
+    select: { fileUrl: true },
   });
+
+  if (documents.length > 0) {
+    const { deleteFromR2 } = await import('./r2Service');
+    await Promise.allSettled(documents.map(doc => deleteFromR2(doc.fileUrl)));
+  }
+
+  await prisma.patient.delete({ where: { id } });
 };
 
 export const createMedicalProfile = async (
