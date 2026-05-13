@@ -1592,7 +1592,7 @@ export default function PatientDetailPage() {
 
             {/* ── SECCIÓN 3: Documentos médicos ── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-sm">📁</span>
                   Documentos Médicos
@@ -1600,6 +1600,11 @@ export default function PatientDetailPage() {
                     <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{allDocs.length}</span>
                   )}
                 </h2>
+                <DocumentUpload
+                  patientId={id}
+                  preselectedCategory={activeDocCategory === "todos" ? "otro" : activeDocCategory as any}
+                  onUploadComplete={() => fetchPatient()}
+                />
               </div>
 
               {/* Category tabs */}
@@ -1627,18 +1632,6 @@ export default function PatientDetailPage() {
               </div>
 
               <div className="p-6 space-y-4">
-                {/* Upload zone for active category */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                    Subir {activeDocCategory === "todos" ? "documento" : (CAT_UPLOAD_LABEL[activeDocCategory] ?? "documento")}
-                  </p>
-                  <DocumentUpload
-                    patientId={id}
-                    preselectedCategory={activeDocCategory === "todos" ? "otro" : activeDocCategory as any}
-                    onUploadComplete={() => fetchPatient()}
-                  />
-                </div>
-
                 {/* Documents list */}
                 {filteredDocs.length === 0 ? (
                   <div className="py-6 text-center">

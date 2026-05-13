@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, DragEvent } from "react";
+import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { DocumentCategory } from "@/services/patientService";
 import api from "@/services/api";
@@ -21,7 +21,6 @@ interface DocumentUploadProps {
 }
 
 export default function DocumentUpload({ patientId, onUploadComplete, preselectedCategory }: DocumentUploadProps) {
-  const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -33,17 +32,6 @@ export default function DocumentUpload({ patientId, onUploadComplete, preselecte
     preview: null as string | null,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); e.stopPropagation();
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
-  };
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; };
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
-    if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
-  };
 
   const handleFileSelect = (file: File) => {
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
@@ -99,38 +87,24 @@ export default function DocumentUpload({ patientId, onUploadComplete, preselecte
 
   return (
     <>
-      {/* Drop zone */}
-      <div
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+        onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+        className="hidden"
+      />
+
+      <button
+        type="button"
         onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none ${
-          isDragging
-            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 scale-[1.01]"
-            : "border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-gray-50 dark:hover:bg-gray-700/30"
-        }`}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
-          onChange={e => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-          className="hidden"
-        />
-        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mx-auto mb-3">
-          <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        </div>
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Arrastra un archivo o haz clic para seleccionar</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WebP, GIF, PDF · máx. 20 MB</p>
-        <div className="flex items-center justify-center gap-1 mt-2">
-          <svg className="w-3 h-3 text-orange-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd"/></svg>
-          <span className="text-[10px] text-orange-500 dark:text-orange-400 font-medium">Se guarda en Cloudflare R2</span>
-        </div>
-      </div>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        Subir documento
+      </button>
 
       {/* Modal */}
       {isModalOpen && (
@@ -208,12 +182,6 @@ export default function DocumentUpload({ patientId, onUploadComplete, preselecte
                   rows={2}
                   placeholder="Notas sobre este documento..."
                 />
-              </div>
-
-              {/* Destino R2 */}
-              <div className="mb-5 flex items-center gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-900/10 rounded-xl border border-orange-100 dark:border-orange-900/30 text-xs text-orange-700 dark:text-orange-400">
-                <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd"/></svg>
-                <span>Se guardará en <strong>Cloudflare R2</strong> — carpeta del paciente</span>
               </div>
 
               {/* Progress bar */}
