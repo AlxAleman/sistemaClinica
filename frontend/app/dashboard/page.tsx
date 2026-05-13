@@ -2,579 +2,432 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { patientService } from "@/services/patientService";
 import { appointmentService, Appointment } from "@/services/appointmentService";
-import { sessionService } from "@/services/sessionService";
-import { reportService, DashboardKPIs } from "@/services/reportService";
 import Link from "next/link";
 import moment from "moment";
-import { UsersIcon, CalendarIcon, HospitalIcon, CheckIcon, ChartBarIcon } from "@/components/Icons";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import LoadingSkeleton from "@/components/LoadingSkeleton";
-import { useTranslation } from "@/hooks/useTranslation";
+moment.locale("es");
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return "Buenos días";
+  if (h < 18) return "Buenas tardes";
+  return "Buenas noches";
+};
+
+const AVATAR_COLORS = [
+  "bg-indigo-500", "bg-violet-500", "bg-blue-500", "bg-cyan-500",
+  "bg-teal-500", "bg-emerald-500", "bg-rose-500", "bg-orange-500",
+  "bg-pink-500", "bg-amber-600",
+];
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+};
+
+const getAvatarColor = (name: string) => {
+  const n = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[n % AVATAR_COLORS.length];
+};
+
+const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
+  SCHEDULED:   { label: "Programada",    dot: "bg-blue-500",   badge: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+  CONFIRMED:   { label: "Confirmada",    dot: "bg-green-500",  badge: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
+  COMPLETED:   { label: "Completada",    dot: "bg-gray-400",   badge: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400" },
+  CANCELLED:   { label: "Cancelada",     dot: "bg-red-500",    badge: "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" },
+  NO_SHOW:     { label: "No asistió",    dot: "bg-amber-500",  badge: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" },
+  RESCHEDULED: { label: "Reprogramada",  dot: "bg-purple-500", badge: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
+};
+
+// ── sub-components ────────────────────────────────────────────────────────────
+
+function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
+  const cls = size === "md" ? "w-10 h-10 text-sm" : "w-8 h-8 text-xs";
+  return (
+    <div className={`${cls} rounded-full ${getAvatarColor(name)} flex items-center justify-center flex-shrink-0`}>
+      <span className="text-white font-semibold">{getInitials(name)}</span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] ?? { label: status, dot: "bg-gray-400", badge: "bg-gray-100 text-gray-600" };
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.badge}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function KPICard({
+  label, value, sub, icon, color,
+}: {
+  label: string; value: number; sub: string;
+  icon: React.ReactNode; color: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</p>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+          {icon}
+        </div>
+      </div>
+      <p className="text-4xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{value}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{sub}</p>
+    </div>
+  );
+}
+
+// ── main component ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const { t } = useTranslation();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
-  
-  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    totalAppointments: 0,
-    totalSessions: 0,
-  });
-
-  const [dayStats, setDayStats] = useState({
-    appointments: 0,
-    confirmed: 0,
-    scheduled: 0,
-    completed: 0,
-    cancelled: 0,
-    sessions: 0,
-  });
-
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
-  const [weekStats, setWeekStats] = useState({
-    appointments: 0,
-    confirmed: 0,
-    completed: 0,
-  });
+  const [tomorrowAppointments, setTomorrowAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
-    fetchAllData();
-  }, [selectedDate]);
+    fetchData();
+  }, []);
 
-  const fetchAllData = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Obtener KPIs del backend
-      const kpisData = await reportService.getDashboardKPIs();
-      setKpis(kpisData);
-      
-      // Mantener compatibilidad con código existente
-      setStats({
-        totalPatients: kpisData.totalPatients,
-        totalAppointments: kpisData.totalAppointments,
-        totalSessions: kpisData.totalSessions,
-      });
-      
-      // Obtener estadísticas generales (para citas próximas)
-      const [patientsRes, appointmentsRes, sessionsRes] = await Promise.all([
-        patientService.getAll({ limit: 1 }),
-        appointmentService.getAll({ limit: 1000 }),
-        sessionService.getAll({ limit: 1 }),
+      const todayStr    = moment().format("YYYY-MM-DD");
+      const tomorrowStr = moment().add(1, "day").format("YYYY-MM-DD");
+
+      const [todayRes, tomorrowRes] = await Promise.all([
+        appointmentService.getAll({ date: todayStr,    limit: 500 }),
+        appointmentService.getAll({ date: tomorrowStr, limit: 500 }),
       ]);
 
-      // Obtener citas y sesiones del día seleccionado
-      const selectedDateStr = moment(selectedDate).format("YYYY-MM-DD");
-      const [dayAppointmentsRes, daySessionsRes] = await Promise.all([
-        appointmentService.getAll({
-          date: selectedDateStr,
-          limit: 1000,
-        }),
-        sessionService.getAll({
-          date: selectedDateStr,
-          limit: 1000,
-        }),
-      ]);
+      const byTime = (a: Appointment, b: Appointment) =>
+        moment(a.appointmentDate).valueOf() - moment(b.appointmentDate).valueOf();
 
-      const dayAppointments = dayAppointmentsRes.appointments;
-      const daySessions = daySessionsRes.sessions;
-      
-      setDayStats({
-        appointments: dayAppointments.length,
-        confirmed: dayAppointments.filter((a) => a.status === "CONFIRMED").length,
-        scheduled: dayAppointments.filter((a) => a.status === "SCHEDULED").length,
-        completed: dayAppointments.filter((a) => a.status === "COMPLETED").length,
-        cancelled: dayAppointments.filter((a) => a.status === "CANCELLED").length,
-        sessions: daySessions.length,
-      });
-
-      setTodayAppointments(dayAppointments);
-
-      // Obtener próximas citas (próximos 7 días)
-      const today = moment().startOf("day");
-      const nextWeek = moment().add(7, "days").endOf("day");
-      
-      const upcoming = appointmentsRes.appointments
-        .filter((apt) => {
-          const aptDate = moment(apt.appointmentDate);
-          return aptDate.isAfter(today) && aptDate.isBefore(nextWeek) && apt.status !== "CANCELLED";
-        })
-        .sort((a, b) => 
-          moment(a.appointmentDate).valueOf() - moment(b.appointmentDate).valueOf()
-        )
-        .slice(0, 5);
-
-      setUpcomingAppointments(upcoming);
-
-      // Estadísticas de la semana actual
-      const weekStart = moment().startOf("week");
-      const weekEnd = moment().endOf("week");
-      
-      const weekAppointments = appointmentsRes.appointments.filter((apt) => {
-        const aptDate = moment(apt.appointmentDate);
-        return aptDate.isBetween(weekStart, weekEnd, null, "[]");
-      });
-
-      setWeekStats({
-        appointments: weekAppointments.length,
-        confirmed: weekAppointments.filter((a) => a.status === "CONFIRMED").length,
-        completed: weekAppointments.filter((a) => a.status === "COMPLETED").length,
-      });
-    } catch (error) {
-      console.error("Error al cargar estadísticas:", error);
+      setTodayAppointments([...todayRes.appointments].sort(byTime));
+      setTomorrowAppointments([...tomorrowRes.appointments].sort(byTime));
+    } catch (err) {
+      console.error("Error al cargar dashboard:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const isToday = moment(selectedDate).isSame(moment(), "day");
+  // ── computed ────────────────────────────────────────────────────────────────
+  const todayCompleted  = todayAppointments.filter(a => a.status === "COMPLETED").length;
+  const todayAbsences   = todayAppointments.filter(a => ["CANCELLED", "NO_SHOW"].includes(a.status)).length;
+  const todayPending    = todayAppointments.filter(a => ["SCHEDULED", "CONFIRMED"].includes(a.status)).length;
 
+  // Therapists with appointment count today
+  const therapistMap = new Map<string, { name: string; count: number; confirmed: number }>();
+  todayAppointments.forEach(a => {
+    if (!a.therapist) return;
+    const key = a.therapist.id;
+    const prev = therapistMap.get(key);
+    if (prev) {
+      prev.count++;
+      if (["CONFIRMED", "SCHEDULED"].includes(a.status)) prev.confirmed++;
+    } else {
+      therapistMap.set(key, {
+        name: a.therapist.name,
+        count: 1,
+        confirmed: ["CONFIRMED", "SCHEDULED"].includes(a.status) ? 1 : 0,
+      });
+    }
+  });
+  const therapistsToday = Array.from(therapistMap.values()).sort((a, b) => b.count - a.count);
+
+  // ── loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="px-4 py-6 sm:px-0 space-y-6">
-        <LoadingSkeleton type="card" count={3} />
-        <LoadingSkeleton type="chart" count={2} />
+      <div className="px-3 sm:px-4 py-6 space-y-5">
+        <div className="h-9 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse w-72" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-28 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 h-96 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+          <div className="space-y-4">
+            <div className="h-44 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+            <div className="h-44 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
 
+  // ── render ──────────────────────────────────────────────────────────────────
   return (
-        <div className="px-4 py-4 sm:px-6 sm:py-6">
-          <div className="mb-4 sm:mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {t("dashboard.welcome")}, {user?.name}
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
-              {t("dashboard.subtitle")}
-            </p>
-          </div>
+    <div className="px-3 sm:px-4 py-4 sm:py-6 space-y-5">
 
-      {/* Estadísticas Generales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <Link
-          href="/dashboard/patients"
-          className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-lg transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 truncate">
-                {t("dashboard.totalPatients")}
-              </h2>
-              <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalPatients}</p>
-            </div>
-            <div className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">
-              <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8" />
-            </div>
-          </div>
-        </Link>
-
-        <Link
-          href="/dashboard/appointments"
-          className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow hover:shadow-lg transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 truncate">
-                {t("dashboard.totalAppointments")}
-              </h2>
-              <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalAppointments}</p>
-            </div>
-            <div className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">
-              <CalendarIcon className="h-6 w-6 sm:h-8 sm:w-8" />
-            </div>
-          </div>
-        </Link>
-
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow sm:col-span-2 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 sm:mb-2 truncate">
-                {t("dashboard.totalSessions")}
-              </h2>
-              <p className="text-2xl sm:text-3xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalSessions}</p>
-            </div>
-            <div className="text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2">
-              <HospitalIcon className="h-6 w-6 sm:h-8 sm:w-8" />
-            </div>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {getGreeting()}, {user?.name?.split(" ")[0]}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 capitalize">
+            {moment().format("dddd, D [de] MMMM [de] YYYY")}
+          </p>
         </div>
+        <Link
+          href="/dashboard/appointments/new"
+          className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva cita
+        </Link>
       </div>
 
-      {/* KPIs Avanzados */}
-      {kpis && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  {t("dashboard.activePatients")}
-                </h3>
-                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
-                  {kpis.activePatients}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t("dashboard.of")} {kpis.totalPatients} {t("dashboard.total")}
-                </p>
-              </div>
-              <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400 flex-shrink-0 ml-2" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  {t("dashboard.attendanceRate")}
-                </h3>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {kpis.attendanceRate.toFixed(1)}%
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t("dashboard.last30Days")}
-                </p>
-              </div>
-              <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400 flex-shrink-0 ml-2" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  {t("dashboard.monthlyRevenue")}
-                </h3>
-                <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  ${kpis.revenue.month.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
-                  {t("dashboard.totalRevenue")}: ${kpis.revenue.total.toFixed(2)}
-                </p>
-              </div>
-              <ChartBarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400 flex-shrink-0 ml-2" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  {t("dashboard.weekAppointments")}
-                </h3>
-                <p className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {kpis.weekAppointments}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {t("dashboard.sessions")}: {kpis.weekSessions}
-                </p>
-              </div>
-              <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-2" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Gráficos */}
-      {kpis && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          {/* Gráfico de Citas por Estado */}
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
-              {t("dashboard.appointmentsByStatus")}
-            </h3>
-            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: t("appointments.scheduled"), value: kpis.appointmentsByStatus.scheduled, color: '#3b82f6' },
-                    { name: t("appointments.confirmed"), value: kpis.appointmentsByStatus.confirmed, color: '#10b981' },
-                    { name: t("appointments.completed"), value: kpis.appointmentsByStatus.completed, color: '#6b7280' },
-                    { name: t("appointments.cancelled"), value: kpis.appointmentsByStatus.cancelled, color: '#ef4444' },
-                    { name: t("appointments.noShow"), value: kpis.appointmentsByStatus.noShow, color: '#f59e0b' },
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {[
-                    { name: t("appointments.scheduled"), value: kpis.appointmentsByStatus.scheduled, color: '#3b82f6' },
-                    { name: t("appointments.confirmed"), value: kpis.appointmentsByStatus.confirmed, color: '#10b981' },
-                    { name: t("appointments.completed"), value: kpis.appointmentsByStatus.completed, color: '#6b7280' },
-                    { name: t("appointments.cancelled"), value: kpis.appointmentsByStatus.cancelled, color: '#ef4444' },
-                    { name: t("appointments.noShow"), value: kpis.appointmentsByStatus.noShow, color: '#f59e0b' },
-                  ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }}
-                  labelStyle={{
-                    color: '#111827',
-                    fontWeight: 600,
-                  }}
-                  itemStyle={{
-                    color: '#111827',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Gráfico de Actividad Temporal */}
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
-              {t("dashboard.recentActivity")}
-            </h3>
-            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
-              <BarChart
-                data={[
-                  { name: t("dashboard.today"), citas: kpis.todayAppointments, sesiones: kpis.todaySessions },
-                  { name: t("dashboard.week"), citas: kpis.weekAppointments, sesiones: kpis.weekSessions },
-                  { name: t("dashboard.month"), citas: kpis.monthAppointments, sesiones: kpis.monthSessions },
-                ]}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }}
-                  labelStyle={{
-                    color: '#111827',
-                    fontWeight: 600,
-                  }}
-                  itemStyle={{
-                    color: '#111827',
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="citas" fill="#3b82f6" name={t("dashboard.appointments")} />
-                <Bar dataKey="sesiones" fill="#10b981" name={t("dashboard.sessions")} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Selector de Fecha y Estadísticas del Día */}
-      <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow mb-4 sm:mb-6 transition-colors">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-3">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-            {t("dashboard.dayStats")}
-          </h2>
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={moment(selectedDate).format("YYYY-MM-DD")}
-              onChange={(e) => {
-                // Usar moment para parsear la fecha sin problemas de zona horaria
-                const newDate = moment(e.target.value, "YYYY-MM-DD").toDate();
-                setSelectedDate(newDate);
-              }}
-              className="flex-1 sm:flex-none px-2 sm:px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-            {!isToday && (
-              <button
-                onClick={() => setSelectedDate(new Date())}
-                className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors whitespace-nowrap"
-              >
-                {t("common.today")}
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-indigo-600">{dayStats.appointments}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.totalCitas")}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-green-600">{dayStats.confirmed}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.confirmed")}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-blue-600">{dayStats.scheduled}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.scheduled")}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400">{dayStats.completed}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.completed")}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-red-600">{dayStats.cancelled}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.cancelled")}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-purple-600">{dayStats.sessions}</p>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.sessions")}</p>
-          </div>
-        </div>
-
-        {/* Lista de citas del día seleccionado */}
-        {todayAppointments.length > 0 && (
-          <div className="mt-4 sm:mt-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-              {t("dashboard.appointmentsOf")} {moment(selectedDate).format("DD/MM/YYYY")}
-            </h3>
-            <div className="space-y-2">
-              {todayAppointments.slice(0, 5).map((appointment) => (
-                <Link
-                  key={appointment.id}
-                  href={`/dashboard/appointments/${appointment.id}`}
-                  className="block p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {appointment.patient?.name || t("patients.unknownPatient")}
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {moment(appointment.appointmentDate).format("HH:mm")} - {appointment.therapist?.name}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        appointment.status === "CONFIRMED"
-                          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                          : appointment.status === "SCHEDULED"
-                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
-                          : appointment.status === "COMPLETED"
-                          ? "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
-                          : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-                      }`}
-                    >
-                      {appointment.status === "CONFIRMED"
-                        ? t("appointments.confirmed")
-                        : appointment.status === "SCHEDULED"
-                        ? t("appointments.scheduled")
-                        : appointment.status === "COMPLETED"
-                        ? t("appointments.completed")
-                        : t("appointments.cancelled")}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            {todayAppointments.length > 5 && (
-              <Link
-                href={`/dashboard/appointments?date=${moment(selectedDate).format("YYYY-MM-DD")}`}
-                className="mt-3 inline-block text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
-              >
-                {t("dashboard.seeAllAppointments")} ({todayAppointments.length}) →
-              </Link>
-            )}
-          </div>
-        )}
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KPICard
+          label="Citas hoy"
+          value={todayAppointments.length}
+          sub="total del día"
+          color="bg-indigo-50 dark:bg-indigo-900/20"
+          icon={
+            <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          }
+        />
+        <KPICard
+          label="Pendientes"
+          value={todayPending}
+          sub="por atender hoy"
+          color="bg-blue-50 dark:bg-blue-900/20"
+          icon={
+            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <KPICard
+          label="Completadas"
+          value={todayCompleted}
+          sub="sesiones realizadas"
+          color="bg-green-50 dark:bg-green-900/20"
+          icon={
+            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <KPICard
+          label="Ausencias"
+          value={todayAbsences}
+          sub="canceladas / no asistió"
+          color="bg-red-50 dark:bg-red-900/20"
+          icon={
+            <svg className="w-5 h-5 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Próximas Citas */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-              {t("dashboard.upcomingAppointments")}
-            </h2>
+      {/* Main grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* ── Agenda de hoy ── */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Agenda de hoy</h2>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 capitalize">
+                {moment().format("dddd D [de] MMMM")}
+              </p>
+            </div>
             <Link
-              href="/dashboard/appointments"
-              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+              href={`/dashboard/appointments?date=${moment().format("YYYY-MM-DD")}`}
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
             >
-              {t("messages.seeAll")} →
+              Ver todas →
             </Link>
           </div>
-          {upcomingAppointments.length > 0 ? (
-            <div className="space-y-3">
-              {upcomingAppointments.map((appointment) => (
-                <Link
-                  key={appointment.id}
-                  href={`/dashboard/appointments/${appointment.id}`}
-                  className="block p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {appointment.patient?.name || t("patients.unknownPatient")}
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
-                        {moment(appointment.appointmentDate).format("DD/MM/YYYY HH:mm")} - {appointment.therapist?.name}
-                      </p>
-                    </div>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        appointment.status === "CONFIRMED"
-                          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                          : "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
-                      }`}
-                    >
-                      {appointment.status === "CONFIRMED" ? t("appointments.confirmed") : t("appointments.scheduled")}
-                    </span>
-                  </div>
-                </Link>
-              ))}
+
+          {todayAppointments.length === 0 ? (
+            <div className="py-20 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4 text-3xl">📅</div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sin citas para hoy</p>
+              <Link
+                href="/dashboard/appointments/new"
+                className="mt-3 inline-flex items-center text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+              >
+                Agregar una cita →
+              </Link>
             </div>
           ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-              {t("dashboard.noUpcomingAppointments")}
-            </p>
+            <div className="overflow-x-auto">
+              {/* Encabezado tabla */}
+              <div className="hidden sm:grid grid-cols-[90px_1fr_160px_130px] px-6 py-2.5 bg-gray-50/80 dark:bg-gray-700/30 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+                <span>Hora</span>
+                <span>Paciente</span>
+                <span>Terapista</span>
+                <span className="text-right">Estado</span>
+              </div>
+
+              <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {todayAppointments.map((apt) => {
+                  const name    = apt.patient?.name ?? "Paciente";
+                  const therapist = apt.therapist?.name ?? "Sin asignar";
+                  const time    = moment(apt.appointmentDate).format("hh:mm A");
+                  const dimmed  = ["COMPLETED", "CANCELLED", "NO_SHOW"].includes(apt.status);
+
+                  return (
+                    <Link
+                      key={apt.id}
+                      href={`/dashboard/appointments/${apt.id}`}
+                      className={`flex sm:grid sm:grid-cols-[90px_1fr_160px_130px] items-center gap-3 px-6 py-4 hover:bg-gray-50/80 dark:hover:bg-gray-700/20 transition-colors ${dimmed ? "opacity-55" : ""}`}
+                    >
+                      {/* Hora */}
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums w-[90px] flex-shrink-0">
+                        {time}
+                      </span>
+
+                      {/* Paciente */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <Avatar name={name} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{name}</p>
+                          {apt.duration && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{apt.duration} min</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Terapista */}
+                      <p className="hidden sm:block text-sm text-gray-500 dark:text-gray-400 truncate">{therapist}</p>
+
+                      {/* Estado */}
+                      <div className="hidden sm:flex justify-end flex-shrink-0">
+                        <StatusBadge status={apt.status} />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Estadísticas de la Semana */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow transition-colors">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">
-            {t("dashboard.thisWeek")}
-          </h2>
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center justify-between p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.totalAppointmentsWeek")}</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{weekStats.appointments}</p>
+        {/* ── Panel derecho ── */}
+        <div className="flex flex-col gap-4">
+
+          {/* Mañana */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Mañana</h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 capitalize">
+                  {moment().add(1, "day").format("dddd D [de] MMMM")}
+                </p>
               </div>
-              <div className="text-blue-600 dark:text-blue-400 flex-shrink-0 ml-2">
-                <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                tomorrowAppointments.length > 0
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+              }`}>
+                {tomorrowAppointments.length} citas
+              </span>
+            </div>
+
+            {tomorrowAppointments.length === 0 ? (
+              <div className="px-5 py-8 text-center">
+                <p className="text-sm text-gray-400 dark:text-gray-500">Sin citas programadas</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {tomorrowAppointments.slice(0, 5).map((apt) => {
+                  const name = apt.patient?.name ?? "Paciente";
+                  const time = moment(apt.appointmentDate).format("hh:mm A");
+                  return (
+                    <Link
+                      key={apt.id}
+                      href={`/dashboard/appointments/${apt.id}`}
+                      className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                    >
+                      <Avatar name={name} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{name}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                          {time}
+                          {apt.therapist?.name && ` · ${apt.therapist.name}`}
+                        </p>
+                      </div>
+                      <StatusBadge status={apt.status} />
+                    </Link>
+                  );
+                })}
+                {tomorrowAppointments.length > 5 && (
+                  <Link
+                    href={`/dashboard/appointments?date=${moment().add(1, "day").format("YYYY-MM-DD")}`}
+                    className="block px-5 py-3 text-xs text-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+                  >
+                    Ver {tomorrowAppointments.length - 5} más →
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Terapistas hoy */}
+          {therapistsToday.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Terapistas hoy</h2>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Agenda por especialista</p>
+              </div>
+              <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {therapistsToday.map((t) => (
+                  <div key={t.name} className="flex items-center gap-3 px-5 py-3.5">
+                    <Avatar name={t.name} />
+                    <p className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{t.name}</p>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{t.confirmed} pendiente{t.confirmed !== 1 ? "s" : ""}</span>
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-full">
+                        {t.count}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="flex items-center justify-between p-2 sm:p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.confirmed")}</p>
-                <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">{weekStats.confirmed}</p>
-              </div>
-              <div className="text-green-600 dark:text-green-400 flex-shrink-0 ml-2">
-                <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t("dashboard.completed")}</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400">{weekStats.completed}</p>
-              </div>
-              <div className="text-gray-600 dark:text-gray-400 flex-shrink-0 ml-2">
-                <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />
-              </div>
+          )}
+
+          {/* Acceso rápido */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Acceso rápido</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { href: "/dashboard/patients/new",          label: "Nuevo paciente",   icon: "👤" },
+                { href: "/dashboard/appointments/new",      label: "Nueva cita",       icon: "📅" },
+                { href: "/dashboard/treatment-plans/new",   label: "Nuevo plan",       icon: "💊" },
+                { href: "/dashboard/appointments",          label: "Ver agenda",       icon: "🗓️" },
+              ].map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors text-gray-700 dark:text-gray-300"
+                >
+                  <span className="text-base">{item.icon}</span>
+                  <span className="text-xs font-medium truncate">{item.label}</span>
+                </Link>
+              ))}
             </div>
           </div>
-          <Link
-            href="/dashboard/appointments"
-            className="mt-3 sm:mt-4 inline-block w-full text-center px-3 sm:px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-800 text-xs sm:text-sm font-medium transition-colors"
-          >
-            {t("dashboard.seeFullCalendar")}
-          </Link>
+
         </div>
       </div>
     </div>
