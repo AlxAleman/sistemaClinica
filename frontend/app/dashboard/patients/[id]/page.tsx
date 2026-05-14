@@ -293,7 +293,7 @@ export default function PatientDetailPage() {
         patientId: id,
         therapistId: sessionForm.therapistId || null,
         treatmentPlanId: addSessionModal.planId,
-        sessionDate: sessionForm.sessionDate,
+        sessionDate: new Date(sessionForm.sessionDate).toISOString(),
         duration: sessionForm.duration,
         attendanceStatus: sessionForm.attendanceStatus,
         painLevel: sessionForm.painLevel > 0 ? sessionForm.painLevel : null,
