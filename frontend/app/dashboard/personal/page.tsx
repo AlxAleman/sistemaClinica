@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from "react";
 import { userService, AppUser, UserRole } from "@/services/userService";
 import { therapistService, Therapist } from "@/services/therapistService";
 import { toast } from "react-hot-toast";
-import Link from "next/link";
 
 interface TherapistRecord extends Therapist {
   _count?: { appointments: number; sessions: number };
@@ -432,12 +431,6 @@ export default function PersonalPage() {
             {staff.filter((m) => m.isActive).length} activos &middot; {staff.filter((m) => !m.isActive).length} inactivos
           </p>
         </div>
-        <Link
-          href="/dashboard/config?tab=usuarios"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors"
-        >
-          + Agregar usuario
-        </Link>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
