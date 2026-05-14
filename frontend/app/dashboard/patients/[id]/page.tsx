@@ -2227,6 +2227,25 @@ function ExpedienteView({
                         </div>
                         {isOpen && (
                           <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700 space-y-2.5 pt-2.5">
+                            {/* Estado */}
+                            <div>
+                              <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Estado</p>
+                              <select
+                                value={diagnosis.status}
+                                onChange={async e => {
+                                  const newStatus = e.target.value as "ACTIVE" | "CHRONIC" | "RESOLVED";
+                                  await diagnosisService.update(diagnosis.id, { status: newStatus });
+                                  setDiagnoses(prev => prev.map(d =>
+                                    d.id === diagnosis.id ? { ...d, status: newStatus } : d
+                                  ));
+                                }}
+                                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="ACTIVE">Activo</option>
+                                <option value="CHRONIC">Crónico</option>
+                                <option value="RESOLVED">Resuelto</option>
+                              </select>
+                            </div>
                             {/* Observaciones */}
                             {diagnosis.observations && (
                               <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/60">
