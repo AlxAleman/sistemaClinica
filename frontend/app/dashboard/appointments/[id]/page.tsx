@@ -366,7 +366,7 @@ export default function AppointmentDetailPage() {
                     <div className="flex items-center gap-2 pt-1">
                       <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                       <Link
-                        href={`/dashboard/patients/${appointment.patientId}?tab=tratamiento`}
+                        href={`/dashboard/patients/${appointment.patientId}?tab=tratamiento${plan?.id ? `&planId=${plan.id}` : ""}`}
                         className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
                       >
                         Plan: {plan.title} →
@@ -375,7 +375,7 @@ export default function AppointmentDetailPage() {
                   )}
                 </div>
                 <Link
-                  href={`/dashboard/patients/${appointment.patientId}?tab=tratamiento`}
+                  href={`/dashboard/patients/${appointment.patientId}?tab=tratamiento${plan?.id ? `&planId=${plan.id}` : ""}`}
                   className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   Completar / Ver sesión →
@@ -391,7 +391,7 @@ export default function AppointmentDetailPage() {
                 </p>
               )}
               <Link
-                href={`/dashboard/patients/${appointment.patientId}?tab=tratamiento`}
+                href={`/dashboard/patients/${appointment.patientId}?tab=tratamiento${plan?.id ? `&planId=${plan.id}` : ""}`}
                 className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-sm font-medium rounded-lg transition-colors"
               >
                 Ir al expediente del paciente →

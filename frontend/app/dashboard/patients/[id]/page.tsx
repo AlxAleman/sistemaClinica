@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { patientService, Patient } from "@/services/patientService";
 import { sessionService, TreatmentSession, SessionProtocolItem } from "@/services/sessionService";
 import { treatmentPlanService, TreatmentPlan } from "@/services/treatmentPlanService";
@@ -33,7 +33,9 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 export default function PatientDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const autoOpenedPlanRef = useRef(false);
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,8 +51,9 @@ export default function PatientDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("general");
 
+  // Leer ?tab= al montar
   useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
+    const tab = searchParams.get("tab");
     if (tab && ["general","expediente","tratamiento","historial"].includes(tab)) {
       setActiveTab(tab as TabId);
     }
@@ -192,6 +195,24 @@ export default function PatientDetailPage() {
     })));
     setAddSessionModal({ planId: plan.id, plan });
   };
+
+  // Auto-expandir plan y abrir modal de sesión si viene ?planId= desde el calendario
+  useEffect(() => {
+    if (loadingPlans || autoOpenedPlanRef.current) return;
+    const planId = searchParams.get("planId");
+    if (!planId) return;
+    const plan = treatmentPlans.find(p => p.id === planId);
+    if (!plan) return;
+    autoOpenedPlanRef.current = true;
+    setExpandedPlans(prev => new Set([...prev, planId]));
+    // Cargar sesiones del plan si aún no están
+    if (!planSessions[planId]) {
+      sessionService.getAll({ treatmentPlanId: planId, limit: 200 })
+        .then(res => setPlanSessions(prev => ({ ...prev, [planId]: res.sessions })))
+        .catch(() => {});
+    }
+    openAddSession(plan);
+  }, [loadingPlans, treatmentPlans]);
 
   const openEditSession = (session: TreatmentSession, plan: TreatmentPlan) => {
     const pad = (n: number) => String(n).padStart(2, "0");

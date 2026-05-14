@@ -213,7 +213,7 @@ function EventPanel({
           {!isAppt && sess && sess.patient && (
             <>
               <Link
-                href={`/dashboard/patients/${sess.patientId}?tab=tratamiento`}
+                href={`/dashboard/patients/${sess.patientId}?tab=tratamiento${sess.treatmentPlanId ? `&planId=${sess.treatmentPlanId}` : ""}`}
                 className="block w-full py-2.5 text-center bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
                 onClick={onClose}
               >
