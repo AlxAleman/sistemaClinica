@@ -130,7 +130,19 @@ body {
   }
 }
 
-/* Estilos para react-big-calendar - Título del calendario con mejor contraste */
+/* ── react-big-calendar: etiquetas de horas (light mode) ── */
+.rbc-label,
+.rbc-time-gutter .rbc-label {
+  color: #111827 !important;
+  font-size: 11px !important;
+}
+
+/* ── react-big-calendar: día actual — fondo sutil en light mode ── */
+.rbc-today {
+  background-color: #eff6ff !important; /* blue-50 */
+}
+
+/* ── react-big-calendar: Título del calendario con mejor contraste ── */
 .rbc-toolbar-label {
   color: #111827 !important; /* Gris muy oscuro para mejor contraste en modo light */
   font-weight: 600 !important;
@@ -201,7 +213,14 @@ body {
 }
 
 .dark .rbc-today {
-  background-color: #1e40af;
+  background-color: #1e293b !important; /* slate-800 — sutil, no distrae */
+}
+
+/* Etiquetas de horas en dark mode */
+.dark .rbc-label,
+.dark .rbc-time-gutter .rbc-label {
+  color: #9ca3af !important;
+  font-size: 11px !important;
 }
 
 .dark .rbc-toolbar {
