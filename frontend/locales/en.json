@@ -2,7 +2,7 @@
   "common": {
     "dashboard": "Dashboard",
     "patients": "Patients",
-    "appointments": "Appointments",
+    "appointments": "Calendar",
     "sessions": "Sessions",
     "evaluations": "Evaluations",
     "treatmentPlans": "Treatment Plans",
