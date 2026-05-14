@@ -10,7 +10,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EmptyState from "@/components/EmptyState";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
-import { SearchIcon, EditIcon, TrashIcon, CalendarIcon, HospitalIcon, PhoneIcon, EmailIcon, IdCardIcon, PlusIcon, UsersIcon } from "@/components/Icons";
+import { SearchIcon, EditIcon, TrashIcon, HospitalIcon, ClipboardIcon, PhoneIcon, EmailIcon, IdCardIcon, PlusIcon, UsersIcon } from "@/components/Icons";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function PatientsPage() {
@@ -183,12 +183,12 @@ export default function PatientsPage() {
                                 {patient._count && (
                                   <>
                                     <span className="flex items-center whitespace-nowrap">
-                                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
-                                      {patient._count.appointments} {t("patients.appointmentsCount")}
-                                    </span>
-                                    <span className="flex items-center whitespace-nowrap">
                                       <HospitalIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
                                       {patient._count.sessions} {t("patients.sessionsCount")}
+                                    </span>
+                                    <span className="flex items-center whitespace-nowrap">
+                                      <ClipboardIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                                      {patient._count.evaluations ?? 0} evaluaciones
                                     </span>
                                   </>
                                 )}

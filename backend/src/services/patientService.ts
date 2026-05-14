@@ -68,6 +68,7 @@ export const getPatients = async (filters: {
           select: {
             appointments: true,
             sessions: true,
+            evaluations: true,
           },
         },
       },
