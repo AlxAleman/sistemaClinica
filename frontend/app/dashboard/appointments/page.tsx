@@ -284,13 +284,15 @@ function EventPanel({
 
           {!isAppt && sess && sess.patient && (
             <>
-              <Link
-                href={`/dashboard/patients/${sess.patientId}?tab=tratamiento${sess.treatmentPlanId ? `&planId=${sess.treatmentPlanId}` : ""}&sessionId=${sess.id}`}
-                className="block w-full py-2.5 text-center bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
-                onClick={onClose}
-              >
-                Completar sesión
-              </Link>
+              {sess.attendanceStatus !== "ATTENDED" && sess.attendanceStatus !== "NOT_ATTENDED" && (
+                <Link
+                  href={`/dashboard/patients/${sess.patientId}?tab=tratamiento${sess.treatmentPlanId ? `&planId=${sess.treatmentPlanId}` : ""}&sessionId=${sess.id}`}
+                  className="block w-full py-2.5 text-center bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
+                  onClick={onClose}
+                >
+                  Completar sesión
+                </Link>
+              )}
               <Link
                 href={`/dashboard/patients/${sess.patientId}`}
                 className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
