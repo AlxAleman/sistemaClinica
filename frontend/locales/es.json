@@ -72,7 +72,7 @@
   },
   "patients": {
     "title": "Pacientes",
-    "newPatient": "Nuevo Paciente",
+    "newPatient": "Nuevo Ingreso",
     "editPatient": "Editar Paciente",
     "patientDetails": "Detalles del Paciente",
     "name": "Nombre",
@@ -132,8 +132,8 @@
     "pain": "Dolor"
   },
   "appointments": {
-    "title": "Citas",
-    "newAppointment": "Nueva Cita",
+    "title": "Calendario",
+    "newAppointment": "Nueva Evaluación",
     "editAppointment": "Editar Cita",
     "appointmentDetails": "Detalles de la Cita",
     "patient": "Paciente",

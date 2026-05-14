@@ -96,8 +96,7 @@ export default function PatientsPage() {
           className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
         >
           <PlusIcon className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("patients.newPatient")}</span>
-          <span className="sm:hidden">{t("common.create")}</span>
+          <span>{t("patients.newPatient")}</span>
         </Link>
       </div>
 

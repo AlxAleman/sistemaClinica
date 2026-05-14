@@ -7,31 +7,16 @@ export interface AntecedentItem {
 
 export interface HistoriaClinicaInput {
   patientId: string;
-  // Exploración física
   peso?: number;
   talla?: number;
   imc?: number;
   etnia?: string;
-  // Consulta
   motivoConsulta?: string;
   tratamientosPrevios?: string;
-  // JSON sections
+  referidoPor?: string;
   antecedentes?: Record<string, AntecedentItem>;
-  signosVitales?: Record<string, string>;
-  espasmos?: Record<string, unknown>;
   habitosSalud?: Record<string, AntecedentItem>;
   datosGinecologicos?: Record<string, unknown>;
-  diagnosticoRehabilitacion?: Record<string, string>;
-  cicatrizQuirurgica?: string;
-  traslados?: Record<string, unknown>;
-  marchaDeambulacion?: Record<string, unknown>;
-  escalaDolor?: number;
-  fuerzaMuscular?: Record<string, unknown>;
-  goniometriaSuper?: Record<string, unknown>;
-  goniometriaInfer?: Record<string, unknown>;
-  valoracionPostural?: Record<string, unknown>;
-  columna?: Record<string, unknown>;
-  fechaEvaluacion?: Date;
   creadoPor?: string;
 }
 
@@ -41,6 +26,9 @@ export const getById = async (id: string) => {
     include: {
       patient: {
         select: { id: true, name: true, gender: true, birthDate: true, photoUrl: true, phone: true },
+      },
+      evaluaciones: {
+        orderBy: { fechaEvaluacion: 'desc' },
       },
     },
   });
@@ -55,6 +43,17 @@ export const getByPatientId = async (patientId: string) => {
       patient: {
         select: { id: true, name: true, gender: true, birthDate: true, photoUrl: true },
       },
+      evaluaciones: {
+        orderBy: { fechaEvaluacion: 'desc' },
+        select: {
+          id: true,
+          tipo: true,
+          fechaEvaluacion: true,
+          escalaDolor: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
   });
   return historia;
@@ -66,14 +65,14 @@ export const getAll = async (search?: string) => {
       patient: {
         select: { id: true, name: true, gender: true, birthDate: true, photoUrl: true, phone: true },
       },
+      evaluaciones: {
+        orderBy: { fechaEvaluacion: 'desc' },
+        select: { id: true, tipo: true, fechaEvaluacion: true, escalaDolor: true },
+      },
     },
     orderBy: { updatedAt: 'desc' },
     where: search
-      ? {
-          patient: {
-            name: { contains: search, mode: 'insensitive' },
-          },
-        }
+      ? { patient: { name: { contains: search, mode: 'insensitive' } } }
       : undefined,
   });
   return historias;
@@ -89,14 +88,12 @@ export const create = async (data: HistoriaClinicaInput) => {
   if (existing) throw new Error('Este paciente ya tiene una historia clínica registrada');
 
   const historia = await prisma.historiaClinica.create({
-    data: {
-      patientId,
-      ...(rest as any),
-    },
+    data: { patientId, ...(rest as any) },
     include: {
       patient: {
         select: { id: true, name: true, gender: true, birthDate: true, photoUrl: true },
       },
+      evaluaciones: { orderBy: { fechaEvaluacion: 'desc' } },
     },
   });
 
@@ -113,6 +110,7 @@ export const update = async (id: string, data: Partial<HistoriaClinicaInput>) =>
       patient: {
         select: { id: true, name: true, gender: true, birthDate: true, photoUrl: true },
       },
+      evaluaciones: { orderBy: { fechaEvaluacion: 'desc' } },
     },
   });
 

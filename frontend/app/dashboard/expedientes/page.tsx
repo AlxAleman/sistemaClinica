@@ -152,13 +152,13 @@ export default function ExpedientesPage() {
               </div>
               <div className="text-right flex-shrink-0 hidden sm:block">
                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                  {h.escalaDolor != null && (
+                  {h.evaluaciones && h.evaluaciones.length > 0 && h.evaluaciones[0].escalaDolor != null && (
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mr-2 ${
-                      h.escalaDolor <= 3 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : h.escalaDolor <= 6 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      h.evaluaciones[0].escalaDolor <= 3 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : h.evaluaciones[0].escalaDolor <= 6 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                       : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                     }`}>
-                      Dolor {h.escalaDolor}/10
+                      Dolor {h.evaluaciones[0].escalaDolor}/10
                     </span>
                   )}
                 </p>

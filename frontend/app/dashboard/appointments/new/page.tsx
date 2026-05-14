@@ -6,253 +6,359 @@ import { appointmentService, CreateAppointmentData } from "@/services/appointmen
 import { sessionService, CreateSessionData } from "@/services/sessionService";
 import { patientService } from "@/services/patientService";
 import { therapistService } from "@/services/therapistService";
+import { treatmentPlanService, TreatmentPlan } from "@/services/treatmentPlanService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 
-type AppointmentType = "appointment" | "session";
+// Formato automático de teléfono "70543824" → "7054-3824"
+const formatPhone = (raw: string): string => {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  return d.length <= 4 ? d : `${d.slice(0, 4)}-${d.slice(4)}`;
+};
+
+type EventType = "evaluation" | "session" | "appointment" | "consultation";
+
+const EVENT_TYPES: { value: EventType; label: string; description: string }[] = [
+  { value: "evaluation",   label: "Evaluación",           description: "Evaluación inicial o de seguimiento" },
+  { value: "session",      label: "Sesión de tratamiento", description: "Registro de sesión de tratamiento" },
+  { value: "appointment",  label: "Cita",                  description: "Reserva para consulta o revisión" },
+  { value: "consultation", label: "Consulta",              description: "Consulta puntual o interconsulta" },
+];
+
+const isSessionType = (t: EventType) => t === "session";
 
 export default function NewAppointmentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+
   const [patients, setPatients] = useState<any[]>([]);
   const [therapists, setTherapists] = useState<any[]>([]);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [type, setType] = useState<AppointmentType>("appointment");
-  const [formData, setFormData] = useState<CreateAppointmentData | CreateSessionData>({
+  const [activePlans, setActivePlans] = useState<TreatmentPlan[]>([]);
+
+  const [type, setType] = useState<EventType>("evaluation");
+
+  // Modo paciente: "existing" | "new"
+  const [patientMode, setPatientMode] = useState<"existing" | "new">("existing");
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+
+  const [appointmentData, setAppointmentData] = useState<CreateAppointmentData>({
     patientId: "",
     therapistId: null,
     appointmentDate: "",
     duration: 60,
-  } as CreateAppointmentData);
+    notes: null,
+  });
 
-  // Actualizar formData cuando cambia el tipo
+  const [sessionData, setSessionData] = useState<CreateSessionData>({
+    patientId: "",
+    therapistId: null,
+    sessionDate: "",
+    duration: 60,
+    attendanceStatus: "PENDING",
+  });
+
+  // Planes activos al cambiar paciente en modo sesión
   useEffect(() => {
-    if (type === "appointment") {
-      setFormData((prev) => ({
-        ...prev,
-        appointmentDate: (prev as any).sessionDate || (prev as any).appointmentDate || "",
-      } as CreateAppointmentData));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        sessionDate: (prev as any).appointmentDate || (prev as any).sessionDate || "",
-      } as CreateSessionData));
-    }
-  }, [type]);
+    const patientId = sessionData.patientId;
+    if (!patientId || !isSessionType(type)) { setActivePlans([]); return; }
+    treatmentPlanService.getAll({ patientId, status: "ACTIVE", limit: 100 })
+      .then(res => setActivePlans(res.treatmentPlans))
+      .catch(() => setActivePlans([]));
+  }, [sessionData.patientId, type]);
 
   useEffect(() => {
     fetchData();
-    // Si hay una fecha en los query params, usarla
     const dateParam = searchParams.get("date");
     if (dateParam) {
-      const date = new Date(dateParam);
-      // Formatear para el input datetime-local
-      const formattedDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16);
-      if (type === "appointment") {
-        setFormData((prev) => ({ ...prev, appointmentDate: formattedDate } as CreateAppointmentData));
-      } else {
-        setFormData((prev) => ({ ...prev, sessionDate: formattedDate } as CreateSessionData));
-      }
+      const formatted = new Date(
+        new Date(dateParam).getTime() - new Date(dateParam).getTimezoneOffset() * 60000
+      ).toISOString().slice(0, 16);
+      setAppointmentData(p => ({ ...p, appointmentDate: formatted }));
+      setSessionData(p => ({ ...p, sessionDate: formatted }));
     }
   }, [searchParams]);
 
   const fetchData = async () => {
     try {
       setLoadingData(true);
-      const [patientsRes, therapistsRes, appointmentsRes] = await Promise.all([
+      const [patientsRes, therapistsRes] = await Promise.all([
         patientService.getAll({ limit: 1000 }),
         therapistService.getAll({ limit: 1000 }),
-        appointmentService.getAll({ limit: 1000 }),
       ]);
       setPatients(patientsRes.patients);
       setTherapists(therapistsRes.therapists);
-      setAppointments(appointmentsRes.appointments);
-    } catch (error: any) {
+    } catch {
       toast.error("Error al cargar datos");
-      console.error(error);
     } finally {
       setLoadingData(false);
     }
   };
 
+  // Cambiar modo: limpiar selección al alternar
+  const switchPatientMode = (mode: "existing" | "new") => {
+    setPatientMode(mode);
+    setAppointmentData(p => ({ ...p, patientId: "" }));
+    setSessionData(p => ({ ...p, patientId: "" }));
+    setNewFirstName("");
+    setNewLastName("");
+    setNewPhone("");
+  };
+
+  const setPatientId = (id: string) => {
+    setAppointmentData(p => ({ ...p, patientId: id }));
+    setSessionData(p => ({ ...p, patientId: id }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      if (type === "appointment") {
-        // Convertir fecha local a ISO string para cita
-        const appointmentData = formData as CreateAppointmentData;
-        const date = new Date(appointmentData.appointmentDate);
-        const isoDate = date.toISOString();
+      let patientId: string;
 
-        await appointmentService.create({
-          ...appointmentData,
-          appointmentDate: isoDate,
+      // Crear paciente nuevo si es necesario
+      if (patientMode === "new") {
+        if (!newFirstName.trim() || !newLastName.trim() || !newPhone.trim()) {
+          toast.error("Completa nombre, apellidos y teléfono del nuevo paciente");
+          setLoading(false);
+          return;
+        }
+        const created = await patientService.create({
+          name: `${newFirstName.trim()} ${newLastName.trim()}`,
+          phone: newPhone,
         });
-        toast.success("Cita creada exitosamente");
+        patientId = created.id;
+        toast.success("Paciente registrado");
       } else {
-        // Convertir fecha local a ISO string para sesión
-        const sessionData = formData as CreateSessionData;
-        const date = new Date(sessionData.sessionDate);
-        const isoDate = date.toISOString();
+        patientId = isSessionType(type) ? sessionData.patientId : appointmentData.patientId;
+        if (!patientId) {
+          toast.error("Selecciona un paciente");
+          setLoading(false);
+          return;
+        }
+      }
 
+      const typeLabel = EVENT_TYPES.find(t => t.value === type)?.label ?? "";
+
+      if (isSessionType(type)) {
         await sessionService.create({
           ...sessionData,
-          sessionDate: isoDate,
+          patientId,
+          sessionDate: new Date(sessionData.sessionDate).toISOString(),
         });
         toast.success("Sesión creada exitosamente");
+      } else {
+        await appointmentService.create({
+          ...appointmentData,
+          patientId,
+          appointmentDate: new Date(appointmentData.appointmentDate).toISOString(),
+          notes: appointmentData.notes
+            ? `[${typeLabel}] ${appointmentData.notes}`
+            : `[${typeLabel}]`,
+        });
+        toast.success(`${typeLabel} creada exitosamente`);
       }
+
       router.push("/dashboard/appointments");
     } catch (error: any) {
-      toast.error(error.response?.data?.error || `Error al crear ${type === "appointment" ? "cita" : "sesión"}`);
+      toast.error(error.response?.data?.error || "Error al guardar");
     } finally {
       setLoading(false);
     }
   };
 
+  const inputClass =
+    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+  const labelClass = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2";
+
   if (loadingData) {
     return (
-      <div className="px-4 py-6 sm:px-0">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando datos...</p>
-        </div>
+      <div className="px-4 py-6 sm:px-0 text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Cargando datos...</p>
       </div>
     );
   }
 
+  const isSession = isSessionType(type);
+  const currentLabel = EVENT_TYPES.find(t => t.value === type)?.label ?? "";
+
   return (
     <div className="px-4 py-6 sm:px-0">
       <div className="mb-6">
-        <Link
-          href="/dashboard/appointments"
-          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-        >
-          ← Volver a Citas
+        <Link href="/dashboard/appointments" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-sm font-medium">
+          ← Volver al Calendario
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
-          {type === "appointment" ? "Nueva Cita" : "Nueva Sesión"}
+        <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-gray-100">
+          Nueva {currentLabel}
         </h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6">
-        {/* Selector de tipo */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tipo *
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="appointment"
-                checked={type === "appointment"}
-                onChange={(e) => setType(e.target.value as AppointmentType)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Cita</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="session"
-                checked={type === "session"}
-                onChange={(e) => setType(e.target.value as AppointmentType)}
-                className="mr-2"
-              />
-              <span className="text-gray-700">Sesión de Tratamiento</span>
-            </label>
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
+
+        {/* Tipo de evento */}
+        <div>
+          <label className={labelClass}>Tipo de evento *</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {EVENT_TYPES.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setType(opt.value)}
+                className={`px-3 py-3 rounded-xl border-2 text-left transition-colors ${
+                  type === opt.value
+                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                }`}
+              >
+                <span className={`block text-sm font-semibold ${type === opt.value ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"}`}>
+                  {opt.label}
+                </span>
+                <span className="block text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  {opt.description}
+                </span>
+              </button>
+            ))}
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            {type === "appointment"
-              ? "Una cita es una reserva de horario para una consulta futura"
-              : "Una sesión es el registro de una sesión de tratamiento ya realizada"}
-          </p>
+        </div>
+
+        {/* Paciente */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Paciente *</label>
+            <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => switchPatientMode("existing")}
+                className={`px-3 py-1.5 transition-colors ${
+                  patientMode === "existing"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                }`}
+              >
+                Paciente registrado
+              </button>
+              <button
+                type="button"
+                onClick={() => switchPatientMode("new")}
+                className={`px-3 py-1.5 transition-colors ${
+                  patientMode === "new"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                }`}
+              >
+                + Nuevo paciente
+              </button>
+            </div>
+          </div>
+
+          {patientMode === "existing" ? (
+            <select
+              required
+              value={isSession ? sessionData.patientId : appointmentData.patientId}
+              onChange={e => setPatientId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Seleccionar paciente...</option>
+              {patients.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800">
+              <div>
+                <label className={labelClass}>Nombres *</label>
+                <input
+                  type="text"
+                  placeholder="Ej. María José"
+                  value={newFirstName}
+                  onChange={e => setNewFirstName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Apellidos *</label>
+                <input
+                  type="text"
+                  placeholder="Ej. García López"
+                  value={newLastName}
+                  onChange={e => setNewLastName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Teléfono *</label>
+                <input
+                  type="tel"
+                  placeholder="7054-3824"
+                  value={newPhone}
+                  onChange={e => setNewPhone(formatPhone(e.target.value))}
+                  className={inputClass}
+                />
+              </div>
+              <p className="sm:col-span-3 text-xs text-indigo-600 dark:text-indigo-400">
+                Se creará un perfil básico. Puedes completar el expediente desde la ficha del paciente después.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Terapeuta */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Paciente *
-            </label>
-            <select
-              required
-              value={formData.patientId}
-              onChange={(e) =>
-                setFormData({ ...formData, patientId: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Seleccionar paciente</option>
-              {patients.map((patient) => (
-                <option key={patient.id} value={patient.id}>
-                  {patient.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={labelClass}>
               Terapeuta <span className="text-gray-400 font-normal">(opcional)</span>
             </label>
             <select
-              value={(formData as CreateAppointmentData).therapistId || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, therapistId: e.target.value || null } as CreateAppointmentData)
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={isSession ? (sessionData.therapistId ?? "") : (appointmentData.therapistId ?? "")}
+              onChange={e => {
+                const val = e.target.value || null;
+                isSession
+                  ? setSessionData(p => ({ ...p, therapistId: val }))
+                  : setAppointmentData(p => ({ ...p, therapistId: val }));
+              }}
+              className={inputClass}
             >
-              <option value="">Sin asignar (cita disponible)</option>
-              {therapists.map((therapist) => (
-                <option key={therapist.id} value={therapist.id}>
-                  {therapist.name}
-                  {therapist.specialization && ` - ${therapist.specialization}`}
+              <option value="">Sin asignar</option>
+              {therapists.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name}{t.specialization ? ` — ${t.specialization}` : ""}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Si no asignas un terapeuta, la cita quedará disponible para que un terapeuta la tome.
-            </p>
           </div>
 
+          {/* Fecha y Hora */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fecha y Hora *
-            </label>
+            <label className={labelClass}>Fecha y Hora *</label>
             <input
               type="datetime-local"
               required
-              value={type === "appointment" 
-                ? (formData as CreateAppointmentData).appointmentDate || ""
-                : (formData as CreateSessionData).sessionDate || ""}
-              onChange={(e) => {
-                if (type === "appointment") {
-                  setFormData({ ...formData, appointmentDate: e.target.value } as CreateAppointmentData);
-                } else {
-                  setFormData({ ...formData, sessionDate: e.target.value } as CreateSessionData);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={isSession ? sessionData.sessionDate : appointmentData.appointmentDate}
+              onChange={e => isSession
+                ? setSessionData(p => ({ ...p, sessionDate: e.target.value }))
+                : setAppointmentData(p => ({ ...p, appointmentDate: e.target.value }))
+              }
+              className={inputClass}
             />
           </div>
 
+          {/* Duración */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Duración (minutos) *
-            </label>
+            <label className={labelClass}>Duración *</label>
             <select
               required
-              value={formData.duration}
-              onChange={(e) =>
-                setFormData({ ...formData, duration: parseInt(e.target.value) })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={isSession ? sessionData.duration : appointmentData.duration}
+              onChange={e => {
+                const val = parseInt(e.target.value);
+                isSession
+                  ? setSessionData(p => ({ ...p, duration: val }))
+                  : setAppointmentData(p => ({ ...p, duration: val }));
+              }}
+              className={inputClass}
             >
               <option value="15">15 minutos</option>
               <option value="30">30 minutos</option>
@@ -263,132 +369,88 @@ export default function NewAppointmentPage() {
             </select>
           </div>
 
-          {/* Campos adicionales para sesiones */}
-          {type === "session" && (
+          {/* Notas — no sesiones */}
+          {!isSession && (
+            <div className="md:col-span-2">
+              <label className={labelClass}>Notas</label>
+              <textarea
+                rows={3}
+                value={appointmentData.notes ?? ""}
+                onChange={e => setAppointmentData(p => ({ ...p, notes: e.target.value || null }))}
+                placeholder="Motivo, observaciones previas..."
+                className={inputClass}
+              />
+            </div>
+          )}
+
+          {/* Extra para sesiones */}
+          {isSession && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cita Relacionada (Opcional)
-                </label>
+                <label className={labelClass}>Plan de tratamiento (opcional)</label>
                 <select
-                  value={(formData as CreateSessionData).appointmentId || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      appointmentId: e.target.value || null,
-                    } as CreateSessionData)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={sessionData.treatmentPlanId ?? ""}
+                  onChange={e => setSessionData(p => ({ ...p, treatmentPlanId: e.target.value || null }))}
+                  className={inputClass}
+                  disabled={patientMode === "new" || !sessionData.patientId}
                 >
-                  <option value="">Ninguna (sesión independiente)</option>
-                  {appointments
-                    .filter((apt) => apt.patientId === formData.patientId)
-                    .map((appointment) => (
-                      <option key={appointment.id} value={appointment.id}>
-                        {new Date(appointment.appointmentDate).toLocaleString("es-ES")} - {appointment.therapist?.name}
-                      </option>
-                    ))}
+                  <option value="">
+                    {patientMode === "new"
+                      ? "Disponible tras registrar paciente"
+                      : sessionData.patientId
+                        ? activePlans.length === 0 ? "Sin planes activos" : "— Sin vincular —"
+                        : "Selecciona un paciente primero"}
+                  </option>
+                  {activePlans.map(plan => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.title} ({plan.sessionsCompleted}/{plan.sessionsPlanned} sesiones)
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nivel de Dolor (1-10)
-                </label>
+                <label className={labelClass}>Nivel de Dolor (1-10)</label>
                 <input
                   type="number"
                   min="1"
                   max="10"
-                  value={(formData as CreateSessionData).painLevel || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      painLevel: e.target.value ? parseInt(e.target.value) : null,
-                    } as CreateSessionData)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={sessionData.painLevel ?? ""}
+                  onChange={e => setSessionData(p => ({ ...p, painLevel: e.target.value ? parseInt(e.target.value) : null }))}
                   placeholder="Escala del 1 al 10"
+                  className={inputClass}
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Intervenciones Realizadas
-                </label>
+                <label className={labelClass}>Notas</label>
                 <textarea
-                  value={(formData as CreateSessionData).interventions || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      interventions: e.target.value || null,
-                    } as CreateSessionData)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   rows={3}
-                  placeholder="Describe las intervenciones realizadas en esta sesión..."
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Progreso
-                </label>
-                <textarea
-                  value={(formData as CreateSessionData).progress || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      progress: e.target.value || null,
-                    } as CreateSessionData)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  rows={3}
-                  placeholder="Notas sobre el progreso del paciente..."
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notas Adicionales
-                </label>
-                <textarea
-                  value={(formData as CreateSessionData).notes || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      notes: e.target.value || null,
-                    } as CreateSessionData)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  rows={3}
-                  placeholder="Otras observaciones o notas..."
+                  value={sessionData.notes ?? ""}
+                  onChange={e => setSessionData(p => ({ ...p, notes: e.target.value || null }))}
+                  className={inputClass}
                 />
               </div>
             </>
           )}
         </div>
 
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="flex justify-end gap-4 pt-2">
           <Link
             href="/dashboard/appointments"
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
             Cancelar
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium disabled:opacity-50 transition-colors"
           >
-            {loading
-              ? "Guardando..."
-              : type === "appointment"
-              ? "Guardar Cita"
-              : "Guardar Sesión"}
+            {loading ? "Guardando..." : `Guardar ${currentLabel}`}
           </button>
         </div>
       </form>
     </div>
   );
 }
-

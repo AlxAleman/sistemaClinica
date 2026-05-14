@@ -26,11 +26,7 @@ export const getByPatientId = async (req: AuthRequest, res: Response<ApiResponse
   try {
     const { patientId } = req.params;
     const historia = await historiaClinicaService.getByPatientId(patientId);
-    if (!historia) {
-      res.status(404).json({ success: false, error: 'Historia clínica no encontrada' });
-      return;
-    }
-    res.status(200).json({ success: true, data: historia });
+    res.status(200).json({ success: true, data: historia ?? null });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

@@ -125,18 +125,19 @@ model Patient {
   updatedAt        DateTime  @updatedAt
 
   // Relaciones
-  medicalProfile  MedicalProfile?
-  historiaClinica HistoriaClinica?
-  diagnoses       Diagnosis[]
-  appointments    Appointment[]
-  sessions        TreatmentSession[]
-  evaluations     Evaluation[]
-  treatmentPlans  TreatmentPlan[]
-  documents       MedicalDocument[]
-  prescriptions   Prescription[]
-  therapistNotes  TherapistNote[]
-  payments        Payment[]
-  invoices        Invoice[]
+  medicalProfile       MedicalProfile?
+  historiaClinica      HistoriaClinica?
+  evaluacionesFisicas  EvaluacionFisica[]
+  diagnoses            Diagnosis[]
+  appointments         Appointment[]
+  sessions             TreatmentSession[]
+  evaluations          Evaluation[]
+  treatmentPlans       TreatmentPlan[]
+  documents            MedicalDocument[]
+  prescriptions        Prescription[]
+  therapistNotes       TherapistNote[]
+  payments             Payment[]
+  invoices             Invoice[]
 
   @@index([email])
   @@index([phone])
@@ -509,7 +510,7 @@ model SystemConfig {
 }
 
 // ─────────────────────────────────────────────
-// HISTORIA CLÍNICA DE FISIOTERAPIA
+// HISTORIA CLÍNICA DE FISIOTERAPIA (Expediente Base — un registro por paciente)
 // ─────────────────────────────────────────────
 
 model HistoriaClinica {
@@ -517,72 +518,103 @@ model HistoriaClinica {
   patientId String   @unique
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
-  // 1. Exploración Física
+  // Datos baseline
   peso      Float?
   talla     Float?
   imc       Float?
   etnia     String?
 
-  // 2. Motivo de consulta
+  // Motivo de consulta y antecedentes de tratamiento
   motivoConsulta      String?
   tratamientosPrevios String?
 
-  // 3. Antecedentes Patológicos y Heredofamiliares (JSON)
+  // Quién refiere al paciente (médico, institución, etc.)
+  referidoPor         String?
+
+  // Antecedentes Patológicos y Heredofamiliares (JSON)
   // { diabetes, alergia, hta, cancer, transfusiones, enfReumaticas,
   //   hospitalizacion, encames, accidentes, cardiopatias, cirugias,
   //   fracturas } cada uno: { tiene: bool, especifique: string }
   antecedentes        Json?
 
-  // 4. Signos Vitales { ta, temperatura, pc, pb }
-  signosVitales       Json?
-
-  // 5. Espasmos / Contractura Muscular { tiene, sitio, caracteristicas }
-  espasmos            Json?
-
-  // 6. Hábitos de Salud (JSON)
+  // Hábitos de Salud (JSON)
   // { tabaquismo, alcoholismo, drogas, actividadFisica, automedica, pasatiempo }
   habitosSalud        Json?
 
-  // 7. Datos Ginecológicos { embarazada: bool|null, numHijos: int|null }
+  // Datos Ginecológicos { embarazada: bool|null, numHijos: int|null }
   datosGinecologicos  Json?
 
-  // 8. Diagnóstico Médico en Rehabilitación
-  // { reflejos, sensibilidad, lenguajeOrientacion, otros }
-  diagnosticoRehabilitacion Json?
-
-  // 9. Cicatriz Quirúrgica (descripción textual)
-  cicatrizQuirurgica  String?
-
-  // 10. Traslados { velInicial, velFinal, observaciones }
-  traslados           Json?
-
-  // 11. Marcha / Deambulación
-  // { libre, claudicante, conAyuda, espastica, ataxica, otros, observaciones }
-  marchaDeambulacion  Json?
-
-  // 12. Escala de Dolor (0-10)
-  escalaDolor         Int?
-
-  // 13. Valoración Fuerza Muscular (JSON con miembro superior e inferior, D/I, inicial/final)
-  fuerzaMuscular      Json?
-
-  // 14. Goniometría Miembros Superiores (JSON con hombro, codo, antebrazo, muñeca)
-  goniometriaSuper    Json?
-
-  // 15. Goniometría Miembros Inferiores (JSON con cadera, rodilla, tobillo/pie)
-  goniometriaInfer    Json?
-
-  // 16. Valoración Postural (JSON: vistaAnterior, vistaLateral, vistaPosterior)
-  valoracionPostural  Json?
-
-  // 17. Columna (planoSagital, planoFrontal)
-  columna             Json?
-
-  fechaEvaluacion     DateTime @default(now())
   creadoPor           String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  // Evaluaciones físicas (múltiples por paciente, una por visita)
+  evaluaciones        EvaluacionFisica[]
+
   @@index([patientId])
+}
+
+// ─────────────────────────────────────────────
+// EVALUACIÓN FÍSICA (Examen clínico por visita)
+// ─────────────────────────────────────────────
+
+model EvaluacionFisica {
+  id                String          @id @default(cuid())
+  historiaClinicaId String
+  historiaClinica   HistoriaClinica @relation(fields: [historiaClinicaId], references: [id], onDelete: Cascade)
+  patientId         String
+  patient           Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  tipo              String?         // "inicial" | "progreso" | "seguimiento" | "final"
+  fechaEvaluacion   DateTime        @default(now())
+
+  // Medidas anthropométricas de la visita
+  peso              Float?
+  talla             Float?
+  imc               Float?
+
+  // Signos Vitales { ta, temperatura, pc, pb }
+  signosVitales          Json?
+
+  // Espasmos / Contractura Muscular { tiene, sitio, caracteristicas }
+  espasmos               Json?
+
+  // Diagnóstico Médico en Rehabilitación { reflejos, sensibilidad, lenguajeOrientacion, otros }
+  diagnosticoRehabilitacion Json?
+
+  // Cicatriz Quirúrgica
+  cicatrizQuirurgica     String?
+
+  // Traslados { velInicial, velFinal, observaciones }
+  traslados              Json?
+
+  // Marcha / Deambulación { libre, claudicante, conAyuda, espastica, ataxica, otros, observaciones }
+  marchaDeambulacion     Json?
+
+  // Escala de Dolor (0-10)
+  escalaDolor            Int?
+
+  // Valoración Fuerza Muscular
+  fuerzaMuscular         Json?
+
+  // Goniometría Miembros Superiores
+  goniometriaSuper       Json?
+
+  // Goniometría Miembros Inferiores
+  goniometriaInfer       Json?
+
+  // Valoración Postural
+  valoracionPostural     Json?
+
+  // Columna { planoSagital, planoFrontal }
+  columna                Json?
+
+  creadoPor         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([historiaClinicaId])
+  @@index([patientId])
+  @@index([fechaEvaluacion])
 }
 

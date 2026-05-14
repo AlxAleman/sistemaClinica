@@ -5,28 +5,13 @@ export interface AntecedentItem {
   especifique: string;
 }
 
-export interface SignosVitales {
-  ta: string;
-  temperatura: string;
-  pc: string;
-  pb: string;
-}
-
-export interface MuscleEntry {
-  di: string; // derecho inicial
-  dd: string; // derecho final
-  fi: string; // izquierdo inicial
-  fd: string; // izquierdo final
-}
-
-export interface GonioEntry {
-  inicial: string;
-  final: string;
-}
-
-export interface PosturalDI {
-  d: string;
-  i: string;
+export interface EvaluacionFisicaSummary {
+  id: string;
+  tipo?: string | null;
+  fechaEvaluacion: string;
+  escalaDolor?: number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface HistoriaClinica {
@@ -40,50 +25,23 @@ export interface HistoriaClinica {
     photoUrl?: string;
     phone?: string;
   };
-  // Exploración física
+  // Baseline
   peso?: number;
   talla?: number;
   imc?: number;
   etnia?: string;
-  // Consulta
+  // Motivo y antecedentes de tratamiento
   motivoConsulta?: string;
   tratamientosPrevios?: string;
-  // JSON sections
+  referidoPor?: string;
+  // Antecedentes patológicos
   antecedentes?: Record<string, AntecedentItem>;
-  signosVitales?: SignosVitales;
-  espasmos?: { tiene: boolean; sitio: string; caracteristicas: string };
+  // Hábitos de salud
   habitosSalud?: Record<string, AntecedentItem>;
+  // Datos ginecológicos
   datosGinecologicos?: { embarazada: boolean | null; numHijos: number | null };
-  diagnosticoRehabilitacion?: { reflejos: string; sensibilidad: string; lenguajeOrientacion: string; otros: string };
-  cicatrizQuirurgica?: string;
-  traslados?: { velInicial: string; velFinal: string; observaciones: string };
-  marchaDeambulacion?: {
-    libre: boolean; claudicante: boolean; conAyuda: boolean;
-    espastica: boolean; ataxica: boolean; otros: boolean; observaciones: string;
-  };
-  escalaDolor?: number;
-  fuerzaMuscular?: {
-    miembroSuperior: Record<string, MuscleEntry>;
-    miembroInferior: Record<string, MuscleEntry>;
-  };
-  goniometriaSuper?: {
-    hombro: Record<string, GonioEntry>;
-    codo: Record<string, GonioEntry>;
-    antebrazo: Record<string, GonioEntry>;
-    muneca: Record<string, GonioEntry>;
-  };
-  goniometriaInfer?: {
-    cadera: Record<string, GonioEntry>;
-    rodilla: Record<string, GonioEntry>;
-    tobillo: Record<string, GonioEntry>;
-  };
-  valoracionPostural?: {
-    vistaAnterior: Record<string, Record<string, PosturalDI>>;
-    vistaLateral: Record<string, Record<string, PosturalDI | string>>;
-    vistaPosterior: Record<string, Record<string, PosturalDI>>;
-  };
-  columna?: { planoSagital: string; planoFrontal: string };
-  fechaEvaluacion?: string;
+  // Evaluaciones físicas (lista resumida)
+  evaluaciones?: EvaluacionFisicaSummary[];
   createdAt?: string;
   updatedAt?: string;
 }

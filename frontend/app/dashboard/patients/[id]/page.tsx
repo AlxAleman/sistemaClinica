@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { patientService, Patient } from "@/services/patientService";
 import { sessionService, TreatmentSession, SessionProtocolItem } from "@/services/sessionService";
 import { treatmentPlanService, TreatmentPlan } from "@/services/treatmentPlanService";
-import { historiaClinicaService, HistoriaClinica } from "@/services/historiaClinicaService";
+import { historiaClinicaService, HistoriaClinica, AntecedentItem } from "@/services/historiaClinicaService";
+import { evaluacionFisicaService, EvaluacionFisica } from "@/services/evaluacionFisicaService";
 import { diagnosisService, Diagnosis } from "@/services/diagnosisService";
 import { therapistService } from "@/services/therapistService";
 import { toast } from "react-hot-toast";
@@ -21,12 +22,13 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import ProgressChart from "@/components/ProgressChart";
 import { CalendarIcon, UsersIcon, PlusIcon } from "@/components/Icons";
 
-type TabId = "general" | "expediente" | "tratamiento" | "historial";
+type TabId = "resumen" | "general" | "expediente" | "tratamiento" | "historial";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: "general",     label: "Información General",  icon: "👤" },
-  { id: "expediente",  label: "Expediente Médico",    icon: "🩺" },
-  { id: "tratamiento", label: "Tratamiento",           icon: "💊" },
+  { id: "resumen",     label: "Resumen",               icon: "🏠" },
+  { id: "general",     label: "Información General",   icon: "👤" },
+  { id: "expediente",  label: "Expediente Médico",     icon: "🩺" },
+  { id: "tratamiento", label: "Tratamiento",            icon: "💪" },
   { id: "historial",   label: "Historial y Documentos", icon: "📋" },
 ];
 
@@ -49,12 +51,12 @@ export default function PatientDetailPage() {
   const [loadingDiagnoses, setLoadingDiagnoses] = useState(true);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [activeTab, setActiveTab] = useState<TabId>("resumen");
 
   // Leer ?tab= al montar
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["general","expediente","tratamiento","historial"].includes(tab)) {
+    if (tab && ["resumen","general","expediente","tratamiento","historial"].includes(tab)) {
       setActiveTab(tab as TabId);
     }
   }, []);
@@ -590,6 +592,263 @@ export default function PatientDetailPage() {
       {/* Tab content */}
       <div className="mt-6">
 
+        {/* ── TAB: Resumen ── */}
+        {activeTab === "resumen" && (() => {
+          const activePlans = treatmentPlans.filter(p => p.status === "ACTIVE");
+          const finishedPlans = treatmentPlans
+            .filter(p => p.status === "COMPLETED" || p.status === "CANCELLED")
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          const allPlansSorted = [
+            ...activePlans.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+            ...finishedPlans,
+          ];
+          const attendedSessions = sessions.filter(s => s.attendanceStatus === "ATTENDED");
+          const lastSession = [...sessions].sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())[0] ?? null;
+          const activeDiagnoses = diagnoses.filter(d => d.status === "ACTIVE");
+          const allergies = patient.medicalProfile?.allergies;
+          const currentMeds = patient.medicalProfile?.currentMedications;
+
+          // Antecedentes con tiene=true desde historia
+          const activeAntecedentes = historia?.antecedentes
+            ? Object.entries(historia.antecedentes).filter(([, v]) => v.tiene)
+            : [];
+          const activeHabitos = historia?.habitosSalud
+            ? Object.entries(historia.habitosSalud).filter(([, v]) => v.tiene)
+            : [];
+
+          return (
+            <div className="space-y-5">
+              {/* Alergias — siempre visible */}
+              {allergies ? (
+                <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl px-5 py-4">
+                  <span className="text-lg flex-shrink-0">⚠️</span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Alergias registradas</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">{allergies}</p>
+                  </div>
+                </div>
+              ) : allergies === null || allergies === undefined ? (
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3.5">
+                  <span className="text-base flex-shrink-0">❓</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Alergias: <span className="font-medium text-gray-700 dark:text-gray-300">No registradas</span></p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl px-5 py-3.5">
+                  <span className="text-base flex-shrink-0">✅</span>
+                  <p className="text-sm text-green-800 dark:text-green-300">Sin alergias conocidas</p>
+                </div>
+              )}
+
+              {/* Métricas rápidas */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 text-center">
+                  <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{attendedSessions.length}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sesiones realizadas</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 text-center">
+                  <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">{activePlans.length}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tratamientos activos</p>
+                </div>
+              </div>
+
+              {/* Planes + Última sesión */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Planes de tratamiento */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-xs">💪</span>
+                    Planes de tratamiento
+                  </h3>
+                  {allPlansSorted.length > 0 ? (
+                    <div className="space-y-3">
+                      {allPlansSorted.map(plan => {
+                        const pct = Math.min(100, Math.round(((plan.sessionsCompleted ?? 0) / (plan.sessionsPlanned || 1)) * 100));
+                        const isActive = plan.status === "ACTIVE";
+                        return (
+                          <div key={plan.id} className={`rounded-xl border p-4 ${isActive ? "border-indigo-200 dark:border-indigo-700 bg-indigo-50/40 dark:bg-indigo-900/10" : "border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30"}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{plan.title}</p>
+                                {plan.diagnosis?.clinicalDiagnosis && (
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{plan.diagnosis.clinicalDiagnosis}</p>
+                                )}
+                              </div>
+                              <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
+                                isActive ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300" :
+                                plan.status === "COMPLETED" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
+                                "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                              }`}>
+                                {isActive ? "Activo" : plan.status === "COMPLETED" ? "Finalizado" : "Cancelado"}
+                              </span>
+                            </div>
+                            <div className="mt-3">
+                              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-1">
+                                <span>{plan.sessionsCompleted ?? 0} / {plan.sessionsPlanned} sesiones</span>
+                                <span>{pct}%</span>
+                              </div>
+                              <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5">
+                                <div
+                                  className={`h-1.5 rounded-full ${isActive ? "bg-indigo-500" : "bg-gray-400 dark:bg-gray-500"}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <button
+                        onClick={() => setActiveTab("tratamiento")}
+                        className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                      >
+                        Ver detalle de tratamientos →
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-24 text-center">
+                      <p className="text-sm text-gray-400 dark:text-gray-500">Sin planes de tratamiento</p>
+                      <Link
+                        href={`/dashboard/treatment-plans/new?patientId=${id}`}
+                        className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        Crear plan de tratamiento
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* Última sesión */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-xs">📋</span>
+                    Última sesión
+                  </h3>
+                  {lastSession ? (
+                    <div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{moment(lastSession.sessionDate).format("dddd D [de] MMMM, YYYY")}</p>
+                      {lastSession.attendanceStatus === "NOT_ATTENDED" && (
+                        <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium">No asistió</span>
+                      )}
+                      {lastSession.progress && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Progreso</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{lastSession.progress}</p>
+                        </div>
+                      )}
+                      {lastSession.notes && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Notas</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">{lastSession.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-24">
+                      <p className="text-sm text-gray-400 dark:text-gray-500">Sin sesiones registradas</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Diagnósticos activos */}
+              {activeDiagnoses.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xs">🩺</span>
+                    Diagnósticos activos
+                    <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{activeDiagnoses.length}</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {activeDiagnoses.map(d => (
+                      <span key={d.id} className="px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-xs font-medium border border-blue-100 dark:border-blue-800">
+                        {d.clinicalDiagnosis}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Antecedentes + Hábitos + Medicamentos */}
+              {(activeAntecedentes.length > 0 || activeHabitos.length > 0 || currentMeds) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {activeAntecedentes.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-xs">📂</span>
+                        Antecedentes patológicos
+                      </h3>
+                      <ul className="space-y-2">
+                        {activeAntecedentes.map(([key, val]) => (
+                          <li key={key} className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>
+                            {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {(activeHabitos.length > 0 || currentMeds) && (
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-4">
+                      {activeHabitos.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-xs">🌿</span>
+                            Hábitos de salud
+                          </h3>
+                          <ul className="space-y-2">
+                            {activeHabitos.map(([key, val]) => (
+                              <li key={key} className="text-sm text-gray-700 dark:text-gray-300">
+                                <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>
+                                {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {currentMeds && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-xs">💊</span>
+                            Medicamentos / tratamientos actuales
+                          </h3>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{currentMeds}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Acciones rápidas */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Acciones rápidas</h3>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setActiveTab("tratamiento")}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Registrar sesión
+                  </button>
+                  <Link
+                    href={`/dashboard/appointments/new?patientId=${id}&type=evaluation`}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                    Nueva evaluación
+                  </Link>
+                  <Link
+                    href={`/dashboard/appointments?patientId=${id}`}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-xl transition-colors"
+                  >
+                    <UsersIcon className="w-4 h-4" />
+                    Ver en calendario
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── TAB: Información General ── */}
         {activeTab === "general" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -669,473 +928,21 @@ export default function PatientDetailPage() {
             {loadingHistoria ? (
               <LoadingSpinner />
             ) : historia ? (
-              <>
-                {/* Meta + acciones */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Evaluación: {historia.fechaEvaluacion ? moment(historia.fechaEvaluacion).format("DD/MM/YYYY") : "—"} · Actualizado {moment(historia.updatedAt).fromNow()}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`/dashboard/expedientes/${historia.id}/edit`}
-                      className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-                    >
-                      Editar Expediente Médico →
-                    </Link>
-                    <Link
-                      href={`/dashboard/diagnoses/new?patientId=${id}`}
-                      className="inline-flex items-center gap-1 text-xs bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg transition-colors"
-                    >
-                      Crear Diagnóstico
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        Diagnósticos
-                        {diagnoses.length > 0 && (
-                          <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium">{diagnoses.length}</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Diagnósticos registrados para este paciente.</p>
-                    </div>
-                    {loadingDiagnoses && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Cargando...</span>
-                    )}
-                  </div>
-
-                  {diagnoses.length > 0 ? (
-                    <>
-                      <div className="mt-4 space-y-3">
-                        {diagnoses
-                          .slice((diagnosesPage - 1) * DIAGNOSES_PER_PAGE, diagnosesPage * DIAGNOSES_PER_PAGE)
-                          .map((diagnosis) => {
-                            const isOpen = expandedDiagnoses.has(diagnosis.id);
-                            const linkedPlan = treatmentPlans.find(p => p.diagnosisId === diagnosis.id) ?? null;
-                            return (
-                              <div key={diagnosis.id} className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-hidden">
-                                {/* Header — clickeable para desplegar */}
-                                <div className="p-4 flex items-center gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleDiagnosis(diagnosis.id)}
-                                    className="flex-1 min-w-0 text-left flex items-center gap-3 hover:opacity-80 transition-opacity"
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{diagnosis.clinicalDiagnosis}</p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{diagnosis.diagnosisDate ? moment(diagnosis.diagnosisDate).format("DD/MM/YYYY") : "—"}</p>
-                                    </div>
-                                    <span className={`px-2 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide flex-shrink-0 ${
-                                      diagnosis.status === "ACTIVE"
-                                        ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                                        : diagnosis.status === "CHRONIC"
-                                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
-                                        : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                                    }`}>
-                                      {diagnosis.status === "ACTIVE" ? "Activo" : diagnosis.status === "CHRONIC" ? "Crónico" : "Resuelto"}
-                                    </span>
-                                    <span className={`text-gray-400 text-sm transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}>▾</span>
-                                  </button>
-
-                                  {/* Botones editar / eliminar */}
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    <Link
-                                      href={`/dashboard/diagnoses/${diagnosis.id}`}
-                                      onClick={e => e.stopPropagation()}
-                                      className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-                                      title="Editar diagnóstico"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                    </Link>
-                                    <button
-                                      type="button"
-                                      onClick={e => { e.stopPropagation(); setDeleteDiagnosisId(diagnosis.id); }}
-                                      className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                      title="Eliminar diagnóstico"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Cuerpo desplegable */}
-                                {isOpen && (
-                                  <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 space-y-3 pt-3">
-                                    {diagnosis.observations && (
-                                      <p className="text-sm text-gray-600 dark:text-gray-300">{diagnosis.observations}</p>
-                                    )}
-
-                                    {linkedPlan ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setActiveTab("tratamiento");
-                                          setExpandedPlans(prev => new Set([...prev, linkedPlan.id]));
-                                          window.scrollTo({ top: 0, behavior: "smooth" });
-                                        }}
-                                        className="w-full text-left flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 transition-colors"
-                                      >
-                                        <div className="min-w-0">
-                                          <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide mb-0.5">Tratamiento</p>
-                                          <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200 truncate">{linkedPlan.title}</p>
-                                          <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">
-                                            {linkedPlan.sessionsCompleted} de {linkedPlan.sessionsPlanned} sesiones
-                                            {linkedPlan.therapyType && ` · ${linkedPlan.therapyType}`}
-                                          </p>
-                                        </div>
-                                        <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                      </button>
-                                    ) : (
-                                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">Sin tratamiento vinculado.</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                      </div>
-
-                      {/* Paginación */}
-                      {diagnoses.length > DIAGNOSES_PER_PAGE && (
-                        <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>{Math.min((diagnosesPage - 1) * DIAGNOSES_PER_PAGE + 1, diagnoses.length)}–{Math.min(diagnosesPage * DIAGNOSES_PER_PAGE, diagnoses.length)} de {diagnoses.length}</span>
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => setDiagnosesPage(p => Math.max(1, p - 1))}
-                              disabled={diagnosesPage === 1}
-                              className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                            >‹</button>
-                            <button
-                              onClick={() => setDiagnosesPage(p => Math.min(Math.ceil(diagnoses.length / DIAGNOSES_PER_PAGE), p + 1))}
-                              disabled={diagnosesPage >= Math.ceil(diagnoses.length / DIAGNOSES_PER_PAGE)}
-                              className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                            >›</button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="mt-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-6 text-center">
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">No hay diagnósticos asociados a este paciente.</p>
-                      <Link
-                        href={`/dashboard/diagnoses/new?patientId=${id}`}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-700 dark:text-indigo-300 hover:underline"
-                      >
-                        Crear diagnóstico ahora
-                      </Link>
-                    </div>
-                  )}
-                </div>
-
-                {/* Exploración Física */}
-                {(historia.peso != null || historia.talla != null || historia.imc != null || historia.etnia || historia.motivoConsulta || historia.tratamientosPrevios) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="⚖️" title="Exploración Física" />
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                      {historia.peso != null && <HCDataCard label="Peso" value={`${historia.peso} kg`} />}
-                      {historia.talla != null && <HCDataCard label="Estatura" value={`${historia.talla} cm`} />}
-                      {historia.imc != null && <HCDataCard label="IMC" value={historia.imc.toFixed(1)} />}
-                    </div>
-                    {historia.motivoConsulta && (
-                      <div className="mt-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                        <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Motivo de Consulta</p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200">{historia.motivoConsulta}</p>
-                      </div>
-                    )}
-                    {historia.tratamientosPrevios && (
-                      <div className="mt-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                        <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Tratamientos Previos</p>
-                        <p className="text-sm text-gray-800 dark:text-gray-200">{historia.tratamientosPrevios}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Signos Vitales */}
-                {historia.signosVitales && (historia.signosVitales.ta || historia.signosVitales.temperatura || historia.signosVitales.pc || historia.signosVitales.pb) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="❤️" title="Signos Vitales" />
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                      {historia.signosVitales.ta && <HCDataCard label="T/A" value={historia.signosVitales.ta} />}
-                      {historia.signosVitales.temperatura && <HCDataCard label="Temperatura" value={historia.signosVitales.temperatura} />}
-                      {historia.signosVitales.pc && <HCDataCard label="Pulso" value={historia.signosVitales.pc} />}
-                      {historia.signosVitales.pb && <HCDataCard label="Pulsioximetría" value={historia.signosVitales.pb} />}
-                    </div>
-                  </div>
-                )}
-
-                {/* Escala de Dolor */}
-                {historia.escalaDolor != null && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="🌡️" title="Escala de Dolor EVA" />
-                    <div className="flex items-center gap-5 mt-4">
-                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0 ${
-                        historia.escalaDolor <= 3 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : historia.escalaDolor <= 6 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                      }`}>
-                        {historia.escalaDolor}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                          {historia.escalaDolor}/10 — {historia.escalaDolor === 0 ? "Sin dolor" : historia.escalaDolor <= 3 ? "Dolor leve" : historia.escalaDolor <= 6 ? "Dolor moderado" : "Dolor intenso"}
-                        </p>
-                        <div className="h-2.5 bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full relative">
-                          <div
-                            className="absolute w-4 h-4 bg-white dark:bg-gray-200 border-2 border-gray-600 rounded-full shadow-md"
-                            style={{ left: `${historia.escalaDolor * 10}%`, top: "50%", transform: "translate(-50%, -50%)" }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          <span>0 Sin dolor</span><span>10 Máximo</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Antecedentes Patológicos */}
-                {historia.antecedentes && Object.keys(historia.antecedentes).length > 0 && (() => {
-                  const ANT_LABELS: Record<string, string> = {
-                    diabetes: "Diabetes", alergia: "Alergia", hta: "HTA",
-                    cancer: "Cáncer", transfusiones: "Transfusiones",
-                    enfReumaticas: "Enf. Reumáticas", hospitalizacion: "Hospitalización",
-                    encames: "Encames", accidentes: "Accidentes",
-                    cardiopatias: "Cardiopatías", cirugias: "Cirugías", fracturas: "Fracturas",
-                  };
-                  const entries = Object.entries(historia.antecedentes as any);
-                  const positives = entries.filter(([, v]: any) => v.tiene);
-                  const negatives = entries.filter(([, v]: any) => !v.tiene);
-                  return (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                      <HCSectionHeader icon="📋" title="Antecedentes Patológicos" />
-                      <div className="mt-4 space-y-3">
-                        {positives.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 italic">Sin antecedentes patológicos reportados</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {positives.map(([key, val]: any) => (
-                              <div key={key} className="flex items-start gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20">
-                                <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 flex items-center justify-center text-xs font-bold">!</span>
-                                <div>
-                                  <p className="text-sm font-semibold text-red-800 dark:text-red-300">{ANT_LABELS[key] ?? key}</p>
-                                  {val.especifique && <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-0.5">{val.especifique}</p>}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {negatives.length > 0 && (
-                          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              <span className="font-medium text-gray-500 dark:text-gray-400">Negados:</span>{" "}
-                              {negatives.map(([key]: any) => ANT_LABELS[key] ?? key).join(" · ")}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Espasmos */}
-                {historia.espasmos?.tiene && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="⚡" title="Espasmos Musculares" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                      {historia.espasmos.sitio && <HCDataCard label="Sitio" value={historia.espasmos.sitio} />}
-                      {historia.espasmos.caracteristicas && <HCDataCard label="Características" value={historia.espasmos.caracteristicas} />}
-                    </div>
-                  </div>
-                )}
-
-                {/* Hábitos de Salud */}
-                {historia.habitosSalud && Object.keys(historia.habitosSalud).length > 0 && (() => {
-                  const HABITO_LABELS: Record<string, string> = {
-                    tabaquismo: "Tabaquismo", alcoholismo: "Alcoholismo", drogas: "Drogas",
-                    actividadFisica: "Actividad Física", automedica: "Se Automedica", pasatiempo: "Pasatiempo",
-                  };
-                  const entries = Object.entries(historia.habitosSalud as any);
-                  const activos = entries.filter(([, v]: any) => v.tiene);
-                  const negados = entries.filter(([, v]: any) => !v.tiene);
-                  return (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                      <HCSectionHeader icon="🏃" title="Hábitos de Salud" />
-                      <div className="mt-4 space-y-3">
-                        {activos.length === 0 ? (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 italic">Sin hábitos de riesgo reportados</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {activos.map(([key, val]: any) => (
-                              <div key={key} className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
-                                <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 flex items-center justify-center text-xs font-bold">!</span>
-                                <div>
-                                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{HABITO_LABELS[key] ?? key}</p>
-                                  {val.especifique && <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">{val.especifique}</p>}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {negados.length > 0 && (
-                          <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              <span className="font-medium text-gray-500 dark:text-gray-400">Negados:</span>{" "}
-                              {negados.map(([key]: any) => HABITO_LABELS[key] ?? key).join(" · ")}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Datos Ginecológicos */}
-                {historia.datosGinecologicos && (historia.datosGinecologicos.embarazada != null || historia.datosGinecologicos.numHijos != null) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="🤰" title="Datos Ginecológicos" />
-                    <div className="grid grid-cols-2 gap-3 mt-4">
-                      {historia.datosGinecologicos.embarazada != null && (
-                        <HCDataCard label="Embarazada" value={historia.datosGinecologicos.embarazada ? "Sí" : "No"} />
-                      )}
-                      {historia.datosGinecologicos.numHijos != null && (
-                        <HCDataCard label="Número de hijos" value={String(historia.datosGinecologicos.numHijos)} />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Diagnóstico en Rehabilitación */}
-                {historia.diagnosticoRehabilitacion && (historia.diagnosticoRehabilitacion.reflejos || historia.diagnosticoRehabilitacion.sensibilidad || historia.diagnosticoRehabilitacion.lenguajeOrientacion || historia.diagnosticoRehabilitacion.otros) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="🧠" title="Diagnóstico en Rehabilitación" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                      {historia.diagnosticoRehabilitacion.reflejos && <HCDataCard label="Reflejos" value={historia.diagnosticoRehabilitacion.reflejos} />}
-                      {historia.diagnosticoRehabilitacion.sensibilidad && <HCDataCard label="Sensibilidad" value={historia.diagnosticoRehabilitacion.sensibilidad} />}
-                      {historia.diagnosticoRehabilitacion.lenguajeOrientacion && <HCDataCard label="Lenguaje y Orientación" value={historia.diagnosticoRehabilitacion.lenguajeOrientacion} />}
-                      {historia.diagnosticoRehabilitacion.otros && <HCDataCard label="Otros" value={historia.diagnosticoRehabilitacion.otros} />}
-                    </div>
-                  </div>
-                )}
-
-                {/* Movilidad */}
-                {(historia.cicatrizQuirurgica || historia.traslados || historia.marchaDeambulacion) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="🚶" title="Movilidad y Deambulación" />
-                    <div className="space-y-4 mt-4">
-                      {historia.cicatrizQuirurgica && (
-                        <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                          <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Cicatriz Quirúrgica</p>
-                          <p className="text-sm text-gray-800 dark:text-gray-200">{historia.cicatrizQuirurgica}</p>
-                        </div>
-                      )}
-                      {historia.traslados && (historia.traslados.velInicial || historia.traslados.velFinal || historia.traslados.observaciones) && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {historia.traslados.velInicial && <HCDataCard label="Vel. Inicial" value={historia.traslados.velInicial} />}
-                          {historia.traslados.velFinal && <HCDataCard label="Vel. Final" value={historia.traslados.velFinal} />}
-                          {historia.traslados.observaciones && <HCDataCard label="Observaciones" value={historia.traslados.observaciones} />}
-                        </div>
-                      )}
-                      {historia.marchaDeambulacion && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Tipo de Marcha</p>
-                          <div className="flex flex-wrap gap-2">
-                            {historia.marchaDeambulacion.libre && <span className="px-2.5 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-medium">Libre</span>}
-                            {historia.marchaDeambulacion.claudicante && <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full text-xs font-medium">Claudicante</span>}
-                            {historia.marchaDeambulacion.conAyuda && <span className="px-2.5 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-medium">Con Ayuda</span>}
-                            {historia.marchaDeambulacion.espastica && <span className="px-2.5 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs font-medium">Espástica</span>}
-                            {historia.marchaDeambulacion.ataxica && <span className="px-2.5 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full text-xs font-medium">Atáxica</span>}
-                            {historia.marchaDeambulacion.otros && <span className="px-2.5 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full text-xs font-medium">Otros</span>}
-                          </div>
-                          {historia.marchaDeambulacion.observaciones && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{historia.marchaDeambulacion.observaciones}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Fuerza Muscular */}
-                {historia.fuerzaMuscular && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="💪" title="Fuerza Muscular (Escala Daniels)" />
-                    <div className="space-y-5 mt-4">
-                      {historia.fuerzaMuscular.miembroSuperior && Object.keys(historia.fuerzaMuscular.miembroSuperior).length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-2">Miembro Superior</p>
-                          <HCMuscleTable data={historia.fuerzaMuscular.miembroSuperior} />
-                        </div>
-                      )}
-                      {historia.fuerzaMuscular.miembroInferior && Object.keys(historia.fuerzaMuscular.miembroInferior).length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-2">Miembro Inferior</p>
-                          <HCMuscleTable data={historia.fuerzaMuscular.miembroInferior} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Goniometría Superior */}
-                {historia.goniometriaSuper && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="📐" title="Goniometría — Miembro Superior" />
-                    <div className="space-y-4 mt-4">
-                      {historia.goniometriaSuper.hombro && Object.keys(historia.goniometriaSuper.hombro).length > 0 && <HCGonioTable label="Hombro" data={historia.goniometriaSuper.hombro} />}
-                      {historia.goniometriaSuper.codo && Object.keys(historia.goniometriaSuper.codo).length > 0 && <HCGonioTable label="Codo" data={historia.goniometriaSuper.codo} />}
-                      {historia.goniometriaSuper.antebrazo && Object.keys(historia.goniometriaSuper.antebrazo).length > 0 && <HCGonioTable label="Antebrazo" data={historia.goniometriaSuper.antebrazo} />}
-                      {historia.goniometriaSuper.muneca && Object.keys(historia.goniometriaSuper.muneca).length > 0 && <HCGonioTable label="Muñeca" data={historia.goniometriaSuper.muneca} />}
-                    </div>
-                  </div>
-                )}
-
-                {/* Goniometría Inferior */}
-                {historia.goniometriaInfer && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="📐" title="Goniometría — Miembro Inferior" />
-                    <div className="space-y-4 mt-4">
-                      {historia.goniometriaInfer.cadera && Object.keys(historia.goniometriaInfer.cadera).length > 0 && <HCGonioTable label="Cadera" data={historia.goniometriaInfer.cadera} />}
-                      {historia.goniometriaInfer.rodilla && Object.keys(historia.goniometriaInfer.rodilla).length > 0 && <HCGonioTable label="Rodilla" data={historia.goniometriaInfer.rodilla} />}
-                      {historia.goniometriaInfer.tobillo && Object.keys(historia.goniometriaInfer.tobillo).length > 0 && <HCGonioTable label="Tobillo / Pie" data={historia.goniometriaInfer.tobillo} />}
-                    </div>
-                  </div>
-                )}
-
-                {/* Valoración Postural */}
-                {historia.valoracionPostural && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="🧍" title="Valoración Postural" />
-                    <div className="space-y-5 mt-4">
-                      {historia.valoracionPostural.vistaAnterior && Object.keys(historia.valoracionPostural.vistaAnterior).length > 0 && (
-                        <HCPosturalSection label="Vista Anterior" data={historia.valoracionPostural.vistaAnterior} />
-                      )}
-                      {historia.valoracionPostural.vistaLateral && Object.keys(historia.valoracionPostural.vistaLateral).length > 0 && (
-                        <HCPosturalSection label="Vista Lateral" data={historia.valoracionPostural.vistaLateral} />
-                      )}
-                      {historia.valoracionPostural.vistaPosterior && Object.keys(historia.valoracionPostural.vistaPosterior).length > 0 && (
-                        <HCPosturalSection label="Vista Posterior" data={historia.valoracionPostural.vistaPosterior} />
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Columna */}
-                {historia.columna && (historia.columna.planoSagital || historia.columna.planoFrontal) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-                    <HCSectionHeader icon="🦴" title="Columna Vertebral" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                      {historia.columna.planoSagital && <HCDataCard label="Plano Sagital" value={historia.columna.planoSagital} />}
-                      {historia.columna.planoFrontal && <HCDataCard label="Plano Frontal" value={historia.columna.planoFrontal} />}
-                    </div>
-                  </div>
-                )}
-              </>
+              <ExpedienteView
+                historia={historia}
+                patientId={id}
+                diagnoses={diagnoses}
+                loadingDiagnoses={loadingDiagnoses}
+                diagnosesPage={diagnosesPage}
+                setDiagnosesPage={setDiagnosesPage}
+                DIAGNOSES_PER_PAGE={DIAGNOSES_PER_PAGE}
+                expandedDiagnoses={expandedDiagnoses}
+                toggleDiagnosis={toggleDiagnosis}
+                treatmentPlans={treatmentPlans}
+                setActiveTab={setActiveTab}
+                setExpandedPlans={setExpandedPlans}
+                setDeleteDiagnosisId={setDeleteDiagnosisId}
+              />
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-10 text-center">
                 <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mx-auto mb-4 text-3xl">🗂️</div>
@@ -2198,6 +2005,809 @@ function HCDataCard({ label, value }: { label: string; value: string }) {
     <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
       <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{value}</p>
+    </div>
+  );
+}
+
+// ─── ExpedienteView ───────────────────────────────────────────────────────────
+function ExpedienteView({
+  historia, patientId, diagnoses, loadingDiagnoses,
+  diagnosesPage, setDiagnosesPage, DIAGNOSES_PER_PAGE,
+  expandedDiagnoses, toggleDiagnosis, treatmentPlans,
+  setActiveTab, setExpandedPlans, setDeleteDiagnosisId,
+}: {
+  historia: HistoriaClinica;
+  patientId: string;
+  diagnoses: Diagnosis[];
+  loadingDiagnoses: boolean;
+  diagnosesPage: number;
+  setDiagnosesPage: React.Dispatch<React.SetStateAction<number>>;
+  DIAGNOSES_PER_PAGE: number;
+  expandedDiagnoses: Set<string>;
+  toggleDiagnosis: (id: string) => void;
+  treatmentPlans: TreatmentPlan[];
+  setActiveTab: (tab: any) => void;
+  setExpandedPlans: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setDeleteDiagnosisId: React.Dispatch<React.SetStateAction<string | null>>;
+}) {
+  const ANTECEDENTES_LABELS: Record<string, string> = {
+    diabetes: "Diabetes", alergia: "Alergia", hta: "HTA",
+    cancer: "Cáncer", transfusiones: "Transfusiones", enfReumaticas: "Enf. Reumáticas",
+    hospitalizacion: "Hospitalización", encames: "Encames", accidentes: "Accidentes",
+    cardiopatias: "Cardiopatías", cirugias: "Cirugías", fracturas: "Fracturas",
+  };
+  const HABITOS_LABELS: Record<string, string> = {
+    tabaquismo: "Tabaquismo", alcoholismo: "Alcoholismo", drogas: "Drogas",
+    actividadFisica: "Act. Física", automedica: "Automedicación", pasatiempo: "Pasatiempo",
+  };
+
+  const activeAnt = historia.antecedentes
+    ? Object.entries(historia.antecedentes).filter(([, v]) => v.tiene)
+    : [];
+  const activeHabitos = historia.habitosSalud
+    ? Object.entries(historia.habitosSalud).filter(([, v]) => v.tiene)
+    : [];
+
+  const [evals, setEvals] = useState<EvaluacionFisica[]>([]);
+  const [loadingEvals, setLoadingEvals] = useState(true);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    evaluacionFisicaService.getByHistoria(historia.id)
+      .then(data => setEvals([...data].sort((a, b) =>
+        new Date(a.fechaEvaluacion).getTime() - new Date(b.fechaEvaluacion).getTime()
+      )))
+      .catch(() => {})
+      .finally(() => setLoadingEvals(false));
+  }, [historia.id]);
+
+  const toggleSelect = (id: string) =>
+    setSelected(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) :
+      prev.length >= 2   ? prev :
+      [...prev, id]
+    );
+
+  const [diagnosisFilter, setDiagnosisFilter] = useState<"all" | "ACTIVE" | "CHRONIC" | "RESOLVED">("all");
+  const [diagnosesPerPage, setDiagnosesPerPage] = useState(5);
+  const filteredDiagnoses = diagnosisFilter === "all"
+    ? diagnoses
+    : diagnoses.filter(d => d.status === diagnosisFilter);
+  const totalDiagPages = Math.max(1, Math.ceil(filteredDiagnoses.length / diagnosesPerPage));
+
+  useEffect(() => { setDiagnosesPage(1); }, [diagnosisFilter, diagnosesPerPage]);
+
+  return (
+    <div className="space-y-6">
+      {/* Cabecera */}
+      <p className="text-xs text-gray-400 dark:text-gray-500">
+        Actualizado {moment(historia.updatedAt).fromNow()}
+      </p>
+
+      {/* Expediente Base + Diagnósticos en grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+        {/* Datos base */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <HCSectionHeader icon="📋" title="Expediente Base" />
+            <Link
+              href={`/dashboard/expedientes/${historia.id}/edit`}
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+            >
+              Editar →
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {historia.referidoPor && (
+              <div className="flex gap-3">
+                <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide w-28 pt-0.5 flex-shrink-0">Referido por</span>
+                <span className="text-sm text-gray-800 dark:text-gray-200">{historia.referidoPor}</span>
+              </div>
+            )}
+            {(historia.peso != null || historia.talla != null || historia.imc != null) && (
+              <div className="flex flex-wrap gap-3">
+                {historia.peso != null && <HCDataCard label="Peso" value={`${historia.peso} kg`} />}
+                {historia.talla != null && <HCDataCard label="Talla" value={`${historia.talla} m`} />}
+                {historia.imc != null && <HCDataCard label="IMC" value={`${historia.imc}`} />}
+              </div>
+            )}
+            {historia.motivoConsulta && (
+              <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Motivo de consulta</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">{historia.motivoConsulta}</p>
+              </div>
+            )}
+            {historia.tratamientosPrevios && (
+              <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Tratamientos previos</p>
+                <p className="text-sm text-gray-800 dark:text-gray-200">{historia.tratamientosPrevios}</p>
+              </div>
+            )}
+            {!historia.referidoPor && historia.peso == null && historia.talla == null && !historia.motivoConsulta && !historia.tratamientosPrevios && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 italic">Sin datos registrados.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Diagnósticos */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <HCSectionHeader icon="🏥" title={`Diagnósticos${diagnoses.length > 0 ? ` (${diagnoses.length})` : ""}`} />
+            <div className="flex items-center gap-2">
+              {loadingDiagnoses && <span className="text-xs text-gray-400">Cargando...</span>}
+              <Link
+                href={`/dashboard/diagnoses/new?patientId=${patientId}`}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium whitespace-nowrap"
+              >
+                + Nuevo
+              </Link>
+            </div>
+          </div>
+
+          {/* Filtros de estado */}
+          <div className="flex gap-1 mb-3 flex-wrap">
+            {([
+              { key: "all",      label: "Todos",    count: diagnoses.length },
+              { key: "ACTIVE",   label: "Activos",  count: diagnoses.filter(d => d.status === "ACTIVE").length },
+              { key: "CHRONIC",  label: "Crónicos", count: diagnoses.filter(d => d.status === "CHRONIC").length },
+              { key: "RESOLVED", label: "Resueltos",count: diagnoses.filter(d => d.status === "RESOLVED").length },
+            ] as const).map(f => (
+              <button
+                key={f.key}
+                onClick={() => setDiagnosisFilter(f.key)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  diagnosisFilter === f.key
+                    ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+              >
+                {f.label}
+                {f.count > 0 && <span className="ml-1 opacity-60">{f.count}</span>}
+              </button>
+            ))}
+          </div>
+
+          {diagnoses.length > 0 ? (
+            <>
+              <div className="space-y-2">
+                {filteredDiagnoses
+                  .slice((diagnosesPage - 1) * diagnosesPerPage, diagnosesPage * diagnosesPerPage)
+                  .map((diagnosis) => {
+                    const isOpen = expandedDiagnoses.has(diagnosis.id);
+                    const linkedPlan = treatmentPlans.find(p => p.diagnosisId === diagnosis.id) ?? null;
+                    return (
+                      <div key={diagnosis.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-hidden">
+                        <div className="p-3 flex items-center gap-2">
+                          <button type="button" onClick={() => toggleDiagnosis(diagnosis.id)}
+                            className="flex-1 min-w-0 text-left flex items-center gap-2 hover:opacity-80 transition-opacity">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{diagnosis.clinicalDiagnosis}</p>
+                              <p className="text-xs text-gray-400 mt-0.5">{diagnosis.diagnosisDate ? moment(diagnosis.diagnosisDate).format("DD/MM/YYYY") : "—"}</p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide flex-shrink-0 ${
+                              diagnosis.status === "ACTIVE"   ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" :
+                              diagnosis.status === "CHRONIC"  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" :
+                              "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                            }`}>
+                              {diagnosis.status === "ACTIVE" ? "Activo" : diagnosis.status === "CHRONIC" ? "Crónico" : "Resuelto"}
+                            </span>
+                            <span className={`text-gray-400 text-xs transition-transform duration-200 flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}>▾</span>
+                          </button>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <Link href={`/dashboard/diagnoses/${diagnosis.id}`} onClick={e => e.stopPropagation()}
+                              className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Editar">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            </Link>
+                            <button type="button" onClick={e => { e.stopPropagation(); setDeleteDiagnosisId(diagnosis.id); }}
+                              className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                        {isOpen && (
+                          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700 space-y-2 pt-2">
+                            {diagnosis.observations && (
+                              <p className="text-sm text-gray-600 dark:text-gray-300">{diagnosis.observations}</p>
+                            )}
+                            {linkedPlan ? (
+                              <button type="button"
+                                onClick={() => { setActiveTab("tratamiento"); setExpandedPlans(prev => new Set([...prev, linkedPlan.id])); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                                className="w-full text-left flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 transition-colors">
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-0.5">Tratamiento</p>
+                                  <p className="text-xs font-medium text-indigo-800 dark:text-indigo-200 truncate">{linkedPlan.title}</p>
+                                </div>
+                                <svg className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                              </button>
+                            ) : (
+                              <p className="text-xs text-gray-400 italic">Sin tratamiento vinculado.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700 mt-1">
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span>Mostrar</span>
+                  <select
+                    value={diagnosesPerPage}
+                    onChange={e => setDiagnosesPerPage(Number(e.target.value))}
+                    className="border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <span>por página · {filteredDiagnoses.length} en total</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setDiagnosesPage(p => Math.max(1, p - 1))} disabled={diagnosesPage === 1}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">‹</button>
+                  {Array.from({ length: totalDiagPages }, (_, i) => i + 1).map(p => (
+                    <button key={p} onClick={() => setDiagnosesPage(p)}
+                      className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-medium transition-colors ${
+                        p === diagnosesPage
+                          ? "bg-indigo-600 text-white"
+                          : "border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      }`}>
+                      {p}
+                    </button>
+                  ))}
+                  <button onClick={() => setDiagnosesPage(p => Math.min(totalDiagPages, p + 1))} disabled={diagnosesPage >= totalDiagPages}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">›</button>
+                </div>
+              </div>
+            </>
+          ) : diagnosisFilter !== "all" && filteredDiagnoses.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-5 text-center">
+              <p className="text-sm text-gray-400 dark:text-gray-500">Sin diagnósticos con ese estado.</p>
+              <button onClick={() => setDiagnosisFilter("all")} className="mt-1 text-xs text-indigo-500 hover:underline">Ver todos</button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-5 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Sin diagnósticos registrados.</p>
+              <Link href={`/dashboard/diagnoses/new?patientId=${patientId}`}
+                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                Crear diagnóstico
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>{/* fin grid Expediente Base + Diagnósticos */}
+
+      {/* Antecedentes + Hábitos */}
+      {(activeAnt.length > 0 || activeHabitos.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {activeAnt.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+              <HCSectionHeader icon="📂" title="Antecedentes Patológicos" />
+              <ul className="mt-4 space-y-2">
+                {activeAnt.map(([key, val]) => (
+                  <li key={key} className="flex items-start gap-2 text-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
+                    <span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{ANTECEDENTES_LABELS[key] ?? key}</span>
+                      {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {activeHabitos.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+              <HCSectionHeader icon="🌿" title="Hábitos de Salud" />
+              <ul className="mt-4 space-y-2">
+                {activeHabitos.map(([key, val]) => (
+                  <li key={key} className="flex items-start gap-2 text-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 flex-shrink-0" />
+                    <span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{HABITOS_LABELS[key] ?? key}</span>
+                      {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Evaluaciones Físicas */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <HCSectionHeader icon="🩺" title="Evaluaciones Físicas" />
+          <Link
+            href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
+            className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium"
+          >
+            + Nueva
+          </Link>
+        </div>
+
+        {loadingEvals ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
+          </div>
+        ) : evals.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sin evaluaciones físicas registradas</p>
+            <Link
+              href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
+              className="text-sm text-teal-600 dark:text-teal-400 hover:underline font-medium"
+            >
+              Registrar primera evaluación →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {evals.length >= 2 && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 pb-1">
+                Selecciona 2 evaluaciones para compararlas.
+                {selected.length === 2 && (
+                  <button onClick={() => setSelected([])} className="ml-2 text-indigo-500 hover:underline">
+                    Limpiar selección
+                  </button>
+                )}
+              </p>
+            )}
+
+            {selected.length === 2 && (() => {
+              const evA = evals.find(e => e.id === selected[0])!;
+              const evB = evals.find(e => e.id === selected[1])!;
+              return <ComparisonPanel evA={evA} evB={evB} />;
+            })()}
+
+            {evals.map(ev => {
+              const isSelected = selected.includes(ev.id);
+              const isExpanded = expanded === ev.id;
+              const canSelect = isSelected || selected.length < 2;
+              return (
+                <div key={ev.id} className={`rounded-xl border transition-colors ${
+                  isSelected
+                    ? "border-indigo-300 dark:border-indigo-600 bg-indigo-50/30 dark:bg-indigo-900/10"
+                    : "border-gray-100 dark:border-gray-700"
+                }`}>
+                  <div className="flex items-center gap-3 p-3">
+                    {evals.length >= 2 && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        disabled={!canSelect}
+                        onChange={() => toggleSelect(ev.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0 disabled:opacity-30 cursor-pointer"
+                      />
+                    )}
+                    <button
+                      onClick={() => setExpanded(prev => prev === ev.id ? null : ev.id)}
+                      className="flex-1 flex items-center gap-3 text-left min-w-0"
+                    >
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                        ev.tipo === "inicial"    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" :
+                        ev.tipo === "final"      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" :
+                        ev.tipo === "progreso"   ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300" :
+                        ev.tipo === "seguimiento"? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" :
+                        "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                      }`}>
+                        {ev.tipo ?? "evaluación"}
+                      </span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                        {moment(ev.fechaEvaluacion).format("DD/MM/YYYY")}
+                      </span>
+                      {ev.escalaDolor != null && (
+                        <span className={`text-xs font-medium flex-shrink-0 ${
+                          ev.escalaDolor <= 3 ? "text-green-600 dark:text-green-400" :
+                          ev.escalaDolor <= 6 ? "text-yellow-600 dark:text-yellow-400" :
+                          "text-red-600 dark:text-red-400"
+                        }`}>
+                          Dolor {ev.escalaDolor}/10
+                        </span>
+                      )}
+                      <span className={`text-gray-400 text-xs transition-transform duration-200 flex-shrink-0 ${isExpanded ? "rotate-180" : ""}`}>▾</span>
+                    </button>
+                    <Link
+                      href={`/dashboard/expedientes/${historia.id}/evaluaciones/${ev.id}/edit?patientId=${patientId}`}
+                      onClick={e => e.stopPropagation()}
+                      className="text-xs text-gray-400 hover:text-indigo-500 transition-colors flex-shrink-0"
+                    >
+                      Editar
+                    </Link>
+                  </div>
+                  {isExpanded && <EvalDetail ev={ev} />}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
+// ─── EvalDetail ──────────────────────────────────────────────────────────────
+function EvalDetail({ ev }: { ev: EvaluacionFisica }) {
+  const sv = ev.signosVitales;
+  const fm = ev.fuerzaMuscular;
+  const gs = ev.goniometriaSuper;
+  const gi = ev.goniometriaInfer;
+  const vp = ev.valoracionPostural;
+
+  const hasData = sv || ev.escalaDolor != null || ev.espasmos || ev.cicatrizQuirurgica ||
+    ev.marchaDeambulacion || ev.diagnosticoRehabilitacion || ev.traslados ||
+    fm || gs || gi || vp || ev.columna;
+
+  if (!hasData) {
+    return (
+      <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <p className="text-xs text-gray-400 italic">Sin datos registrados en esta evaluación.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-4">
+      {/* Signos vitales + dolor */}
+      {(sv || ev.escalaDolor != null) && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {ev.escalaDolor != null && (
+            <div className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-center">
+              <p className="text-xs text-gray-400 mb-1">Escala de Dolor</p>
+              <p className={`text-2xl font-bold ${
+                ev.escalaDolor <= 3 ? "text-green-600 dark:text-green-400" :
+                ev.escalaDolor <= 6 ? "text-yellow-600 dark:text-yellow-400" :
+                "text-red-600 dark:text-red-400"
+              }`}>{ev.escalaDolor}<span className="text-sm font-normal text-gray-400">/10</span></p>
+            </div>
+          )}
+          {sv?.ta && <EvalDataChip label="T.A." value={sv.ta} />}
+          {sv?.temperatura && <EvalDataChip label="Temperatura" value={sv.temperatura} />}
+          {sv?.pc && <EvalDataChip label="P.C." value={sv.pc} />}
+          {sv?.pb && <EvalDataChip label="P.B." value={sv.pb} />}
+        </div>
+      )}
+
+      {/* Espasmos */}
+      {ev.espasmos?.tiene && (
+        <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+          <p className="text-xs font-medium text-gray-400 mb-1">Espasmos</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            {ev.espasmos.sitio && <span className="font-medium">{ev.espasmos.sitio}</span>}
+            {ev.espasmos.caracteristicas && <span className="text-gray-500 dark:text-gray-400"> — {ev.espasmos.caracteristicas}</span>}
+          </p>
+        </div>
+      )}
+
+      {/* Cicatriz quirúrgica */}
+      {ev.cicatrizQuirurgica && (
+        <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+          <p className="text-xs font-medium text-gray-400 mb-1">Cicatriz Quirúrgica</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{ev.cicatrizQuirurgica}</p>
+        </div>
+      )}
+
+      {/* Marcha */}
+      {ev.marchaDeambulacion && (() => {
+        const m = ev.marchaDeambulacion!;
+        const tipos = [
+          m.libre && "Libre", m.claudicante && "Claudicante", m.conAyuda && "Con ayuda",
+          m.espastica && "Espástica", m.ataxica && "Atáxica", m.otros && "Otros",
+        ].filter(Boolean);
+        return tipos.length > 0 || m.observaciones ? (
+          <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+            <p className="text-xs font-medium text-gray-400 mb-2">Marcha / Deambulación</p>
+            <div className="flex flex-wrap gap-1.5">
+              {tipos.map(t => (
+                <span key={String(t)} className="text-xs px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{t}</span>
+              ))}
+            </div>
+            {m.observaciones && <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{m.observaciones}</p>}
+          </div>
+        ) : null;
+      })()}
+
+      {/* Traslados */}
+      {ev.traslados && (ev.traslados.velInicial || ev.traslados.velFinal) && (
+        <div className="grid grid-cols-2 gap-3">
+          {ev.traslados.velInicial && <EvalDataChip label="Vel. inicial" value={ev.traslados.velInicial} />}
+          {ev.traslados.velFinal && <EvalDataChip label="Vel. final" value={ev.traslados.velFinal} />}
+          {ev.traslados.observaciones && (
+            <div className="col-span-2 text-xs text-gray-500 dark:text-gray-400">{ev.traslados.observaciones}</div>
+          )}
+        </div>
+      )}
+
+      {/* Diagnóstico de rehabilitación */}
+      {ev.diagnosticoRehabilitacion && (() => {
+        const d = ev.diagnosticoRehabilitacion!;
+        const fields = [
+          { label: "Reflejos", val: d.reflejos },
+          { label: "Sensibilidad", val: d.sensibilidad },
+          { label: "Lenguaje / Orientación", val: d.lenguajeOrientacion },
+          { label: "Otros", val: d.otros },
+        ].filter(f => f.val);
+        return fields.length > 0 ? (
+          <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 space-y-1.5">
+            <p className="text-xs font-medium text-gray-400 mb-2">Diagnóstico de Rehabilitación</p>
+            {fields.map(f => (
+              <p key={f.label} className="text-xs text-gray-700 dark:text-gray-300">
+                <span className="font-medium text-gray-500 dark:text-gray-400">{f.label}:</span> {f.val}
+              </p>
+            ))}
+          </div>
+        ) : null;
+      })()}
+
+      {/* Columna */}
+      {ev.columna && (ev.columna.planoSagital || ev.columna.planoFrontal) && (
+        <div className="grid grid-cols-2 gap-3">
+          {ev.columna.planoSagital && <EvalDataChip label="Columna sagital" value={ev.columna.planoSagital} />}
+          {ev.columna.planoFrontal && <EvalDataChip label="Columna frontal" value={ev.columna.planoFrontal} />}
+        </div>
+      )}
+
+      {/* Fuerza muscular */}
+      {fm && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Fuerza Muscular</p>
+          <div className="space-y-3">
+            {fm.miembroSuperior && Object.keys(fm.miembroSuperior).length > 0 && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Miembro Superior</p>
+                <HCMuscleTable data={fm.miembroSuperior} />
+              </div>
+            )}
+            {fm.miembroInferior && Object.keys(fm.miembroInferior).length > 0 && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1">Miembro Inferior</p>
+                <HCMuscleTable data={fm.miembroInferior} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Goniometría superior */}
+      {gs && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Goniometría Superior</p>
+          <div className="space-y-3">
+            {gs.hombro    && Object.keys(gs.hombro).length    > 0 && <HCGonioTable label="Hombro"     data={gs.hombro} />}
+            {gs.codo      && Object.keys(gs.codo).length      > 0 && <HCGonioTable label="Codo"       data={gs.codo} />}
+            {gs.antebrazo && Object.keys(gs.antebrazo).length > 0 && <HCGonioTable label="Antebrazo"  data={gs.antebrazo} />}
+            {gs.muneca    && Object.keys(gs.muneca).length    > 0 && <HCGonioTable label="Muñeca"     data={gs.muneca} />}
+          </div>
+        </div>
+      )}
+
+      {/* Goniometría inferior */}
+      {gi && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Goniometría Inferior</p>
+          <div className="space-y-3">
+            {gi.cadera  && Object.keys(gi.cadera).length  > 0 && <HCGonioTable label="Cadera"  data={gi.cadera} />}
+            {gi.rodilla && Object.keys(gi.rodilla).length > 0 && <HCGonioTable label="Rodilla" data={gi.rodilla} />}
+            {gi.tobillo && Object.keys(gi.tobillo).length > 0 && <HCGonioTable label="Tobillo" data={gi.tobillo} />}
+          </div>
+        </div>
+      )}
+
+      {/* Valoración postural */}
+      {vp && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Valoración Postural</p>
+          <div className="space-y-3">
+            {vp.vistaAnterior  && Object.keys(vp.vistaAnterior).length  > 0 && <HCPosturalSection label="Vista Anterior"  data={vp.vistaAnterior} />}
+            {vp.vistaLateral   && Object.keys(vp.vistaLateral).length   > 0 && <HCPosturalSection label="Vista Lateral"   data={vp.vistaLateral} />}
+            {vp.vistaPosterior && Object.keys(vp.vistaPosterior).length > 0 && <HCPosturalSection label="Vista Posterior" data={vp.vistaPosterior} />}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EvalDataChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-center">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{label}</p>
+      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{value}</p>
+    </div>
+  );
+}
+
+// ─── ComparisonPanel ─────────────────────────────────────────────────────────
+function ComparisonPanel({ evA, evB }: { evA: EvaluacionFisica; evB: EvaluacionFisica }) {
+  const pn = (v: string | number | null | undefined): number | null => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
+    return isNaN(n) ? null : n;
+  };
+
+  const Delta = ({ a, b, lowerBetter = false }: { a: string | number | null | undefined; b: string | number | null | undefined; lowerBetter?: boolean }) => {
+    const na = pn(a); const nb = pn(b);
+    if (na === null || nb === null) return <span className="text-gray-300 dark:text-gray-600">—</span>;
+    const diff = nb - na;
+    if (diff === 0) return <span className="text-gray-400 text-xs">=</span>;
+    const improved = lowerBetter ? diff < 0 : diff > 0;
+    const cls = improved ? "text-green-600 dark:text-green-400 font-semibold" : "text-red-500 dark:text-red-400 font-semibold";
+    const abs = Math.abs(diff);
+    return <span className={`text-xs ${cls}`}>{diff > 0 ? "▲" : "▼"} {abs % 1 === 0 ? abs : abs.toFixed(1)}</span>;
+  };
+
+  const CmpRow = ({ label, a, b, lowerBetter }: { label: string; a: React.ReactNode; b: React.ReactNode; lowerBetter?: boolean }) => (
+    <tr className="border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+      <td className="py-2 pr-3 text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</td>
+      <td className="py-2 px-3 text-xs text-gray-800 dark:text-gray-200">{a ?? <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
+      <td className="py-2 px-3 text-xs text-gray-800 dark:text-gray-200">{b ?? <span className="text-gray-300 dark:text-gray-600">—</span>}</td>
+      {lowerBetter !== undefined
+        ? <td className="py-2 pl-2"><Delta a={String(a ?? "")} b={String(b ?? "")} lowerBetter={lowerBetter} /></td>
+        : <td />
+      }
+    </tr>
+  );
+
+  const labelA = `${evA.tipo ?? "eval"} · ${moment(evA.fechaEvaluacion).format("DD/MM/YY")}`;
+  const labelB = `${evB.tipo ?? "eval"} · ${moment(evB.fechaEvaluacion).format("DD/MM/YY")}`;
+
+  const hasFuerza = evA.fuerzaMuscular || evB.fuerzaMuscular;
+  const hasGonio  = evA.goniometriaSuper || evB.goniometriaSuper || evA.goniometriaInfer || evB.goniometriaInfer;
+
+  const allMuscleKeys = Array.from(new Set([
+    ...Object.keys(evA.fuerzaMuscular?.miembroSuperior ?? {}),
+    ...Object.keys(evA.fuerzaMuscular?.miembroInferior ?? {}),
+    ...Object.keys(evB.fuerzaMuscular?.miembroSuperior ?? {}),
+    ...Object.keys(evB.fuerzaMuscular?.miembroInferior ?? {}),
+  ]));
+
+  const allGonioGroups: { label: string; keysA: Record<string, { inicial: string; final: string }>; keysB: Record<string, { inicial: string; final: string }> }[] = [
+    { label: "Hombro",    keysA: evA.goniometriaSuper?.hombro    ?? {}, keysB: evB.goniometriaSuper?.hombro    ?? {} },
+    { label: "Codo",      keysA: evA.goniometriaSuper?.codo      ?? {}, keysB: evB.goniometriaSuper?.codo      ?? {} },
+    { label: "Antebrazo", keysA: evA.goniometriaSuper?.antebrazo ?? {}, keysB: evB.goniometriaSuper?.antebrazo ?? {} },
+    { label: "Muñeca",    keysA: evA.goniometriaSuper?.muneca    ?? {}, keysB: evB.goniometriaSuper?.muneca    ?? {} },
+    { label: "Cadera",    keysA: evA.goniometriaInfer?.cadera    ?? {}, keysB: evB.goniometriaInfer?.cadera    ?? {} },
+    { label: "Rodilla",   keysA: evA.goniometriaInfer?.rodilla   ?? {}, keysB: evB.goniometriaInfer?.rodilla   ?? {} },
+    { label: "Tobillo",   keysA: evA.goniometriaInfer?.tobillo   ?? {}, keysB: evB.goniometriaInfer?.tobillo   ?? {} },
+  ].filter(g => Object.keys(g.keysA).length > 0 || Object.keys(g.keysB).length > 0);
+
+  return (
+    <div className="mb-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-2xl p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">Comparación</span>
+        <span className="flex-1 h-px bg-indigo-200 dark:bg-indigo-700" />
+        <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{labelA}</span>
+        <span className="text-xs text-gray-400">vs</span>
+        <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">{labelB}</span>
+      </div>
+
+      {/* Métricas generales */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-100 dark:border-gray-700">
+              <th className="text-left py-2 px-3 text-xs font-medium text-gray-400 dark:text-gray-500 w-32">Métrica</th>
+              <th className="text-left py-2 px-3 text-xs font-medium text-indigo-600 dark:text-indigo-400">{labelA}</th>
+              <th className="text-left py-2 px-3 text-xs font-medium text-indigo-600 dark:text-indigo-400">{labelB}</th>
+              <th className="py-2 px-2 text-xs font-medium text-gray-400 text-right">Δ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+            <CmpRow label="Dolor"
+              a={evA.escalaDolor != null ? `${evA.escalaDolor}/10` : null}
+              b={evB.escalaDolor != null ? `${evB.escalaDolor}/10` : null}
+              lowerBetter
+            />
+            {(evA.signosVitales?.ta || evB.signosVitales?.ta) &&
+              <CmpRow label="T.A." a={evA.signosVitales?.ta} b={evB.signosVitales?.ta} />}
+            {(evA.signosVitales?.temperatura || evB.signosVitales?.temperatura) &&
+              <CmpRow label="Temperatura" a={evA.signosVitales?.temperatura} b={evB.signosVitales?.temperatura} />}
+            {(evA.traslados?.velInicial || evB.traslados?.velInicial) &&
+              <CmpRow label="Vel. inicial" a={evA.traslados?.velInicial} b={evB.traslados?.velInicial} lowerBetter={false} />}
+            {(evA.traslados?.velFinal || evB.traslados?.velFinal) &&
+              <CmpRow label="Vel. final" a={evA.traslados?.velFinal} b={evB.traslados?.velFinal} lowerBetter={false} />}
+            {(evA.columna?.planoSagital || evB.columna?.planoSagital) &&
+              <CmpRow label="Col. sagital" a={evA.columna?.planoSagital} b={evB.columna?.planoSagital} />}
+            {(evA.columna?.planoFrontal || evB.columna?.planoFrontal) &&
+              <CmpRow label="Col. frontal" a={evA.columna?.planoFrontal} b={evB.columna?.planoFrontal} />}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Fuerza muscular */}
+      {hasFuerza && allMuscleKeys.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 pt-3 pb-1 uppercase tracking-wide">Fuerza Muscular</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-100 dark:border-gray-700">
+                  <th className="text-left py-2 px-3 font-medium text-gray-400">Músculo</th>
+                  {["D Ini","D Fin","I Ini","I Fin"].map(h => (
+                    <th key={h} colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">{h}</th>
+                  ))}
+                </tr>
+                <tr className="bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700">
+                  <th />
+                  {["D Ini","D Fin","I Ini","I Fin"].map(h => (
+                    <React.Fragment key={h}>
+                      <th className="text-center py-1 px-1 text-[10px] text-indigo-500">A</th>
+                      <th className="text-center py-1 px-1 text-[10px] text-indigo-500">B</th>
+                      <th className="text-center py-1 px-1 text-[10px] text-gray-400">Δ</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {allMuscleKeys.map(muscle => {
+                  const isSup = muscle in (evA.fuerzaMuscular?.miembroSuperior ?? {}) || muscle in (evB.fuerzaMuscular?.miembroSuperior ?? {});
+                  const va = isSup ? evA.fuerzaMuscular?.miembroSuperior?.[muscle] : evA.fuerzaMuscular?.miembroInferior?.[muscle];
+                  const vb = isSup ? evB.fuerzaMuscular?.miembroSuperior?.[muscle] : evB.fuerzaMuscular?.miembroInferior?.[muscle];
+                  return (
+                    <tr key={muscle} className="text-gray-700 dark:text-gray-300">
+                      <td className="py-2 px-3 font-medium capitalize">{muscle.replace(/_/g, " ")}</td>
+                      {(["di","dd","fi","fd"] as const).map(k => (
+                        <React.Fragment key={k}>
+                          <td className="text-center py-2 px-1">{va?.[k] || "—"}</td>
+                          <td className="text-center py-2 px-1">{vb?.[k] || "—"}</td>
+                          <td className="text-center py-2 px-1"><Delta a={va?.[k]} b={vb?.[k]} /></td>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Goniometría */}
+      {hasGonio && allGonioGroups.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 px-3 pt-3 pb-1 uppercase tracking-wide">Goniometría</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-100 dark:border-gray-700">
+                  <th className="text-left py-2 px-3 font-medium text-gray-400">Movimiento</th>
+                  <th colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">Inicial</th>
+                  <th colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">Final</th>
+                </tr>
+                <tr className="bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700">
+                  <th />
+                  {["Inicial","Final"].map(h => (
+                    <React.Fragment key={h}>
+                      <th className="text-center py-1 px-1 text-[10px] text-indigo-500">A</th>
+                      <th className="text-center py-1 px-1 text-[10px] text-indigo-500">B</th>
+                      <th className="text-center py-1 px-1 text-[10px] text-gray-400">Δ</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {allGonioGroups.map(({ label, keysA, keysB }) => {
+                  const movs = Array.from(new Set([...Object.keys(keysA), ...Object.keys(keysB)]));
+                  return movs.map((mov, i) => (
+                    <tr key={`${label}-${mov}`} className="text-gray-700 dark:text-gray-300">
+                      <td className="py-2 px-3 font-medium capitalize">
+                        {i === 0 && <span className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-wide block leading-none mb-0.5">{label}</span>}
+                        {mov.replace(/_/g, " ")}
+                      </td>
+                      <td className="text-center py-2 px-1">{keysA[mov]?.inicial || "—"}</td>
+                      <td className="text-center py-2 px-1">{keysB[mov]?.inicial || "—"}</td>
+                      <td className="text-center py-2 px-1"><Delta a={keysA[mov]?.inicial} b={keysB[mov]?.inicial} /></td>
+                      <td className="text-center py-2 px-1">{keysA[mov]?.final || "—"}</td>
+                      <td className="text-center py-2 px-1">{keysB[mov]?.final || "—"}</td>
+                      <td className="text-center py-2 px-1"><Delta a={keysA[mov]?.final} b={keysB[mov]?.final} /></td>
+                    </tr>
+                  ));
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

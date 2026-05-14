@@ -411,8 +411,7 @@ export default function AppointmentsPage() {
             className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex-1 sm:flex-none"
           >
             <PlusIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("appointments.newAppointment")}</span>
-            <span className="sm:hidden">{t("common.create")}</span>
+            <span>{t("appointments.newAppointment")}</span>
           </Link>
         </div>
       </div>
