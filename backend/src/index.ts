@@ -22,6 +22,7 @@ import invoiceRoutes from './routes/invoices';
 import historiaClinicaRoutes from './routes/historiaClinica';
 import userRoutes from './routes/users';
 import { recalculateAllCounters } from './services/treatmentPlanService';
+import { initDefaultConfigs } from './services/configService';
 
 const app: Express = express();
 
@@ -99,6 +100,9 @@ if (require.main === module) {
     recalculateAllCounters()
       .then(() => logger.info('✅ Contadores de sesiones recalculados'))
       .catch(err => logger.error('Error recalculando contadores:', err));
+    initDefaultConfigs()
+      .then(() => logger.info('✅ Configuración por defecto inicializada'))
+      .catch(err => logger.error('Error inicializando configuración:', err));
   });
 }
 
