@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { diagnosisService, CreateDiagnosisData } from "@/services/diagnosisService";
+import { evaluacionFisicaService, EvaluacionFisica } from "@/services/evaluacionFisicaService";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { patientService } from "@/services/patientService";
+import moment from "moment";
 
 export default function NewDiagnosisPage() {
   const router = useRouter();
@@ -15,6 +17,8 @@ export default function NewDiagnosisPage() {
 
   const [loading, setLoading] = useState(false);
   const [patientName, setPatientName] = useState<string>("");
+  const [evals, setEvals] = useState<EvaluacionFisica[]>([]);
+  const [createPlan, setCreatePlan] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -24,22 +28,18 @@ export default function NewDiagnosisPage() {
     diagnosisDate: today,
     observations: "",
     status: "ACTIVE",
+    evaluacionFisicaId: null,
   });
 
   useEffect(() => {
-    if (patientIdParam) {
-      fetchPatientName(patientIdParam);
-    }
+    if (!patientIdParam) return;
+    patientService.getById(patientIdParam)
+      .then(p => setPatientName(p.name))
+      .catch(() => {});
+    evaluacionFisicaService.getByPatient(patientIdParam)
+      .then(setEvals)
+      .catch(() => setEvals([]));
   }, [patientIdParam]);
-
-  const fetchPatientName = async (id: string) => {
-    try {
-      const patient = await patientService.getById(id);
-      setPatientName(patient.name);
-    } catch {
-      // si no se puede obtener el nombre, continúa sin él
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,17 +49,28 @@ export default function NewDiagnosisPage() {
     }
     setLoading(true);
     try {
-      await diagnosisService.create({
+      const created = await diagnosisService.create({
         ...formData,
         observations: formData.observations || null,
+        evaluacionFisicaId: formData.evaluacionFisicaId || null,
       });
       toast.success("Diagnóstico creado exitosamente");
-      router.push(`/dashboard/patients/${formData.patientId}?tab=expediente`);
+      if (createPlan) {
+        router.push(`/dashboard/treatment-plans/new?patientId=${formData.patientId}&diagnosisId=${created.id}`);
+      } else {
+        router.push(`/dashboard/patients/${formData.patientId}?tab=expediente`);
+      }
     } catch (error: any) {
       toast.error(error.message || "Error al crear el diagnóstico");
     } finally {
       setLoading(false);
     }
+  };
+
+  const evalLabel = (ev: EvaluacionFisica) => {
+    const tipo = ev.tipo ?? "evaluación";
+    const fecha = ev.fechaEvaluacion ? moment(ev.fechaEvaluacion).format("DD/MM/YYYY") : "";
+    return `${tipo.charAt(0).toUpperCase() + tipo.slice(1)}${fecha ? ` — ${fecha}` : ""}`;
   };
 
   return (
@@ -69,9 +80,7 @@ export default function NewDiagnosisPage() {
           { label: "Dashboard", href: "/dashboard" },
           { label: "Pacientes", href: "/dashboard/patients" },
           ...(patientIdParam
-            ? [
-                { label: patientName || "Paciente", href: `/dashboard/patients/${patientIdParam}` },
-              ]
+            ? [{ label: patientName || "Paciente", href: `/dashboard/patients/${patientIdParam}?tab=expediente` }]
             : []),
           { label: "Nuevo Diagnóstico" },
         ]}
@@ -79,7 +88,7 @@ export default function NewDiagnosisPage() {
 
       <div className="mb-6">
         <Link
-          href={patientIdParam ? `/dashboard/patients/${patientIdParam}` : "/dashboard/patients"}
+          href={patientIdParam ? `/dashboard/patients/${patientIdParam}?tab=expediente` : "/dashboard/patients"}
           className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition-colors"
         >
           ← Volver al expediente
@@ -112,7 +121,7 @@ export default function NewDiagnosisPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {/* Fecha de diagnóstico */}
+            {/* Fecha */}
             <div>
               <label htmlFor="diagnosisDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Fecha de diagnóstico <span className="text-red-500">*</span>
@@ -145,6 +154,30 @@ export default function NewDiagnosisPage() {
             </div>
           </div>
 
+          {/* Evaluación Física vinculada */}
+          <div>
+            <label htmlFor="evaluacionFisicaId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Evaluación física vinculada <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            {evals.length > 0 ? (
+              <select
+                id="evaluacionFisicaId"
+                value={formData.evaluacionFisicaId ?? ""}
+                onChange={(e) => setFormData({ ...formData, evaluacionFisicaId: e.target.value || null })}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="">— Sin vincular —</option>
+                {evals.map((ev) => (
+                  <option key={ev.id} value={ev.id}>{evalLabel(ev)}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
+                Este paciente no tiene evaluaciones físicas registradas.
+              </p>
+            )}
+          </div>
+
           {/* Observaciones */}
           <div>
             <label htmlFor="observations" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -160,12 +193,31 @@ export default function NewDiagnosisPage() {
             />
           </div>
 
-          {/* patientId oculto */}
+          {/* Continuar a plan de tratamiento */}
+          <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50 dark:bg-indigo-900/10 px-4 py-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={createPlan}
+                onChange={(e) => setCreatePlan(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div>
+                <p className="text-sm font-medium text-indigo-800 dark:text-indigo-300">
+                  Continuar a crear un plan de tratamiento
+                </p>
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">
+                  Al guardar el diagnóstico, abre el formulario de nuevo plan vinculado automáticamente.
+                </p>
+              </div>
+            </label>
+          </div>
+
           <input type="hidden" value={formData.patientId} />
 
           <div className="flex justify-end gap-3 pt-2">
             <Link
-              href={patientIdParam ? `/dashboard/patients/${patientIdParam}` : "/dashboard/patients"}
+              href={patientIdParam ? `/dashboard/patients/${patientIdParam}?tab=expediente` : "/dashboard/patients"}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
             >
               Cancelar
@@ -175,7 +227,11 @@ export default function NewDiagnosisPage() {
               disabled={loading}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Guardando..." : "Crear diagnóstico"}
+              {loading
+                ? "Guardando..."
+                : createPlan
+                ? "Crear diagnóstico y continuar →"
+                : "Crear diagnóstico"}
             </button>
           </div>
         </form>
