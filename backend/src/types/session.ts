@@ -3,7 +3,7 @@ export type AttendanceStatus = 'PENDING' | 'ATTENDED' | 'NOT_ATTENDED' | 'RESCHE
 export interface TreatmentSession {
   id: string;
   patientId: string;
-  therapistId: string;
+  therapistId: string | null;
   treatmentPlanId?: string | null;
   appointmentId?: string | null;
   sessionDate: string;
@@ -23,7 +23,7 @@ export interface TreatmentSession {
 
 export interface CreateSessionData {
   patientId: string;
-  therapistId: string;
+  therapistId?: string | null;
   treatmentPlanId?: string | null;
   appointmentId?: string | null;
   sessionDate: string;
@@ -39,7 +39,7 @@ export interface CreateSessionData {
 
 export interface UpdateSessionData {
   patientId?: string;
-  therapistId?: string;
+  therapistId?: string | null;
   treatmentPlanId?: string | null;
   appointmentId?: string | null;
   sessionDate?: string;

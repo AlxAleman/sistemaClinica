@@ -360,8 +360,8 @@ model TreatmentSession {
   id                    String           @id @default(cuid())
   patientId             String
   patient               Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  therapistId           String
-  therapist             Therapist        @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  therapistId           String?
+  therapist             Therapist?       @relation(fields: [therapistId], references: [id], onDelete: SetNull)
   treatmentPlanId       String?
   treatmentPlan         TreatmentPlan?   @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
   appointmentId         String?          @unique

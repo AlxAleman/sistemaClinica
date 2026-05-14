@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appointmentService, Appointment } from "@/services/appointmentService";
 import { sessionService, TreatmentSession } from "@/services/sessionService";
+import { therapistService, Therapist } from "@/services/therapistService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import AppointmentCalendar, { UnifiedCalendarEvent } from "@/components/AppointmentCalendar";
@@ -38,13 +39,17 @@ function EventPanel({
   event,
   onClose,
   onAppointmentUpdated,
+  therapists,
 }: {
   event: UnifiedCalendarEvent;
   onClose: () => void;
   onAppointmentUpdated: () => void;
+  therapists: Therapist[];
 }) {
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
+  const [assigningTherapist, setAssigningTherapist] = useState(false);
+  const [selectedTherapistId, setSelectedTherapistId] = useState<string>("");
 
   const isAppt = event.eventType === "appointment";
   const appt   = isAppt ? (event.resource as Appointment) : null;
@@ -55,6 +60,27 @@ function EventPanel({
   const dur     = isAppt ? appt!.duration : sess!.duration;
   const patient = isAppt ? appt!.patient : sess!.patient;
   const therapist = isAppt ? appt!.therapist : sess!.therapist;
+
+  // Inicializar el selector con el terapeuta actual de la sesión
+  useEffect(() => {
+    setSelectedTherapistId(sess?.therapistId ?? "");
+    setAssigningTherapist(false);
+  }, [event.resource]);
+
+  const handleAssignTherapist = async () => {
+    if (!sess) return;
+    setUpdating(true);
+    try {
+      await sessionService.update(sess.id, { therapistId: selectedTherapistId || null });
+      toast.success(selectedTherapistId ? "Terapeuta asignado" : "Terapeuta removido");
+      onAppointmentUpdated();
+      setAssigningTherapist(false);
+    } catch {
+      toast.error("Error al asignar terapeuta");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!appt) return;
@@ -140,11 +166,57 @@ function EventPanel({
 
           {/* Therapist */}
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Terapeuta</p>
-            {therapist ? (
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{therapist.name}</p>
-            ) : (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Sin asignar</span>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Terapeuta</p>
+              {!isAppt && !assigningTherapist && (
+                <button
+                  onClick={() => { setAssigningTherapist(true); setSelectedTherapistId(sess?.therapistId ?? ""); }}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                >
+                  {therapist ? "Cambiar" : "Asignar"}
+                </button>
+              )}
+            </div>
+
+            {/* Modo visualización */}
+            {!assigningTherapist && (
+              therapist ? (
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{therapist.name}</p>
+              ) : (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Sin asignar</span>
+              )
+            )}
+
+            {/* Modo edición (solo sesiones) */}
+            {!isAppt && assigningTherapist && (
+              <div className="space-y-2">
+                <select
+                  value={selectedTherapistId}
+                  onChange={e => setSelectedTherapistId(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">— Sin asignar —</option>
+                  {therapists.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAssignTherapist}
+                    disabled={updating}
+                    className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
+                  >
+                    {updating ? "Guardando…" : "Guardar"}
+                  </button>
+                  <button
+                    onClick={() => setAssigningTherapist(false)}
+                    disabled={updating}
+                    className="flex-1 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -213,7 +285,7 @@ function EventPanel({
           {!isAppt && sess && sess.patient && (
             <>
               <Link
-                href={`/dashboard/patients/${sess.patientId}?tab=tratamiento${sess.treatmentPlanId ? `&planId=${sess.treatmentPlanId}` : ""}`}
+                href={`/dashboard/patients/${sess.patientId}?tab=tratamiento${sess.treatmentPlanId ? `&planId=${sess.treatmentPlanId}` : ""}&sessionId=${sess.id}`}
                 className="block w-full py-2.5 text-center bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
                 onClick={onClose}
               >
@@ -243,6 +315,7 @@ export default function AppointmentsPage() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [sessions, setSessions] = useState<TreatmentSession[]>([]);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"calendar" | "list">("calendar");
   const [calendarView, setCalendarView] = useState<View>("month");
@@ -262,12 +335,14 @@ export default function AppointmentsPage() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [apptRes, sessRes] = await Promise.all([
+      const [apptRes, sessRes, therapistRes] = await Promise.all([
         appointmentService.getAll({ limit: 1000 }),
         sessionService.getAll({ limit: 1000 }),
+        therapistService.getAll({ limit: 200 }),
       ]);
       setAppointments(apptRes.appointments);
       setSessions(sessRes.sessions);
+      setTherapists(therapistRes.therapists);
     } catch {
       toast.error("Error al cargar el calendario");
     } finally {
@@ -426,6 +501,7 @@ export default function AppointmentsPage() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onAppointmentUpdated={fetchAll}
+          therapists={therapists}
         />
       )}
 

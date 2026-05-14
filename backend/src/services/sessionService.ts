@@ -2,13 +2,18 @@ import prisma from '../config/database';
 import { Prisma } from '@prisma/client';
 import { CreateSessionData, UpdateSessionData } from '../types/session';
 import { updateSessionsCompleted } from './treatmentPlanService';
+import crypto from 'crypto';
+
+const genId = () => `s${Date.now()}${crypto.randomBytes(4).toString('hex')}`;
 
 export const createSession = async (data: CreateSessionData) => {
   const patient = await prisma.patient.findUnique({ where: { id: data.patientId } });
   if (!patient) throw new Error('Paciente no encontrado');
 
-  const therapist = await prisma.therapist.findUnique({ where: { id: data.therapistId } });
-  if (!therapist) throw new Error('Terapeuta no encontrado');
+  if (data.therapistId) {
+    const therapist = await prisma.therapist.findUnique({ where: { id: data.therapistId } });
+    if (!therapist) throw new Error('Terapeuta no encontrado');
+  }
 
   if (data.appointmentId) {
     const appointment = await prisma.appointment.findUnique({ where: { id: data.appointmentId } });
@@ -27,22 +32,54 @@ export const createSession = async (data: CreateSessionData) => {
     sessionNumber = count + 1;
   }
 
-  const session = await prisma.treatmentSession.create({
-    data: {
-      patientId: data.patientId,
-      therapistId: data.therapistId,
-      treatmentPlanId: data.treatmentPlanId || null,
-      appointmentId: data.appointmentId || null,
-      sessionDate: new Date(data.sessionDate),
-      sessionNumber,
-      duration: data.duration || 60,
-      attendanceStatus: data.attendanceStatus || 'PENDING',
-      interventions: data.interventions || null,
-      progress: data.progress || null,
-      painLevel: data.painLevel != null ? data.painLevel : null,
-      notes: data.notes || null,
-      sessionProtocol: data.sessionProtocol ?? Prisma.JsonNull,
-    },
+  let sessionId: string;
+
+  if (data.therapistId) {
+    // Camino normal: Prisma ORM (therapistId siempre válido)
+    const created = await prisma.treatmentSession.create({
+      data: {
+        patientId: data.patientId,
+        therapistId: data.therapistId,
+        treatmentPlanId: data.treatmentPlanId || null,
+        appointmentId: data.appointmentId || null,
+        sessionDate: new Date(data.sessionDate),
+        sessionNumber,
+        duration: data.duration || 60,
+        attendanceStatus: data.attendanceStatus || 'PENDING',
+        interventions: data.interventions || null,
+        progress: data.progress || null,
+        painLevel: data.painLevel != null ? data.painLevel : null,
+        notes: data.notes || null,
+        sessionProtocol: data.sessionProtocol ?? Prisma.JsonNull,
+      },
+      select: { id: true },
+    });
+    sessionId = created.id;
+  } else {
+    // Sin terapeuta: raw INSERT para evitar validación del cliente Prisma stale
+    sessionId = genId();
+    const now = new Date();
+    await prisma.$executeRaw`
+      INSERT INTO "TreatmentSession"
+        (id, "patientId", "therapistId", "treatmentPlanId", "appointmentId",
+         "sessionDate", "sessionNumber", duration, "attendanceStatus",
+         interventions, progress, "painLevel", notes, "sessionProtocol",
+         "createdAt", "updatedAt")
+      VALUES (
+        ${sessionId}, ${data.patientId}, NULL,
+        ${data.treatmentPlanId || null}, ${data.appointmentId || null},
+        ${new Date(data.sessionDate)}, ${sessionNumber}, ${data.duration || 60},
+        ${data.attendanceStatus || 'PENDING'}::"AttendanceStatus",
+        ${data.interventions || null}, ${data.progress || null},
+        ${data.painLevel ?? null}, ${data.notes || null},
+        ${data.sessionProtocol ? JSON.stringify(data.sessionProtocol) : null}::jsonb,
+        ${now}, ${now}
+      )
+    `;
+  }
+
+  const session = await prisma.treatmentSession.findUniqueOrThrow({
+    where: { id: sessionId },
     include: {
       patient: { select: { id: true, name: true, phone: true, email: true } },
       therapist: { select: { id: true, name: true, specialization: true } },
@@ -176,7 +213,7 @@ export const updateSession = async (id: string, data: UpdateSessionData) => {
   const updated = await prisma.treatmentSession.update({
     where: { id },
     data: {
-      therapistId: data.therapistId,
+      therapistId: data.therapistId as any,
       treatmentPlanId: data.treatmentPlanId,
       sessionDate: data.sessionDate ? new Date(data.sessionDate) : undefined,
       sessionNumber: data.sessionNumber,
@@ -196,6 +233,12 @@ export const updateSession = async (id: string, data: UpdateSessionData) => {
       treatmentPlan: { select: { id: true, title: true, sessionsPlanned: true, sessionsCompleted: true } },
     },
   });
+
+  // Recalcular contador del plan cuando cambia el estado de asistencia
+  const planId = session.treatmentPlanId ?? updated.treatmentPlanId;
+  if (planId) {
+    await updateSessionsCompleted(planId);
+  }
 
   return updated;
 };

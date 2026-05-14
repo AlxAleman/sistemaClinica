@@ -179,3 +179,9 @@ export const updateSessionsCompleted = async (treatmentPlanId: string) => {
 
   return plan;
 };
+
+// Recalcula los contadores de TODOS los planes — se llama al arrancar el servidor
+export const recalculateAllCounters = async () => {
+  const plans = await prisma.treatmentPlan.findMany({ select: { id: true } });
+  await Promise.allSettled(plans.map(p => updateSessionsCompleted(p.id)));
+};

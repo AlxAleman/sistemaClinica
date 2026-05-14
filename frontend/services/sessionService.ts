@@ -19,7 +19,7 @@ export interface SessionProtocolItem {
 export interface TreatmentSession {
   id: string;
   patientId: string;
-  therapistId: string;
+  therapistId: string | null;
   appointmentId?: string | null;
   treatmentPlanId?: string | null;
   sessionNumber?: number | null;
@@ -49,7 +49,7 @@ export interface TreatmentSession {
 
 export interface CreateSessionData {
   patientId: string;
-  therapistId: string;
+  therapistId?: string | null;
   appointmentId?: string | null;
   treatmentPlanId?: string | null;
   sessionNumber?: number | null;
@@ -65,7 +65,7 @@ export interface CreateSessionData {
 
 export interface UpdateSessionData {
   patientId?: string;
-  therapistId?: string;
+  therapistId?: string | null;
   appointmentId?: string | null;
   treatmentPlanId?: string | null;
   sessionNumber?: number | null;

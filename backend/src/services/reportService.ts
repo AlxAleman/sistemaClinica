@@ -291,7 +291,7 @@ export const getSessionReport = async (filters?: ReportFilters): Promise<Session
   return sessions.map((session) => ({
     id: session.id,
     patientName: session.patient.name,
-    therapistName: session.therapist.name,
+    therapistName: session.therapist?.name ?? "Sin asignar",
     sessionDate: session.sessionDate.toISOString(),
     duration: session.duration,
     painLevel: session.painLevel,

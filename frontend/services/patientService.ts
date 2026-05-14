@@ -156,4 +156,8 @@ export const patientService = {
     );
     return response.data.data;
   },
+
+  deleteDocument: async (patientId: string, documentId: string): Promise<void> => {
+    await api.delete(`/patients/${patientId}/documents/${documentId}`);
+  },
 };

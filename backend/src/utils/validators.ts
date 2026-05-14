@@ -89,7 +89,7 @@ export const updateAppointmentSchema = createAppointmentSchema.partial().extend(
 // Validaciones de sesiones de tratamiento
 export const createSessionSchema = z.object({
   patientId: z.string().min(1, 'ID de paciente requerido'),
-  therapistId: z.string().min(1, 'ID de terapeuta requerido'),
+  therapistId: z.string().min(1).optional().nullable(),
   treatmentPlanId: z.string().optional().nullable(),
   appointmentId: z.string().optional().nullable(),
   sessionDate: datetimeStr(),

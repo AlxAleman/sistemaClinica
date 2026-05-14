@@ -71,10 +71,10 @@ export default function PatientDetailPage() {
   const handleDeleteDocument = async () => {
     if (!deleteDocumentId) return;
     try {
-      await api.delete(`/patients/${id}/documents/${deleteDocumentId}`);
+      await patientService.deleteDocument(id as string, deleteDocumentId);
       setPatient(prev => prev ? {
         ...prev,
-        documents: prev.documents.filter((d: any) => d.id !== deleteDocumentId),
+        documents: (prev.documents ?? []).filter((d: any) => d.id !== deleteDocumentId),
       } : prev);
       toast.success("Documento eliminado");
     } catch {
@@ -205,14 +205,47 @@ export default function PatientDetailPage() {
     if (!plan) return;
     autoOpenedPlanRef.current = true;
     setExpandedPlans(prev => new Set([...prev, planId]));
-    // Cargar sesiones del plan si aún no están
-    if (!planSessions[planId]) {
-      sessionService.getAll({ treatmentPlanId: planId, limit: 200 })
-        .then(res => setPlanSessions(prev => ({ ...prev, [planId]: res.sessions })))
-        .catch(() => {});
+
+    const sessionId = searchParams.get("sessionId");
+
+    if (sessionId) {
+      // "Completar sesión" desde el calendario → abrir modal de edición para la sesión existente
+      (async () => {
+        let sessions = planSessions[planId] ?? [];
+        if (sessions.length === 0) {
+          try {
+            const res = await sessionService.getAll({ treatmentPlanId: planId, limit: 200 });
+            sessions = res.sessions;
+            setPlanSessions(prev => ({ ...prev, [planId]: res.sessions }));
+          } catch { sessions = []; }
+        }
+        const session = sessions.find(s => s.id === sessionId);
+        if (session) {
+          openCompleteSession(session, plan);
+        } else {
+          openAddSession(plan);
+        }
+      })();
+    } else {
+      if (!planSessions[planId]) {
+        sessionService.getAll({ treatmentPlanId: planId, limit: 200 })
+          .then(res => setPlanSessions(prev => ({ ...prev, [planId]: res.sessions })))
+          .catch(() => {});
+      }
+      openAddSession(plan);
     }
-    openAddSession(plan);
   }, [loadingPlans, treatmentPlans]);
+
+  const buildProtocolFromPlan = (plan: TreatmentPlan, completed: boolean) => {
+    const proto = (plan.protocol as any[] | null | undefined) ?? [];
+    return proto.map((item: any) => ({
+      order: item.order, type: item.type, procedure: item.procedure,
+      area: item.area, side: item.side, duration: item.duration,
+      intensity: item.intensity, series: item.series, reps: item.reps,
+      weight: item.weight, resistance: item.resistance,
+      completed, notes: "",
+    }));
+  };
 
   const openEditSession = (session: TreatmentSession, plan: TreatmentPlan) => {
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -220,27 +253,43 @@ export default function PatientDetailPage() {
     const localDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     setSessionForm({
       sessionDate: localDate,
-      therapistId: session.therapistId,
+      therapistId: session.therapistId ?? "",
       duration: session.duration,
       attendanceStatus: (session.attendanceStatus ?? "PENDING") as "ATTENDED" | "NOT_ATTENDED" | "RESCHEDULED" | "PENDING",
       painLevel: session.painLevel ?? 0,
       progress: session.progress ?? "",
       notes: session.notes ?? "",
     });
-    setSessionProtocol((session.sessionProtocol as SessionProtocolItem[] | null) ?? []);
+    const existing = (session.sessionProtocol as SessionProtocolItem[] | null) ?? [];
+    setSessionProtocol(existing.length > 0 ? existing : buildProtocolFromPlan(plan, false));
+    setAddSessionModal({ planId: plan.id, plan, editingSessionId: session.id });
+  };
+
+  const openCompleteSession = (session: TreatmentSession, plan: TreatmentPlan) => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const d = new Date(session.sessionDate);
+    const localDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    setSessionForm({
+      sessionDate: localDate,
+      therapistId: session.therapistId ?? (therapists[0]?.id ?? ""),
+      duration: session.duration,
+      attendanceStatus: "ATTENDED",
+      painLevel: session.painLevel ?? 0,
+      progress: session.progress ?? "",
+      notes: session.notes ?? "",
+    });
+    const existing = (session.sessionProtocol as SessionProtocolItem[] | null) ?? [];
+    setSessionProtocol(existing.length > 0 ? existing : buildProtocolFromPlan(plan, true));
     setAddSessionModal({ planId: plan.id, plan, editingSessionId: session.id });
   };
 
   const handleAddSession = async () => {
-    if (!addSessionModal || !sessionForm.therapistId) {
-      toast.error("Selecciona un terapeuta");
-      return;
-    }
+    if (!addSessionModal) return;
     setSavingSession(true);
     try {
       const payload = {
         patientId: id,
-        therapistId: sessionForm.therapistId,
+        therapistId: sessionForm.therapistId || null,
         treatmentPlanId: addSessionModal.planId,
         sessionDate: sessionForm.sessionDate,
         duration: sessionForm.duration,
@@ -1889,7 +1938,14 @@ export default function PatientDetailPage() {
                       const isActive = sessionForm.attendanceStatus === val;
                       return (
                         <button key={val} type="button"
-                          onClick={() => setSessionForm((f) => ({ ...f, attendanceStatus: val }))}
+                          onClick={() => {
+                            setSessionForm((f) => ({ ...f, attendanceStatus: val }));
+                            if (val === "ATTENDED") {
+                              setSessionProtocol(prev => prev.map(item => ({ ...item, completed: true })));
+                            } else if (val === "NOT_ATTENDED" || val === "PENDING") {
+                              setSessionProtocol(prev => prev.map(item => ({ ...item, completed: false })));
+                            }
+                          }}
                           className={`px-2 py-1.5 text-xs font-medium rounded-lg border-2 transition-all ${isActive ? colors[color] : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300"}`}>
                           {lbl}
                         </button>

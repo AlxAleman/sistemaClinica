@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { treatmentPlanService, CreateTreatmentPlanData, ProtocolItem } from "@/services/treatmentPlanService";
+import { sessionService } from "@/services/sessionService";
 import { patientService } from "@/services/patientService";
 import { diagnosisService, Diagnosis } from "@/services/diagnosisService";
+import { therapistService, Therapist } from "@/services/therapistService";
 import { configService } from "@/services/configService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
@@ -59,6 +61,13 @@ export default function NewTreatmentPlanPage() {
   const [protocol, setProtocol] = useState<ProtocolItem[]>([]);
   const [endDateIsAuto, setEndDateIsAuto] = useState(false);
 
+  // Session scheduler
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [scheduledSessions, setScheduledSessions] = useState<{ date: string; time: string }[]>([]);
+  const [defaultSessionTime, setDefaultSessionTime] = useState("09:00");
+  const [sessionTherapistId, setSessionTherapistId] = useState("");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+
   const today = new Date().toISOString().split("T")[0];
 
   const [formData, setFormData] = useState<CreateTreatmentPlanData>({
@@ -80,6 +89,7 @@ export default function NewTreatmentPlanPage() {
   useEffect(() => {
     fetchPatients();
     fetchTherapyTypes();
+    fetchTherapists();
   }, []);
 
   useEffect(() => {
@@ -90,6 +100,12 @@ export default function NewTreatmentPlanPage() {
       setEndDateIsAuto(true);
     }
   }, [formData.frequency, formData.sessionsPlanned, formData.startDate]);
+
+  // Limpiar días y sesiones generadas al cambiar la frecuencia
+  useEffect(() => {
+    setSelectedDays([]);
+    setScheduledSessions([]);
+  }, [formData.frequency]);
 
   useEffect(() => {
     if (formData.patientId) {
@@ -126,6 +142,119 @@ export default function NewTreatmentPlanPage() {
     }
   };
 
+  const fetchTherapists = async () => {
+    try {
+      const data = await therapistService.getAll({ limit: 200 });
+      setTherapists(data.therapists);
+    } catch {
+      setTherapists([]);
+    }
+  };
+
+  // Días requeridos según frecuencia (0=Dom,1=Lun,...,6=Sáb)
+  const FREQ_DAYS_REQUIRED: Record<string, number> = {
+    "1 vez por semana": 1,
+    "2 veces por semana": 2,
+    "3 veces por semana": 3,
+    "4 veces por semana": 4,
+    "5 veces por semana (diario)": 5,
+    "Cada 2 semanas": 1,
+    "1 vez al mes": 1,
+  };
+
+  const DAY_LABELS = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
+  const daysRequired = formData.frequency ? (FREQ_DAYS_REQUIRED[formData.frequency] ?? 0) : 0;
+  const canGenerate = daysRequired === 0 || selectedDays.length === daysRequired;
+
+  const toggleDay = (day: number) => {
+    setSelectedDays(prev => {
+      if (prev.includes(day)) return prev.filter(d => d !== day);
+      if (prev.length >= daysRequired) return prev; // ya tiene suficientes días
+      return [...prev, day];
+    });
+    setScheduledSessions([]); // resetear si cambia selección
+  };
+
+  const generateSessionDates = () => {
+    const { startDate, frequency, sessionsPlanned } = formData;
+    if (!startDate || !frequency || !sessionsPlanned) return;
+
+    const sessions: { date: string; time: string }[] = [];
+    const current = new Date(startDate + "T12:00:00");
+    const sorted = [...selectedDays].sort((a, b) => a - b);
+
+    if (frequency === "1 vez al mes") {
+      // Cada ~30 días en el día preferido (o sin día preferido, +30 días)
+      if (sorted.length > 0) {
+        // Avanzar hasta el primer día preferido a partir de startDate
+        while (!sorted.includes(current.getDay())) {
+          current.setDate(current.getDate() + 1);
+        }
+        for (let i = 0; i < sessionsPlanned; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          current.setDate(current.getDate() + 28); // ~4 semanas
+          // Ajustar al día correcto de la semana
+          while (!sorted.includes(current.getDay())) {
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      } else {
+        for (let i = 0; i < sessionsPlanned; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          current.setDate(current.getDate() + 30);
+        }
+      }
+    } else if (frequency === "Cada 2 semanas") {
+      // Cada 2 semanas en el día preferido
+      if (sorted.length > 0) {
+        while (!sorted.includes(current.getDay())) {
+          current.setDate(current.getDate() + 1);
+        }
+        for (let i = 0; i < sessionsPlanned; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          current.setDate(current.getDate() + 14);
+          while (!sorted.includes(current.getDay())) {
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      } else {
+        for (let i = 0; i < sessionsPlanned; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          current.setDate(current.getDate() + 14);
+        }
+      }
+    } else {
+      // N veces por semana — avanzar día a día seleccionando los días elegidos
+      const limit = sessionsPlanned * 60; // días máximos a iterar
+      for (let d = 0; d < limit && sessions.length < sessionsPlanned; d++) {
+        if (sorted.length > 0) {
+          if (sorted.includes(current.getDay())) {
+            sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          }
+        } else {
+          // Sin días seleccionados: fallback a distribuir uniformemente
+          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          const perWeek = FREQ_DAYS_REQUIRED[frequency] ?? 1;
+          const gap = Math.floor(7 / perWeek);
+          current.setDate(current.getDate() + gap - 1);
+        }
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    setScheduledSessions(sessions);
+  };
+
+  const removeScheduledSession = (idx: number) => {
+    setScheduledSessions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateScheduledSession = (idx: number, field: "date" | "time", value: string) => {
+    setScheduledSessions((prev) =>
+      prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
+    );
+  };
+
   const handleTherapyTypeChange = (value: string) => {
     if (value === "__custom__") {
       setShowCustomTherapy(true);
@@ -149,7 +278,37 @@ export default function NewTreatmentPlanPage() {
       };
 
       const plan = await treatmentPlanService.create(data);
-      toast.success("Plan de tratamiento creado exitosamente");
+
+      if (scheduledSessions.length > 0) {
+        const duration = formData.sessionDuration || 60;
+        const results = await Promise.allSettled(
+          scheduledSessions.map((sess, idx) => {
+            const [h, m] = sess.time.split(":").map(Number);
+            const d = new Date(sess.date + "T12:00:00");
+            d.setHours(h, m, 0, 0);
+            return sessionService.create({
+              patientId: formData.patientId,
+              therapistId: sessionTherapistId || null,
+              treatmentPlanId: plan.id,
+              sessionNumber: idx + 1,
+              sessionDate: d.toISOString(),
+              duration,
+              attendanceStatus: "PENDING",
+            });
+          })
+        );
+        const ok = results.filter(r => r.status === "fulfilled").length;
+        const fail = results.filter(r => r.status === "rejected").length;
+        if (fail > 0 && ok === 0) {
+          toast.error(`Plan creado, pero no se pudieron agendar las sesiones. Revisa la consola del servidor.`);
+        } else if (fail > 0) {
+          toast(`Plan creado. ${ok} sesiones agendadas, ${fail} fallaron.`, { icon: "⚠️" });
+        } else {
+          toast.success(`Plan creado y ${ok} sesiones agendadas.`);
+        }
+      } else {
+        toast.success("Plan de tratamiento creado exitosamente");
+      }
 
       if (patientIdParam) {
         router.push(`/dashboard/patients/${patientIdParam}`);
@@ -420,6 +579,160 @@ export default function NewTreatmentPlanPage() {
               )}
             </div>
           </div>
+
+          {/* Agendar Sesiones */}
+          {formData.frequency && formData.startDate && formData.sessionsPlanned > 0 && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Agendar sesiones en el calendario
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Selecciona los días preferidos del paciente y genera las fechas automáticamente. Puedes ajustar fecha y hora por sesión antes de guardar.
+                </p>
+              </div>
+
+              {/* Configuración: días + hora + botón */}
+              <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-4 mb-4 space-y-4">
+                {/* Días de la semana */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Días preferidos
+                    </span>
+                    {daysRequired > 0 && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        selectedDays.length === daysRequired
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                      }`}>
+                        {selectedDays.length}/{daysRequired} seleccionados
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {DAY_LABELS.map((label, dayIdx) => {
+                      const isSelected = selectedDays.includes(dayIdx);
+                      const isDisabled = !isSelected && selectedDays.length >= daysRequired;
+                      return (
+                        <button
+                          key={dayIdx}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => toggleDay(dayIdx)}
+                          className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all border-2 ${
+                            isSelected
+                              ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                              : isDisabled
+                              ? "border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                              : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Hora y botón generar */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Hora por defecto:</label>
+                    <input
+                      type="time"
+                      value={defaultSessionTime}
+                      onChange={(e) => setDefaultSessionTime(e.target.value)}
+                      className="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generateSessionDates}
+                    disabled={!canGenerate}
+                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    {canGenerate ? "Generar fechas" : `Selecciona ${daysRequired - selectedDays.length} día${daysRequired - selectedDays.length !== 1 ? "s" : ""} más`}
+                  </button>
+                </div>
+              </div>
+
+              {scheduledSessions.length > 0 && (
+                <div className="space-y-4">
+                  {/* Therapist + duration summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Terapeuta asignado <span className="text-gray-400 text-xs">(opcional)</span>
+                      </label>
+                      <select
+                        value={sessionTherapistId}
+                        onChange={(e) => setSessionTherapistId(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                      >
+                        <option value="">— Sin asignar por ahora —</option>
+                        {therapists.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-md text-sm text-gray-600 dark:text-gray-400 w-full">
+                        Duración por sesión:{" "}
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          {formData.sessionDuration ?? 60} min
+                        </span>
+                        {!formData.sessionDuration && (
+                          <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(valor por defecto — ajusta en «Duración por Sesión» de arriba)</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Editable sessions list */}
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {scheduledSessions.length} sesiones generadas:
+                    </p>
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {scheduledSessions.map((sess, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                        >
+                          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 w-7 shrink-0 text-right">
+                            #{idx + 1}
+                          </span>
+                          <input
+                            type="date"
+                            value={sess.date}
+                            onChange={(e) => updateScheduledSession(idx, "date", e.target.value)}
+                            className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
+                          />
+                          <input
+                            type="time"
+                            value={sess.time}
+                            onChange={(e) => updateScheduledSession(idx, "time", e.target.value)}
+                            className="w-28 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeScheduledSession(idx)}
+                            className="shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Eliminar sesión"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Protocolo terapéutico */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">

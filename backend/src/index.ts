@@ -21,6 +21,7 @@ import paymentRoutes from './routes/payments';
 import invoiceRoutes from './routes/invoices';
 import historiaClinicaRoutes from './routes/historiaClinica';
 import userRoutes from './routes/users';
+import { recalculateAllCounters } from './services/treatmentPlanService';
 
 const app: Express = express();
 
@@ -95,6 +96,9 @@ if (require.main === module) {
     logger.info(`🚀 Servidor corriendo en puerto ${PORT}`);
     logger.info(`📝 Ambiente: ${env.NODE_ENV}`);
     logger.info(`🌐 Frontend URL: ${env.FRONTEND_URL}`);
+    recalculateAllCounters()
+      .then(() => logger.info('✅ Contadores de sesiones recalculados'))
+      .catch(err => logger.error('Error recalculando contadores:', err));
   });
 }
 
