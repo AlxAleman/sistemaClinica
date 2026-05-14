@@ -18,6 +18,7 @@ export interface AuthResponse {
     email: string;
     name: string;
     role: string;
+    mustChangePassword: boolean;
   };
   accessToken: string;
   refreshToken: string;
@@ -49,6 +50,16 @@ export const authService = {
   getMe: async () => {
     const response = await api.get("/auth/me");
     return response.data.data;
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    const response = await api.put<{ success: boolean; error?: string }>(
+      '/auth/change-password',
+      { currentPassword, newPassword }
+    );
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Error al cambiar contraseña');
+    }
   },
 
   logout: () => {

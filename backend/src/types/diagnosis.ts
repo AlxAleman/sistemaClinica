@@ -11,4 +11,5 @@ export interface UpdateDiagnosisData {
   diagnosisDate?: string | Date;
   observations?: string | null;
   status?: 'ACTIVE' | 'RESOLVED' | 'CHRONIC';
+  evaluacionFisicaId?: string | null;
 }

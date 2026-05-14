@@ -63,8 +63,13 @@ export const getDiagnosesByPatient = async (patientId: string) => {
     orderBy: { createdAt: 'desc' },
     include: {
       _count: {
+        select: { treatmentPlans: true },
+      },
+      evaluacionFisica: {
         select: {
-          treatmentPlans: true,
+          id: true,
+          tipo: true,
+          fechaEvaluacion: true,
         },
       },
     },
@@ -114,6 +119,7 @@ export const updateDiagnosis = async (id: string, data: UpdateDiagnosisData) => 
       diagnosisDate: data.diagnosisDate ? new Date(data.diagnosisDate) : undefined,
       observations: data.observations,
       status: data.status,
+      evaluacionFisicaId: data.evaluacionFisicaId !== undefined ? data.evaluacionFisicaId : undefined,
     },
     include: {
       patient: {

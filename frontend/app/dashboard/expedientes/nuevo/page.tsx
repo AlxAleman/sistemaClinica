@@ -162,13 +162,13 @@ export default function NuevoExpedientePage() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {[
-            { label: "Peso (kg)", key: "peso", placeholder: "65.0" },
-            { label: "Talla (m)", key: "talla", placeholder: "1.70" },
-            { label: "Etnia", key: "etnia", placeholder: "" },
+            { label: "Peso (kg)",    key: "peso",  placeholder: "65.0", step: "0.1" },
+            { label: "Altura (cm)", key: "talla", placeholder: "170",   step: "1"   },
+            { label: "Etnia",        key: "etnia", placeholder: "",      step: undefined },
           ].map(f => (
             <div key={f.key}>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{f.label}</label>
-              <input type={f.key === "etnia" ? "text" : "number"} step="0.01"
+              <input type={f.key === "etnia" ? "text" : "number"} step={f.step}
                 value={(form as any)[f.key]}
                 onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                 placeholder={f.placeholder}
@@ -213,8 +213,35 @@ export default function NuevoExpedientePage() {
           <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">📂</span>
           Antecedentes Patológicos
         </h2>
+        {/* Alergia — highlighted at top */}
+        <div className={`flex items-start gap-3 rounded-xl px-4 py-3 mb-4 border ${
+          form.antecedentes["alergia"]?.tiene
+            ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700"
+            : "bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-600"
+        }`}>
+          <div className="flex items-center gap-2 w-52 flex-shrink-0 pt-0.5">
+            <input
+              type="checkbox"
+              checked={form.antecedentes["alergia"]?.tiene ?? false}
+              onChange={e => handleAnt("antecedentes", "alergia", "tiene", e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+            />
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">⚠️ Alergia</span>
+          </div>
+          {form.antecedentes["alergia"]?.tiene ? (
+            <input
+              type="text"
+              value={form.antecedentes["alergia"]?.especifique ?? ""}
+              onChange={e => handleAnt("antecedentes", "alergia", "especifique", e.target.value)}
+              placeholder="Especifique el tipo de alergia..."
+              className="flex-1 px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+          ) : (
+            <span className="text-xs text-gray-400 dark:text-gray-500 pt-1">Sin alergias conocidas</span>
+          )}
+        </div>
         <div className="space-y-3">
-          {ANTECEDENTES_KEYS.map(({ key, label }) => (
+          {ANTECEDENTES_KEYS.filter(({ key }) => key !== "alergia").map(({ key, label }) => (
             <AntRow key={key} label={label}
               value={form.antecedentes[key] ?? defAnt()}
               onChange={(field, val) => handleAnt("antecedentes", key, field, val)} />

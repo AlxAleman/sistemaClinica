@@ -122,7 +122,7 @@ export default function ExpedientesPage() {
           {historias.map((h) => (
             <Link
               key={h.id}
-              href={`/dashboard/patients/${h.patientId}`}
+              href={`/dashboard/patients/${h.patientId}?tab=expediente`}
               className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-700 hover:shadow-sm transition-all group"
             >
               <Avatar

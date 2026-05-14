@@ -358,14 +358,21 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                 {member === "miembroSuperior" ? "Miembro Superior" : "Miembro Inferior"}
               </h3>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs table-fixed">
+                  <colgroup>
+                    <col />
+                    <col className="w-16" />
+                    <col className="w-16" />
+                    <col className="w-16" />
+                    <col className="w-16" />
+                  </colgroup>
                   <thead>
-                    <tr className="text-gray-500 dark:text-gray-400">
-                      <th className="text-left py-1 pr-4 font-medium">Movimiento</th>
-                      <th className="text-center py-1 px-2 font-medium">D.I.</th>
-                      <th className="text-center py-1 px-2 font-medium">D.D.</th>
-                      <th className="text-center py-1 px-2 font-medium">F.I.</th>
-                      <th className="text-center py-1 px-2 font-medium">F.D.</th>
+                    <tr className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
+                      <th className="text-left py-2 pl-2 pr-4 font-medium rounded-l-lg">Movimiento</th>
+                      <th className="text-center py-2 px-1 font-medium">D.I.</th>
+                      <th className="text-center py-2 px-1 font-medium">D.D.</th>
+                      <th className="text-center py-2 px-1 font-medium">F.I.</th>
+                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">F.D.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -373,15 +380,15 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                       const entry: MuscleEntry = (form.fuerzaMuscular as any)[member][key];
                       return (
                         <tr key={key} className="border-t border-gray-100 dark:border-gray-700">
-                          <td className="py-1.5 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
+                          <td className="py-1.5 pl-2 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
                             {key.replace(/([A-Z])/g, " $1").trim()}
                           </td>
                           {(["di","dd","fi","fd"] as const).map(f => (
-                            <td key={f} className="py-1 px-1">
+                            <td key={f} className="py-1 px-1 text-center">
                               <input type="text" value={entry[f]}
                                 onChange={e => set(`fuerzaMuscular.${member}.${key}.${f}`, e.target.value)}
                                 placeholder="0-5"
-                                className="w-14 text-center px-1.5 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-300 dark:placeholder:text-gray-600" />
+                                className="w-full text-center px-1.5 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-300 dark:placeholder:text-gray-600" />
                             </td>
                           ))}
                         </tr>
@@ -402,12 +409,17 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                 {joint === "muneca" ? "Muñeca" : joint}
               </h3>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs table-fixed">
+                  <colgroup>
+                    <col />
+                    <col className="w-20" />
+                    <col className="w-20" />
+                  </colgroup>
                   <thead>
-                    <tr className="text-gray-500 dark:text-gray-400">
-                      <th className="text-left py-1 pr-4 font-medium">Movimiento</th>
-                      <th className="text-center py-1 px-2 font-medium">Inicial</th>
-                      <th className="text-center py-1 px-2 font-medium">Final</th>
+                    <tr className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
+                      <th className="text-left py-2 pl-2 pr-4 font-medium rounded-l-lg">Movimiento</th>
+                      <th className="text-center py-2 px-1 font-medium">Inicial</th>
+                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">Final</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -415,15 +427,15 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                       const entry: GonioEntry = (form.goniometriaSuper as any)[joint][key];
                       return (
                         <tr key={key} className="border-t border-gray-100 dark:border-gray-700">
-                          <td className="py-1.5 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
+                          <td className="py-1.5 pl-2 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
                             {key.replace(/([A-Z])/g, " $1").trim()}
                           </td>
                           {(["inicial","final"] as const).map(f => (
-                            <td key={f} className="py-1 px-1">
+                            <td key={f} className="py-1 px-1 text-center">
                               <input type="text" value={entry[f]}
                                 onChange={e => set(`goniometriaSuper.${joint}.${key}.${f}`, e.target.value)}
                                 placeholder="0°"
-                                className="w-16 text-center px-1.5 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-300 dark:placeholder:text-gray-600" />
+                                className="w-full text-center px-1.5 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-300 dark:placeholder:text-gray-600" />
                             </td>
                           ))}
                         </tr>
@@ -442,12 +454,17 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
             <div key={joint} className="mb-5">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 capitalize">{joint}</h3>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs table-fixed">
+                  <colgroup>
+                    <col />
+                    <col className="w-20" />
+                    <col className="w-20" />
+                  </colgroup>
                   <thead>
-                    <tr className="text-gray-500 dark:text-gray-400">
-                      <th className="text-left py-1 pr-4 font-medium">Movimiento</th>
-                      <th className="text-center py-1 px-2 font-medium">Inicial</th>
-                      <th className="text-center py-1 px-2 font-medium">Final</th>
+                    <tr className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
+                      <th className="text-left py-2 pl-2 pr-4 font-medium rounded-l-lg">Movimiento</th>
+                      <th className="text-center py-2 px-1 font-medium">Inicial</th>
+                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">Final</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -455,15 +472,15 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                       const entry: GonioEntry = (form.goniometriaInfer as any)[joint][key];
                       return (
                         <tr key={key} className="border-t border-gray-100 dark:border-gray-700">
-                          <td className="py-1.5 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
+                          <td className="py-1.5 pl-2 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
                             {key.replace(/([A-Z])/g, " $1").trim()}
                           </td>
                           {(["inicial","final"] as const).map(f => (
-                            <td key={f} className="py-1 px-1">
+                            <td key={f} className="py-1 px-1 text-center">
                               <input type="text" value={entry[f]}
                                 onChange={e => set(`goniometriaInfer.${joint}.${key}.${f}`, e.target.value)}
                                 placeholder="0°"
-                                className="w-16 text-center px-1.5 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-300 dark:placeholder:text-gray-600" />
+                                className="w-full text-center px-1.5 py-1 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-300 dark:placeholder:text-gray-600" />
                             </td>
                           ))}
                         </tr>

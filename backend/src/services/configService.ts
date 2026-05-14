@@ -68,6 +68,49 @@ export const deleteConfig = async (key: string) => {
 export const initDefaultConfigs = async () => {
   const defaults = [
     {
+      key: 'clinic_name',
+      value: 'Mi Clínica',
+      description: 'Nombre de la clínica',
+      category: 'clinic',
+    },
+    {
+      key: 'clinic_accent_color',
+      value: 'indigo',
+      description: 'Color de acento del sistema (indigo|violet|teal|emerald|rose|amber)',
+      category: 'clinic',
+    },
+    {
+      key: 'clinic_phone',
+      value: '',
+      description: 'Teléfono de la clínica',
+      category: 'clinic',
+    },
+    {
+      key: 'clinic_email',
+      value: '',
+      description: 'Email de la clínica',
+      category: 'clinic',
+    },
+    {
+      key: 'clinic_address',
+      value: '',
+      description: 'Dirección de la clínica',
+      category: 'clinic',
+    },
+    {
+      key: 'role_permissions',
+      value: JSON.stringify({
+        ADMIN:             { patients: true,  appointments: true,  treatments: true,  diagnoses: true,  expedientes: true,  evaluations: true,  prescriptions: true,  payments: true,  invoices: true,  reports: true,  config: true  },
+        THERAPIST:         { patients: true,  appointments: true,  treatments: true,  diagnoses: true,  expedientes: true,  evaluations: true,  prescriptions: true,  payments: false, invoices: false, reports: false, config: false },
+        RECEPCION:         { patients: true,  appointments: true,  treatments: false, diagnoses: false, expedientes: false, evaluations: false, prescriptions: false, payments: true,  invoices: false, reports: false, config: false },
+        CONTABILIDAD:      { patients: false, appointments: false, treatments: false, diagnoses: false, expedientes: false, evaluations: false, prescriptions: false, payments: true,  invoices: true,  reports: true,  config: false },
+        SUPERVISOR:        { patients: true,  appointments: true,  treatments: true,  diagnoses: true,  expedientes: true,  evaluations: true,  prescriptions: true,  payments: true,  invoices: true,  reports: true,  config: false },
+        EXTERNAL_THERAPIST:{ patients: true,  appointments: true,  treatments: true,  diagnoses: false, expedientes: false, evaluations: true,  prescriptions: false, payments: false, invoices: false, reports: false, config: false },
+      }),
+      description: 'Permisos de acceso por rol (JSON)',
+      category: 'roles',
+    },
+    {
       key: 'therapy_types',
       value: JSON.stringify([
         'Fisioterapia General',

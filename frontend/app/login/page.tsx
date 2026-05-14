@@ -30,10 +30,13 @@ export default function LoginPage() {
       const response = await authService.login(formData);
       setAuth(response.user, response.accessToken, response.refreshToken);
       toast.success("Inicio de sesión exitoso");
-      // Esperar un momento para que el store se actualice
       setTimeout(() => {
-        router.push("/dashboard");
-        router.refresh(); // Forzar actualización
+        if (response.user.mustChangePassword) {
+          router.push("/cambiar-password");
+        } else {
+          router.push("/dashboard");
+        }
+        router.refresh();
       }, 100);
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");

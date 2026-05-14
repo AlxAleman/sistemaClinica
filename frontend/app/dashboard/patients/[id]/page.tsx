@@ -605,8 +605,8 @@ export default function PatientDetailPage() {
           const attendedSessions = sessions.filter(s => s.attendanceStatus === "ATTENDED");
           const lastSession = [...sessions].sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())[0] ?? null;
           const activeDiagnoses = diagnoses.filter(d => d.status === "ACTIVE");
-          const allergies = patient.medicalProfile?.allergies;
           const currentMeds = patient.medicalProfile?.currentMedications;
+          const alergiaEntry = historia?.antecedentes?.alergia as AntecedentItem | undefined;
 
           // Antecedentes con tiene=true desde historia
           const activeAntecedentes = historia?.antecedentes
@@ -619,18 +619,20 @@ export default function PatientDetailPage() {
           return (
             <div className="space-y-5">
               {/* Alergias — siempre visible */}
-              {allergies ? (
+              {!historia ? (
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3.5">
+                  <span className="text-base flex-shrink-0">❓</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Alergias: <span className="font-medium text-gray-700 dark:text-gray-300">No registradas — sin expediente médico</span></p>
+                </div>
+              ) : alergiaEntry?.tiene ? (
                 <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl px-5 py-4">
                   <span className="text-lg flex-shrink-0">⚠️</span>
                   <div>
                     <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Alergias registradas</p>
-                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">{allergies}</p>
+                    {alergiaEntry.especifique && (
+                      <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">{alergiaEntry.especifique}</p>
+                    )}
                   </div>
-                </div>
-              ) : allergies === null || allergies === undefined ? (
-                <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3.5">
-                  <span className="text-base flex-shrink-0">❓</span>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Alergias: <span className="font-medium text-gray-700 dark:text-gray-300">No registradas</span></p>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl px-5 py-3.5">
@@ -942,6 +944,7 @@ export default function PatientDetailPage() {
                 setActiveTab={setActiveTab}
                 setExpandedPlans={setExpandedPlans}
                 setDeleteDiagnosisId={setDeleteDiagnosisId}
+                setDiagnoses={setDiagnoses}
               />
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-10 text-center">
@@ -1042,13 +1045,15 @@ export default function PatientDetailPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); openAddSession(plan); }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 rounded-lg transition-colors"
-                            >
-                              <PlusIcon className="h-3 w-3" />
-                              Sesión
-                            </button>
+                            {plan.sessionsCompleted < plan.sessionsPlanned && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openAddSession(plan); }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 rounded-lg transition-colors"
+                              >
+                                <PlusIcon className="h-3 w-3" />
+                                Sesión
+                              </button>
+                            )}
                             {plan.sessionsCompleted >= plan.sessionsPlanned && plan.sessionsPlanned > 0 && (
                               <>
                                 <button
@@ -2014,7 +2019,7 @@ function ExpedienteView({
   historia, patientId, diagnoses, loadingDiagnoses,
   diagnosesPage, setDiagnosesPage, DIAGNOSES_PER_PAGE,
   expandedDiagnoses, toggleDiagnosis, treatmentPlans,
-  setActiveTab, setExpandedPlans, setDeleteDiagnosisId,
+  setActiveTab, setExpandedPlans, setDeleteDiagnosisId, setDiagnoses,
 }: {
   historia: HistoriaClinica;
   patientId: string;
@@ -2029,6 +2034,7 @@ function ExpedienteView({
   setActiveTab: (tab: any) => void;
   setExpandedPlans: React.Dispatch<React.SetStateAction<Set<string>>>;
   setDeleteDiagnosisId: React.Dispatch<React.SetStateAction<string | null>>;
+  setDiagnoses: React.Dispatch<React.SetStateAction<Diagnosis[]>>;
 }) {
   const ANTECEDENTES_LABELS: Record<string, string> = {
     diabetes: "Diabetes", alergia: "Alergia", hta: "HTA",
@@ -2105,11 +2111,25 @@ function ExpedienteView({
                 <span className="text-sm text-gray-800 dark:text-gray-200">{historia.referidoPor}</span>
               </div>
             )}
-            {(historia.peso != null || historia.talla != null || historia.imc != null) && (
+            {(historia.peso != null || historia.talla != null || historia.antecedentes?.alergia !== undefined) && (
               <div className="flex flex-wrap gap-3">
                 {historia.peso != null && <HCDataCard label="Peso" value={`${historia.peso} kg`} />}
-                {historia.talla != null && <HCDataCard label="Talla" value={`${historia.talla} m`} />}
-                {historia.imc != null && <HCDataCard label="IMC" value={`${historia.imc}`} />}
+                {historia.talla != null && <HCDataCard label="Altura" value={`${historia.talla} cm`} />}
+                {(() => {
+                  const al = historia.antecedentes?.alergia as AntecedentItem | undefined;
+                  if (!al) return null;
+                  return al.tiene ? (
+                    <div className="flex flex-col items-start justify-center px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 min-w-[72px]">
+                      <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide leading-none mb-0.5">⚠️ Alergia</span>
+                      <span className="text-xs font-semibold text-amber-800 dark:text-amber-200 leading-tight">{al.especifique || "Sí"}</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-start justify-center px-3 py-1.5 rounded-xl border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 min-w-[72px]">
+                      <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide leading-none mb-0.5">Alergia</span>
+                      <span className="text-xs font-semibold text-green-700 dark:text-green-300 leading-tight">✅ Ninguna</span>
+                    </div>
+                  );
+                })()}
               </div>
             )}
             {historia.motivoConsulta && (
@@ -2206,10 +2226,15 @@ function ExpedienteView({
                           </div>
                         </div>
                         {isOpen && (
-                          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700 space-y-2 pt-2">
+                          <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700 space-y-2.5 pt-2.5">
+                            {/* Observaciones */}
                             {diagnosis.observations && (
-                              <p className="text-sm text-gray-600 dark:text-gray-300">{diagnosis.observations}</p>
+                              <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/60">
+                                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Observaciones</p>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{diagnosis.observations}</p>
+                              </div>
                             )}
+                            {/* Tratamiento vinculado */}
                             {linkedPlan ? (
                               <button type="button"
                                 onClick={() => { setActiveTab("tratamiento"); setExpandedPlans(prev => new Set([...prev, linkedPlan.id])); window.scrollTo({ top: 0, behavior: "smooth" }); }}
@@ -2223,6 +2248,49 @@ function ExpedienteView({
                             ) : (
                               <p className="text-xs text-gray-400 italic">Sin tratamiento vinculado.</p>
                             )}
+                            {/* Evaluación física vinculada */}
+                            <div>
+                              <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Evaluación física</p>
+                              {evals.length === 0 ? (
+                                <p className="text-xs text-gray-400 italic">No hay evaluaciones registradas.</p>
+                              ) : (
+                                <select
+                                  value={diagnosis.evaluacionFisicaId ?? ""}
+                                  onChange={async e => {
+                                    const val = e.target.value || null;
+                                    await diagnosisService.update(diagnosis.id, { evaluacionFisicaId: val });
+                                    const found = val ? evals.find(ev => ev.id === val) : null;
+                                    setDiagnoses(prev => prev.map(d =>
+                                      d.id === diagnosis.id
+                                        ? { ...d, evaluacionFisicaId: val, evaluacionFisica: found ? { id: found.id, tipo: found.tipo ?? null, fechaEvaluacion: found.fechaEvaluacion } : null }
+                                        : d
+                                    ));
+                                  }}
+                                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                                >
+                                  <option value="">— Sin evaluación vinculada —</option>
+                                  {evals.map(ev => (
+                                    <option key={ev.id} value={ev.id}>
+                                      {ev.tipo ? `${ev.tipo.charAt(0).toUpperCase() + ev.tipo.slice(1)} · ` : ""}{moment(ev.fechaEvaluacion).format("DD/MM/YYYY")}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              {diagnosis.evaluacionFisica && (
+                                <Link
+                                  href={`/dashboard/evaluaciones/${diagnosis.evaluacionFisica.id}`}
+                                  className="mt-1.5 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/20 dark:hover:bg-violet-900/30 border border-violet-100 dark:border-violet-800/40 transition-colors"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wide mb-0.5">Ver evaluación</p>
+                                    <p className="text-xs font-medium text-violet-800 dark:text-violet-200 truncate">
+                                      {diagnosis.evaluacionFisica.tipo ?? "Evaluación"} · {moment(diagnosis.evaluacionFisica.fechaEvaluacion).format("DD MMM YYYY")}
+                                    </p>
+                                  </div>
+                                  <svg className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </Link>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

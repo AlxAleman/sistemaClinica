@@ -89,6 +89,33 @@ export const deleteConfig = async (
   }
 };
 
+export const uploadClinicLogo = async (
+  req: AuthRequest,
+  res: Response<ApiResponse>
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, error: 'No se recibió ningún archivo' });
+      return;
+    }
+
+    const { uploadToR2, r2Enabled } = await import('../services/r2Service');
+    if (!r2Enabled()) {
+      res.status(503).json({ success: false, error: 'R2 no está configurado en el servidor' });
+      return;
+    }
+
+    const ext = req.file.originalname.split('.').pop() ?? 'png';
+    const key = `clinic/logo.${ext}`;
+    const url = await uploadToR2(key, req.file.buffer, req.file.mimetype);
+
+    const config = await configService.upsertConfig('clinic_logo_url', url, 'URL del logo de la clínica', 'clinic');
+    res.status(200).json({ success: true, data: config, message: 'Logo actualizado' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Error al subir el logo' });
+  }
+};
+
 export const initDefaultConfigs = async (
   req: AuthRequest,
   res: Response<ApiResponse>

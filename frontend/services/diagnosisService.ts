@@ -7,6 +7,8 @@ export interface Diagnosis {
   diagnosisDate: string;
   observations?: string | null;
   status: 'ACTIVE' | 'RESOLVED' | 'CHRONIC';
+  evaluacionFisicaId?: string | null;
+  evaluacionFisica?: { id: string; tipo: string | null; fechaEvaluacion: string } | null;
   createdAt: string;
   updatedAt: string;
   treatmentPlans?: {
@@ -24,6 +26,7 @@ export interface CreateDiagnosisData {
   diagnosisDate: string;
   observations?: string | null;
   status?: 'ACTIVE' | 'RESOLVED' | 'CHRONIC';
+  evaluacionFisicaId?: string | null;
 }
 
 export const diagnosisService = {

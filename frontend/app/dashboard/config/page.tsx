@@ -7,237 +7,204 @@ import { userService, AppUser, CreateUserData, UserRole } from "@/services/userS
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
-interface ScheduleFields {
-  morning_shift_start: string;
-  morning_shift_end: string;
-  afternoon_shift_start: string;
-  afternoon_shift_end: string;
-  morning_therapists_count: string;
-  afternoon_therapists_count: string;
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface SessionFields {
-  default_session_duration: string;
-}
+type TabId = "clinica" | "usuarios" | "roles" | "operacion";
+
+const TABS: { id: TabId; label: string; icon: string }[] = [
+  { id: "clinica",   label: "Clínica",          icon: "🏥" },
+  { id: "usuarios",  label: "Usuarios",          icon: "👥" },
+  { id: "roles",     label: "Roles y Accesos",   icon: "🔐" },
+  { id: "operacion", label: "Operación",         icon: "⚙️" },
+];
+
+const ACCENT_COLORS = [
+  { id: "indigo", label: "Índigo",   bg: "bg-indigo-500",  ring: "ring-indigo-500"  },
+  { id: "violet", label: "Violeta",  bg: "bg-violet-500",  ring: "ring-violet-500"  },
+  { id: "teal",   label: "Teal",     bg: "bg-teal-500",    ring: "ring-teal-500"    },
+  { id: "emerald",label: "Esmeralda",bg: "bg-emerald-500", ring: "ring-emerald-500" },
+  { id: "rose",   label: "Rosa",     bg: "bg-rose-500",    ring: "ring-rose-500"    },
+  { id: "amber",  label: "Ámbar",    bg: "bg-amber-500",   ring: "ring-amber-500"   },
+];
+
+const MODULES = [
+  { key: "patients",      label: "Pacientes" },
+  { key: "appointments",  label: "Citas" },
+  { key: "treatments",    label: "Tratamientos" },
+  { key: "diagnoses",     label: "Diagnósticos" },
+  { key: "expedientes",   label: "Expedientes" },
+  { key: "evaluations",   label: "Evaluaciones" },
+  { key: "prescriptions", label: "Prescripciones" },
+  { key: "payments",      label: "Pagos" },
+  { key: "invoices",      label: "Facturas" },
+  { key: "reports",       label: "Reportes" },
+  { key: "config",        label: "Configuración" },
+];
+
+const ROLES: { id: UserRole; label: string }[] = [
+  { id: "ADMIN",              label: "Administrador"     },
+  { id: "THERAPIST",          label: "Terapeuta"         },
+  { id: "RECEPCION",          label: "Recepción"         },
+  { id: "CONTABILIDAD",       label: "Contabilidad"      },
+  { id: "SUPERVISOR",         label: "Supervisor"        },
+  { id: "EXTERNAL_THERAPIST", label: "Terapeuta Externo" },
+];
+
+const ROLE_COLORS: Record<UserRole, string> = {
+  ADMIN:              "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  THERAPIST:          "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+  RECEPCION:          "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  CONTABILIDAD:       "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  SUPERVISOR:         "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  EXTERNAL_THERAPIST: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+};
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ConfigPage() {
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabId>("clinica");
 
-  // Tipos de terapia
-  const [therapyTypes, setTherapyTypes] = useState<string[]>([]);
-  const [editingTherapy, setEditingTherapy] = useState(false);
-  const [therapyDraft, setTherapyDraft] = useState("");
-  const [savingTherapy, setSavingTherapy] = useState(false);
-
-  // Horarios
-  const [scheduleFields, setScheduleFields] = useState<ScheduleFields>({
-    morning_shift_start: "",
-    morning_shift_end: "",
-    afternoon_shift_start: "",
-    afternoon_shift_end: "",
-    morning_therapists_count: "",
-    afternoon_therapists_count: "",
+  // ── Clínica ──
+  const [clinicFields, setClinicFields] = useState({
+    clinic_name: "", clinic_accent_color: "indigo",
+    clinic_phone: "", clinic_email: "", clinic_address: "",
   });
-  const [savingSchedules, setSavingSchedules] = useState(false);
+  const [clinicLogoUrl, setClinicLogoUrl] = useState("");
+  const [logoFile, setLogoFile]         = useState<File | null>(null);
+  const [logoPreview, setLogoPreview]   = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [savingClinic, setSavingClinic] = useState(false);
 
-  // Sesiones
-  const [sessionFields, setSessionFields] = useState<SessionFields>({
-    default_session_duration: "",
-  });
-  const [savingSessions, setSavingSessions] = useState(false);
-
-  // Usuarios
-  const [users, setUsers] = useState<AppUser[]>([]);
+  // ── Usuarios ──
+  const [users, setUsers]             = useState<AppUser[]>([]);
   const [showUserForm, setShowUserForm] = useState(false);
-  const [savingUser, setSavingUser] = useState(false);
-  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [editingUser, setEditingUser]  = useState<AppUser | null>(null);
   const [deleteUserDialog, setDeleteUserDialog] = useState<AppUser | null>(null);
-  const [userPrefix, setUserPrefix] = useState("Dr.");
-  const [userForm, setUserForm] = useState<CreateUserData>({
+  const [savingUser, setSavingUser]    = useState(false);
+  const [userPrefix, setUserPrefix]    = useState("Dr.");
+  const [userForm, setUserForm]        = useState<CreateUserData>({
     name: "", email: "", password: "", role: "THERAPIST", phone: "", specialization: "",
   });
-  const [editUserForm, setEditUserForm] = useState<{ role: UserRole; password: string }>({
-    role: "THERAPIST", password: "",
+  const [editUserForm, setEditUserForm] = useState<{ name: string; role: UserRole; password: string }>({
+    name: "", role: "THERAPIST", password: "",
   });
 
-  // Restaurar defaults
-  const [restoreDialog, setRestoreDialog] = useState(false);
+  // ── Roles ──
+  const [rolePerms, setRolePerms]    = useState<Record<string, Record<string, boolean>>>({});
+  const [savingRoles, setSavingRoles] = useState(false);
+
+  // ── Operación ──
+  const [therapyTypes, setTherapyTypes]     = useState<string[]>([]);
+  const [editingTherapy, setEditingTherapy] = useState(false);
+  const [therapyDraft, setTherapyDraft]     = useState("");
+  const [savingTherapy, setSavingTherapy]   = useState(false);
+  const [scheduleFields, setScheduleFields] = useState({
+    morning_shift_start: "", morning_shift_end: "",
+    afternoon_shift_start: "", afternoon_shift_end: "",
+    morning_therapists_count: "", afternoon_therapists_count: "",
+  });
+  const [savingSchedules, setSavingSchedules] = useState(false);
+  const [defaultDuration, setDefaultDuration] = useState("60");
+  const [savingSessions, setSavingSessions]   = useState(false);
+  const [restoreDialog, setRestoreDialog]     = useState(false);
   const [restoringDefaults, setRestoringDefaults] = useState(false);
 
+  // ─── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    fetchAllConfigs();
-    fetchUsers();
+    Promise.all([fetchAllConfigs(), fetchUsers()]).finally(() => setLoading(false));
   }, []);
 
   const fetchUsers = async () => {
-    try {
-      const data = await userService.getAll();
-      setUsers(data);
-    } catch {
-      // silencioso
-    }
+    try { setUsers(await userService.getAll()); } catch { /* silent */ }
   };
 
   const fetchAllConfigs = async () => {
     try {
-      setLoading(true);
-      const allConfigs = await configService.getAll();
-      applyConfigs(allConfigs);
-    } catch (error: any) {
-      toast.error("Error al cargar la configuración");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const all = await configService.getAll();
+      const v = (key: string, fb = "") => all.find(c => c.key === key)?.value ?? fb;
 
-  const applyConfigs = (configs: SystemConfig[]) => {
-    const findValue = (key: string, fallback = "") => {
-      const cfg = configs.find((c) => c.key === key);
-      return cfg ? cfg.value : fallback;
-    };
-
-    // Tipos de terapia
-    const rawTherapy = findValue("therapy_types", "[]");
-    try {
-      const parsed = JSON.parse(rawTherapy);
-      if (Array.isArray(parsed)) {
-        setTherapyTypes(parsed as string[]);
-        setTherapyDraft(parsed.join(", "));
-      }
-    } catch {
-      setTherapyTypes([]);
-      setTherapyDraft("");
-    }
-
-    // Horarios
-    setScheduleFields({
-      morning_shift_start: findValue("morning_shift_start", "08:00"),
-      morning_shift_end: findValue("morning_shift_end", "12:00"),
-      afternoon_shift_start: findValue("afternoon_shift_start", "13:00"),
-      afternoon_shift_end: findValue("afternoon_shift_end", "17:00"),
-      morning_therapists_count: findValue("morning_therapists_count", "3"),
-      afternoon_therapists_count: findValue("afternoon_therapists_count", "3"),
-    });
-
-    // Sesiones
-    setSessionFields({
-      default_session_duration: findValue("default_session_duration", "60"),
-    });
-  };
-
-  const handleSaveTherapyTypes = async () => {
-    const types = therapyDraft
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    setSavingTherapy(true);
-    try {
-      await configService.upsert("therapy_types", {
-        value: JSON.stringify(types),
-        description: "Lista de tipos de terapia disponibles",
-        category: "therapy_types",
+      setClinicFields({
+        clinic_name:         v("clinic_name", "Mi Clínica"),
+        clinic_accent_color: v("clinic_accent_color", "indigo"),
+        clinic_phone:        v("clinic_phone"),
+        clinic_email:        v("clinic_email"),
+        clinic_address:      v("clinic_address"),
       });
-      setTherapyTypes(types);
-      setEditingTherapy(false);
-      toast.success("Tipos de terapia actualizados");
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error || "Error al guardar tipos de terapia"
-      );
-    } finally {
-      setSavingTherapy(false);
-    }
-  };
+      const logoUrl = v("clinic_logo_url");
+      setClinicLogoUrl(logoUrl);
+      if (logoUrl) setLogoPreview(logoUrl);
 
-  const handleSaveSchedules = async () => {
-    setSavingSchedules(true);
-    try {
-      await Promise.all([
-        configService.upsert("morning_shift_start", {
-          value: scheduleFields.morning_shift_start,
-          description: "Inicio del turno de mañana",
-          category: "schedules",
-        }),
-        configService.upsert("morning_shift_end", {
-          value: scheduleFields.morning_shift_end,
-          description: "Fin del turno de mañana",
-          category: "schedules",
-        }),
-        configService.upsert("afternoon_shift_start", {
-          value: scheduleFields.afternoon_shift_start,
-          description: "Inicio del turno de tarde",
-          category: "schedules",
-        }),
-        configService.upsert("afternoon_shift_end", {
-          value: scheduleFields.afternoon_shift_end,
-          description: "Fin del turno de tarde",
-          category: "schedules",
-        }),
-        configService.upsert("morning_therapists_count", {
-          value: scheduleFields.morning_therapists_count,
-          description: "Cantidad de terapeutas en turno de mañana",
-          category: "schedules",
-        }),
-        configService.upsert("afternoon_therapists_count", {
-          value: scheduleFields.afternoon_therapists_count,
-          description: "Cantidad de terapeutas en turno de tarde",
-          category: "schedules",
-        }),
-      ]);
-      toast.success("Horarios guardados correctamente");
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error || "Error al guardar horarios"
-      );
-    } finally {
-      setSavingSchedules(false);
-    }
-  };
+      try {
+        const rp = JSON.parse(v("role_permissions", "{}"));
+        setRolePerms(rp);
+      } catch { setRolePerms({}); }
 
-  const handleSaveSessions = async () => {
-    const duration = parseInt(sessionFields.default_session_duration, 10);
-    if (isNaN(duration) || duration <= 0) {
-      toast.error("La duración debe ser un número positivo");
-      return;
-    }
+      try {
+        const parsed = JSON.parse(v("therapy_types", "[]"));
+        if (Array.isArray(parsed)) { setTherapyTypes(parsed); setTherapyDraft(parsed.join(", ")); }
+      } catch { setTherapyTypes([]); }
 
-    setSavingSessions(true);
-    try {
-      await configService.upsert("default_session_duration", {
-        value: String(duration),
-        description: "Duración predeterminada de sesión en minutos",
-        category: "session_durations",
+      setScheduleFields({
+        morning_shift_start:      v("morning_shift_start", "07:00"),
+        morning_shift_end:        v("morning_shift_end", "12:00"),
+        afternoon_shift_start:    v("afternoon_shift_start", "12:00"),
+        afternoon_shift_end:      v("afternoon_shift_end", "17:00"),
+        morning_therapists_count:   v("morning_therapists_count", "2"),
+        afternoon_therapists_count: v("afternoon_therapists_count", "1"),
       });
-      toast.success("Configuración de sesiones guardada");
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error || "Error al guardar configuración de sesiones"
+      setDefaultDuration(v("default_session_duration", "60"));
+    } catch { toast.error("Error al cargar la configuración"); }
+  };
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────────
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const handleUploadLogo = async () => {
+    if (!logoFile) return;
+    setUploadingLogo(true);
+    try {
+      const url = await configService.uploadLogo(logoFile);
+      setClinicLogoUrl(url);
+      setLogoFile(null);
+      toast.success("Logo actualizado");
+    } catch { toast.error("Error al subir el logo"); }
+    finally { setUploadingLogo(false); }
+  };
+
+  const handleSaveClinic = async () => {
+    setSavingClinic(true);
+    try {
+      await Promise.all(
+        Object.entries(clinicFields).map(([key, value]) =>
+          configService.upsert(key, { value, category: "clinic" })
+        )
       );
-    } finally {
-      setSavingSessions(false);
-    }
+      toast.success("Datos de la clínica guardados");
+    } catch { toast.error("Error al guardar"); }
+    finally { setSavingClinic(false); }
   };
 
   const handleCreateUser = async () => {
     if (!userForm.name || !userForm.email || !userForm.password) {
-      toast.error("Nombre, correo y contraseña son obligatorios");
-      return;
+      toast.error("Nombre, correo y contraseña son obligatorios"); return;
     }
     setSavingUser(true);
     try {
       const created = await userService.create({ ...userForm, name: `${userPrefix} ${userForm.name}` });
-      setUsers((prev) => [...prev, created]);
+      setUsers(prev => [...prev, created]);
       setShowUserForm(false);
       setUserPrefix("Dr.");
       setUserForm({ name: "", email: "", password: "", role: "THERAPIST", phone: "", specialization: "" });
-      toast.success("Usuario creado exitosamente");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error al crear usuario");
-    } finally {
-      setSavingUser(false);
-    }
+      toast.success("Usuario creado — recibirá sus credenciales en el primer acceso");
+    } catch (e: any) { toast.error(e.response?.data?.error || "Error al crear usuario"); }
+    finally { setSavingUser(false); }
   };
 
   const handleUpdateUser = async () => {
@@ -245,53 +212,88 @@ export default function ConfigPage() {
     setSavingUser(true);
     try {
       const updated = await userService.update(editingUser.id, {
+        name: editUserForm.name || undefined,
         role: editUserForm.role,
         ...(editUserForm.password ? { password: editUserForm.password } : {}),
       });
-      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
       setEditingUser(null);
       toast.success("Usuario actualizado");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error al actualizar usuario");
-    } finally {
-      setSavingUser(false);
-    }
+    } catch (e: any) { toast.error(e.response?.data?.error || "Error al actualizar"); }
+    finally { setSavingUser(false); }
+  };
+
+  const handleToggleActive = async (user: AppUser) => {
+    try {
+      const updated = await userService.update(user.id, { isActive: !user.isActive });
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+      toast.success(updated.isActive ? "Usuario activado" : "Usuario desactivado");
+    } catch { toast.error("Error al actualizar estado"); }
   };
 
   const handleDeleteUser = async () => {
     if (!deleteUserDialog) return;
     try {
       await userService.delete(deleteUserDialog.id);
-      setUsers((prev) => prev.filter((u) => u.id !== deleteUserDialog.id));
+      setUsers(prev => prev.filter(u => u.id !== deleteUserDialog.id));
       setDeleteUserDialog(null);
       toast.success("Usuario eliminado");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error al eliminar usuario");
-    }
+    } catch (e: any) { toast.error(e.response?.data?.error || "Error al eliminar"); }
   };
 
-  const roleLabel = (role: UserRole) => {
-    const labels: Record<UserRole, string> = {
-      ADMIN: "Administrador",
-      THERAPIST: "Terapeuta",
-      RECEPCION: "Recepción",
-      CONTABILIDAD: "Contabilidad",
-      SUPERVISOR: "Supervisor",
-      EXTERNAL_THERAPIST: "Terapeuta Externo",
-    };
-    return labels[role] ?? role;
+  const handleTogglePerm = (role: string, mod: string) => {
+    if (role === "ADMIN" && mod === "config") return; // config siempre activo para ADMIN
+    setRolePerms(prev => ({
+      ...prev,
+      [role]: { ...(prev[role] ?? {}), [mod]: !(prev[role]?.[mod] ?? false) },
+    }));
   };
 
-  const roleColor = (role: UserRole) => {
-    const colors: Record<UserRole, string> = {
-      ADMIN: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-      THERAPIST: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
-      RECEPCION: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-      CONTABILIDAD: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-      SUPERVISOR: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-      EXTERNAL_THERAPIST: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    };
-    return colors[role] ?? "bg-gray-100 text-gray-700";
+  const handleSaveRoles = async () => {
+    setSavingRoles(true);
+    try {
+      await configService.upsert("role_permissions", {
+        value: JSON.stringify(rolePerms), category: "roles",
+        description: "Permisos de acceso por rol (JSON)",
+      });
+      toast.success("Permisos guardados");
+    } catch { toast.error("Error al guardar permisos"); }
+    finally { setSavingRoles(false); }
+  };
+
+  const handleSaveTherapyTypes = async () => {
+    const types = therapyDraft.split(",").map(s => s.trim()).filter(Boolean);
+    setSavingTherapy(true);
+    try {
+      await configService.upsert("therapy_types", { value: JSON.stringify(types), category: "therapy_types" });
+      setTherapyTypes(types); setEditingTherapy(false);
+      toast.success("Tipos de terapia actualizados");
+    } catch { toast.error("Error al guardar tipos de terapia"); }
+    finally { setSavingTherapy(false); }
+  };
+
+  const handleSaveSchedules = async () => {
+    setSavingSchedules(true);
+    try {
+      await Promise.all(
+        Object.entries(scheduleFields).map(([key, value]) =>
+          configService.upsert(key, { value, category: "schedules" })
+        )
+      );
+      toast.success("Horarios guardados");
+    } catch { toast.error("Error al guardar horarios"); }
+    finally { setSavingSchedules(false); }
+  };
+
+  const handleSaveSessions = async () => {
+    const d = parseInt(defaultDuration, 10);
+    if (isNaN(d) || d <= 0) { toast.error("Duración inválida"); return; }
+    setSavingSessions(true);
+    try {
+      await configService.upsert("default_session_duration", { value: String(d), category: "session_durations" });
+      toast.success("Configuración de sesiones guardada");
+    } catch { toast.error("Error al guardar"); }
+    finally { setSavingSessions(false); }
   };
 
   const handleRestoreDefaults = async () => {
@@ -300,523 +302,490 @@ export default function ConfigPage() {
       await configService.initDefaults();
       await fetchAllConfigs();
       toast.success("Valores predeterminados restaurados");
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error || "Error al restaurar valores predeterminados"
-      );
-    } finally {
-      setRestoringDefaults(false);
-      setRestoreDialog(false);
-    }
+    } catch { toast.error("Error al restaurar"); }
+    finally { setRestoringDefaults(false); setRestoreDialog(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="px-3 sm:px-4 py-4 sm:py-6">
-        <Breadcrumbs
-          items={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Configuración" },
-          ]}
-        />
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Cargando configuración...
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // ─── Render ───────────────────────────────────────────────────────────────────
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+    </div>
+  );
 
   return (
-    <div className="px-3 sm:px-4 py-4 sm:py-6">
-      <Breadcrumbs
-        items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Configuración" },
-        ]}
-      />
+    <div className="px-3 sm:px-4 py-4 sm:py-6 max-w-5xl mx-auto">
+      <Breadcrumbs items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Configuración" }]} />
 
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Configuración del Sistema
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Administra los parámetros globales de la clínica
-          </p>
-        </div>
-        <button
-          onClick={() => setRestoreDialog(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-full sm:w-auto"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          Restaurar valores predeterminados
-        </button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Configuración</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Administra los parámetros del sistema</p>
       </div>
 
-      <div className="space-y-6">
-        {/* Sección: Tipos de Terapia */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Tipos de Terapia
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                Lista de tipos de terapia disponibles en el sistema
-              </p>
-            </div>
-            {!editingTherapy && (
-              <button
-                onClick={() => {
-                  setTherapyDraft(therapyTypes.join(", "));
-                  setEditingTherapy(true);
-                }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                Editar lista
-              </button>
-            )}
-          </div>
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+        <nav className="flex gap-1 overflow-x-auto">
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300"
+              }`}>
+              <span>{tab.icon}</span>{tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-          {!editingTherapy ? (
-            <div>
-              {therapyTypes.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                  No hay tipos de terapia configurados
+      {/* ── Tab: Clínica ─────────────────────────────────────────────────────── */}
+      {activeTab === "clinica" && (
+        <div className="space-y-6">
+          <Card title="Perfil de la Clínica" icon="🏥">
+            <div className="space-y-4">
+              <Field label="Nombre de la clínica">
+                <input type="text" value={clinicFields.clinic_name}
+                  onChange={e => setClinicFields(p => ({ ...p, clinic_name: e.target.value }))}
+                  className={inputCls} placeholder="Clínica Fisioterapia..." />
+              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Teléfono">
+                  <input type="text" value={clinicFields.clinic_phone}
+                    onChange={e => setClinicFields(p => ({ ...p, clinic_phone: e.target.value }))}
+                    className={inputCls} placeholder="+503 2222-3333" />
+                </Field>
+                <Field label="Email">
+                  <input type="email" value={clinicFields.clinic_email}
+                    onChange={e => setClinicFields(p => ({ ...p, clinic_email: e.target.value }))}
+                    className={inputCls} placeholder="contacto@clinica.com" />
+                </Field>
+              </div>
+              <Field label="Dirección">
+                <input type="text" value={clinicFields.clinic_address}
+                  onChange={e => setClinicFields(p => ({ ...p, clinic_address: e.target.value }))}
+                  className={inputCls} placeholder="Av. Principal #123, Ciudad..." />
+              </Field>
+            </div>
+          </Card>
+
+          <Card title="Logo de la Clínica" icon="🖼️">
+            <div className="flex items-start gap-5">
+              {/* Preview */}
+              <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0 bg-gray-50 dark:bg-gray-700/30">
+                {logoPreview
+                  ? <img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-1" />
+                  : <span className="text-3xl opacity-30">🏥</span>
+                }
+              </div>
+              <div className="flex-1 space-y-3">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Formato PNG o JPG, máximo 5 MB. Se mostrará en el navbar del sistema.
                 </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {therapyTypes.map((type, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300"
-                    >
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Tipos de terapia (separados por coma)
-              </label>
-              <textarea
-                rows={4}
-                value={therapyDraft}
-                onChange={(e) => setTherapyDraft(e.target.value)}
-                placeholder="Fisioterapia, Hidroterapia, Terapia Ocupacional, ..."
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Ingresa cada tipo de terapia separado por coma. Ej:{" "}
-                <span className="font-mono">
-                  Fisioterapia, Hidroterapia, Electroterapia
-                </span>
-              </p>
-              <div className="mt-4 flex gap-3">
-                <button
-                  onClick={handleSaveTherapyTypes}
-                  disabled={savingTherapy}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {savingTherapy ? "Guardando..." : "Guardar"}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingTherapy(false);
-                    setTherapyDraft(therapyTypes.join(", "));
-                  }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancelar
-                </button>
+                <label className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Seleccionar imagen
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoChange} className="hidden" />
+                </label>
+                {logoFile && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{logoFile.name}</span>
+                    <button onClick={handleUploadLogo} disabled={uploadingLogo}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors">
+                      {uploadingLogo ? "Subiendo..." : "Subir logo"}
+                    </button>
+                    <button onClick={() => { setLogoFile(null); setLogoPreview(clinicLogoUrl); }}
+                      className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+                {clinicLogoUrl && !logoFile && (
+                  <p className="text-xs text-green-600 dark:text-green-400">✓ Logo guardado</p>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </Card>
 
-        {/* Sección: Horarios */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Horarios
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Configura los turnos y la disponibilidad de terapeutas
+          <Card title="Color de acento" icon="🎨">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Elige el color principal que se usará en botones y acentos del sistema.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* Turno mañana */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                Turno Mañana
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Hora de inicio
-                </label>
-                <input
-                  type="time"
-                  value={scheduleFields.morning_shift_start}
-                  onChange={(e) =>
-                    setScheduleFields({
-                      ...scheduleFields,
-                      morning_shift_start: e.target.value,
-                    })
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Hora de fin
-                </label>
-                <input
-                  type="time"
-                  value={scheduleFields.morning_shift_end}
-                  onChange={(e) =>
-                    setScheduleFields({
-                      ...scheduleFields,
-                      morning_shift_end: e.target.value,
-                    })
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Cantidad de terapeutas
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={scheduleFields.morning_therapists_count}
-                  onChange={(e) =>
-                    setScheduleFields({
-                      ...scheduleFields,
-                      morning_therapists_count: e.target.value,
-                    })
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                />
-              </div>
+            <div className="flex flex-wrap gap-3">
+              {ACCENT_COLORS.map(c => (
+                <button key={c.id} onClick={() => setClinicFields(p => ({ ...p, clinic_accent_color: c.id }))}
+                  className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all ${
+                    clinicFields.clinic_accent_color === c.id
+                      ? "border-gray-900 dark:border-white scale-105"
+                      : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                  }`}>
+                  <span className={`w-8 h-8 rounded-full ${c.bg} ${clinicFields.clinic_accent_color === c.id ? `ring-2 ring-offset-2 ${c.ring}` : ""}`} />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{c.label}</span>
+                </button>
+              ))}
             </div>
+          </Card>
 
-            {/* Turno tarde */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                Turno Tarde
-              </h3>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Hora de inicio
-                </label>
-                <input
-                  type="time"
-                  value={scheduleFields.afternoon_shift_start}
-                  onChange={(e) =>
-                    setScheduleFields({
-                      ...scheduleFields,
-                      afternoon_shift_start: e.target.value,
-                    })
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Hora de fin
-                </label>
-                <input
-                  type="time"
-                  value={scheduleFields.afternoon_shift_end}
-                  onChange={(e) =>
-                    setScheduleFields({
-                      ...scheduleFields,
-                      afternoon_shift_end: e.target.value,
-                    })
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Cantidad de terapeutas
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={scheduleFields.afternoon_therapists_count}
-                  onChange={(e) =>
-                    setScheduleFields({
-                      ...scheduleFields,
-                      afternoon_therapists_count: e.target.value,
-                    })
-                  }
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <button
-              onClick={handleSaveSchedules}
-              disabled={savingSchedules}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {savingSchedules ? "Guardando..." : "Guardar horarios"}
+          <div className="flex justify-end">
+            <button onClick={handleSaveClinic} disabled={savingClinic}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+              {savingClinic ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
         </div>
+      )}
 
-        {/* Sección: Usuarios y Terapeutas */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Usuarios y Terapeutas</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Gestiona los accesos al sistema</p>
-            </div>
-            <button
-              onClick={() => setShowUserForm(true)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
-            >
+      {/* ── Tab: Usuarios ────────────────────────────────────────────────────── */}
+      {activeTab === "usuarios" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">{users.length} usuario{users.length !== 1 ? "s" : ""} registrados</p>
+            <button onClick={() => { setShowUserForm(true); setEditingUser(null); }}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
               + Nuevo usuario
             </button>
           </div>
 
-          {/* Formulario nuevo usuario */}
-          {showUserForm && (
-            <div className="mb-6 p-4 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Crear nuevo usuario</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre completo *</label>
-                  <div className="flex gap-2">
-                    <select value={userPrefix} onChange={(e) => setUserPrefix(e.target.value)}
-                      className="w-24 shrink-0 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                      <option>Dr.</option>
-                      <option>Dra.</option>
-                      <option>Lic.</option>
-                      <option>Lcda.</option>
-                      <option>Lic.</option>
-                      <option>Ing.</option>
+          {/* Form crear */}
+          {showUserForm && !editingUser && (
+            <Card title="Nuevo Usuario" icon="➕">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Field label="Prefijo">
+                    <select value={userPrefix} onChange={e => setUserPrefix(e.target.value)} className={inputCls}>
+                      {["Dr.", "Dra.", "Lic.", "Lcda.", "Tec.", ""].map(p => <option key={p} value={p}>{p || "Sin prefijo"}</option>)}
                     </select>
-                    <input type="text" value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      placeholder="Ej: María López" />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Nombre completo">
+                      <input type="text" value={userForm.name}
+                        onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))}
+                        className={inputCls} placeholder="Nombre..." />
+                    </Field>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico *</label>
-                  <input type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="correo@clinica.com" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Correo electrónico">
+                    <input type="email" value={userForm.email}
+                      onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))}
+                      className={inputCls} placeholder="correo@clinica.com" />
+                  </Field>
+                  <Field label="Contraseña temporal">
+                    <input type="text" value={userForm.password}
+                      onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))}
+                      className={inputCls} placeholder="Contraseña provisional..." />
+                  </Field>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña temporal *</label>
-                  <input type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                    autoComplete="new-password"
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="Mínimo 6 caracteres" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Rol">
+                    <select value={userForm.role} onChange={e => setUserForm(p => ({ ...p, role: e.target.value as UserRole }))} className={inputCls}>
+                      {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    </select>
+                  </Field>
+                  {(userForm.role === "THERAPIST" || userForm.role === "EXTERNAL_THERAPIST") && (
+                    <Field label="Especialización">
+                      <input type="text" value={userForm.specialization ?? ""}
+                        onChange={e => setUserForm(p => ({ ...p, specialization: e.target.value }))}
+                        className={inputCls} placeholder="Ej: Fisioterapia Deportiva" />
+                    </Field>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Rol *</label>
-                  <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value as UserRole })}
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                    <option value="THERAPIST">Terapeuta</option>
-                    <option value="ADMIN">Administrador</option>
-                    <option value="RECEPCION">Recepción</option>
-                    <option value="CONTABILIDAD">Contabilidad</option>
-                    <option value="SUPERVISOR">Supervisor</option>
-                    <option value="EXTERNAL_THERAPIST">Terapeuta Externo</option>
-                  </select>
+                <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+                  ⚠️ El usuario deberá cambiar su contraseña en el primer inicio de sesión.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button onClick={() => setShowUserForm(false)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={handleCreateUser} disabled={savingUser}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+                    {savingUser ? "Creando..." : "Crear usuario"}
+                  </button>
                 </div>
-                {(userForm.role === "THERAPIST" || userForm.role === "EXTERNAL_THERAPIST") && (
-                  <>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teléfono</label>
-                      <input type="text" value={userForm.phone} onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
-                        className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="Ej: 7777-1234" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Especialización</label>
-                      <input type="text" value={userForm.specialization} onChange={(e) => setUserForm({ ...userForm, specialization: e.target.value })}
-                        className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="Ej: Fisioterapia Deportiva" />
-                    </div>
-                  </>
-                )}
               </div>
-              <div className="mt-4 flex gap-3">
-                <button onClick={handleCreateUser} disabled={savingUser}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50">
-                  {savingUser ? "Guardando..." : "Crear usuario"}
-                </button>
-                <button onClick={() => { setShowUserForm(false); setUserForm({ name: "", email: "", password: "", role: "THERAPIST", phone: "", specialization: "" }); }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                  Cancelar
-                </button>
-              </div>
-            </div>
+            </Card>
           )}
 
           {/* Lista de usuarios */}
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {users.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 italic py-2">No hay usuarios registrados</p>
-            ) : (
-              users.map((u) => (
-                <div key={u.id} className="py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{u.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
+          <div className="space-y-2">
+            {users.map(user => (
+              <div key={user.id} className={`bg-white dark:bg-gray-800 rounded-2xl border ${user.isActive ? "border-gray-100 dark:border-gray-700" : "border-gray-200 dark:border-gray-600 opacity-60"} p-4`}>
+                {editingUser?.id === user.id ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <Field label="Nombre">
+                        <input type="text" value={editUserForm.name}
+                          onChange={e => setEditUserForm(p => ({ ...p, name: e.target.value }))}
+                          className={inputCls} />
+                      </Field>
+                      <Field label="Rol">
+                        <select value={editUserForm.role} onChange={e => setEditUserForm(p => ({ ...p, role: e.target.value as UserRole }))} className={inputCls}>
+                          {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Nueva contraseña (opcional)">
+                        <input type="text" value={editUserForm.password}
+                          onChange={e => setEditUserForm(p => ({ ...p, password: e.target.value }))}
+                          className={inputCls} placeholder="Dejar en blanco para no cambiar" />
+                      </Field>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setEditingUser(null)}
+                        className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Cancelar
+                      </button>
+                      <button onClick={handleUpdateUser} disabled={savingUser}
+                        className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors">
+                        {savingUser ? "Guardando..." : "Guardar"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleColor(u.role)}`}>
-                      {roleLabel(u.role)}
-                    </span>
-                    <button onClick={() => { setEditingUser(u); setEditUserForm({ role: u.role, password: "" }); }}
-                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
-                      Editar
-                    </button>
-                    <button onClick={() => setDeleteUserDialog(u)}
-                      className="text-xs text-red-500 dark:text-red-400 hover:underline">
-                      Eliminar
-                    </button>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-sm font-semibold text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{user.name}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${ROLE_COLORS[user.role]}`}>
+                          {ROLES.find(r => r.id === user.role)?.label ?? user.role}
+                        </span>
+                        {user.mustChangePassword && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            Primer acceso pendiente
+                          </span>
+                        )}
+                        {!user.isActive && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                            Desactivado
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{user.email}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button onClick={() => { setEditingUser(user); setEditUserForm({ name: user.name, role: user.role, password: "" }); }}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" title="Editar">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button onClick={() => handleToggleActive(user)}
+                        className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${user.isActive ? "text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20" : "text-amber-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"}`}
+                        title={user.isActive ? "Desactivar" : "Activar"}>
+                        {user.isActive
+                          ? <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                          : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        }
+                      </button>
+                      <button onClick={() => setDeleteUserDialog(user)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
+                )}
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Modal editar usuario */}
-        {editingUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Editar usuario</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{editingUser.name} — {editingUser.email}</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rol</label>
-                  <select value={editUserForm.role} onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value as UserRole })}
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                    <option value="THERAPIST">Terapeuta</option>
-                    <option value="ADMIN">Administrador</option>
-                    <option value="RECEPCION">Recepción</option>
-                    <option value="CONTABILIDAD">Contabilidad</option>
-                    <option value="SUPERVISOR">Supervisor</option>
-                    <option value="EXTERNAL_THERAPIST">Terapeuta Externo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva contraseña <span className="text-gray-400 font-normal">(dejar vacío para no cambiar)</span></label>
-                  <input type="password" value={editUserForm.password} onChange={(e) => setEditUserForm({ ...editUserForm, password: e.target.value })}
-                    autoComplete="new-password"
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="Nueva contraseña..." />
-                </div>
-              </div>
-              <div className="mt-5 flex gap-3 justify-end">
-                <button onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                  Cancelar
-                </button>
-                <button onClick={handleUpdateUser} disabled={savingUser}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50">
-                  {savingUser ? "Guardando..." : "Guardar"}
-                </button>
-              </div>
+      {/* ── Tab: Roles y Accesos ─────────────────────────────────────────────── */}
+      {activeTab === "roles" && (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Define qué módulos puede acceder cada rol. Los cambios se aplican al guardar.
+          </p>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide w-36">
+                      Módulo
+                    </th>
+                    {ROLES.map(r => (
+                      <th key={r.id} className="px-3 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${ROLE_COLORS[r.id]}`}>
+                          {r.label}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                  {MODULES.map(mod => (
+                    <tr key={mod.key} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {mod.label}
+                      </td>
+                      {ROLES.map(r => {
+                        const locked = r.id === "ADMIN" && mod.key === "config";
+                        const active = locked ? true : (rolePerms[r.id]?.[mod.key] ?? false);
+                        return (
+                          <td key={r.id} className="px-3 py-3 text-center">
+                            <button
+                              onClick={() => handleTogglePerm(r.id, mod.key)}
+                              disabled={locked}
+                              className={`w-8 h-5 rounded-full transition-colors relative ${active ? "bg-indigo-500" : "bg-gray-200 dark:bg-gray-600"} ${locked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                              title={locked ? "Siempre activo para ADMIN" : undefined}
+                            >
+                              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${active ? "left-3.5" : "left-0.5"}`} />
+                            </button>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
-
-        {/* Sección: Sesiones */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Sesiones
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Parámetros predeterminados para las sesiones de terapia
-            </p>
-          </div>
-
-          <div className="max-w-xs">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Duración predeterminada (minutos)
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={sessionFields.default_session_duration}
-              onChange={(e) =>
-                setSessionFields({
-                  ...sessionFields,
-                  default_session_duration: e.target.value,
-                })
-              }
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Duración en minutos que se asigna por defecto a nuevas sesiones
-            </p>
-          </div>
-
-          <div className="mt-5">
-            <button
-              onClick={handleSaveSessions}
-              disabled={savingSessions}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {savingSessions ? "Guardando..." : "Guardar configuración"}
+          <div className="flex justify-end">
+            <button onClick={handleSaveRoles} disabled={savingRoles}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+              {savingRoles ? "Guardando..." : "Guardar permisos"}
             </button>
           </div>
         </div>
-      </div>
+      )}
 
-      <ConfirmDialog
-        isOpen={!!deleteUserDialog}
-        onClose={() => setDeleteUserDialog(null)}
-        onConfirm={handleDeleteUser}
-        title="Eliminar usuario"
-        message={`¿Estás seguro que deseas eliminar a ${deleteUserDialog?.name}? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
-        type="danger"
-      />
+      {/* ── Tab: Operación ───────────────────────────────────────────────────── */}
+      {activeTab === "operacion" && (
+        <div className="space-y-6">
+          {/* Tipos de Terapia */}
+          <Card title="Tipos de Terapia" icon="💆"
+            action={!editingTherapy ? (
+              <button onClick={() => { setTherapyDraft(therapyTypes.join(", ")); setEditingTherapy(true); }}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+                Editar lista
+              </button>
+            ) : undefined}>
+            {!editingTherapy ? (
+              <div className="flex flex-wrap gap-2">
+                {therapyTypes.length === 0
+                  ? <p className="text-sm text-gray-400 italic">Sin tipos configurados</p>
+                  : therapyTypes.map((t, i) => (
+                    <span key={i} className="px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">{t}</span>
+                  ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <textarea rows={4} value={therapyDraft} onChange={e => setTherapyDraft(e.target.value)}
+                  placeholder="Fisioterapia, Hidroterapia, Electroterapia, ..."
+                  className={`${inputCls} resize-none`} />
+                <p className="text-xs text-gray-400">Separados por coma</p>
+                <div className="flex gap-2">
+                  <button onClick={handleSaveTherapyTypes} disabled={savingTherapy}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+                    {savingTherapy ? "Guardando..." : "Guardar"}
+                  </button>
+                  <button onClick={() => setEditingTherapy(false)}
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </Card>
 
-      <ConfirmDialog
-        isOpen={restoreDialog}
-        onClose={() => setRestoreDialog(false)}
-        onConfirm={handleRestoreDefaults}
-        title="Restaurar valores predeterminados"
-        message="¿Estás seguro que deseas restaurar todos los valores de configuración a sus valores predeterminados? Esta acción sobreescribirá la configuración actual."
+          {/* Horarios */}
+          <Card title="Horarios de Atención" icon="🕐">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { label: "Turno Mañana",  keys: ["morning_shift_start",   "morning_shift_end",   "morning_therapists_count"]   },
+                { label: "Turno Tarde",   keys: ["afternoon_shift_start", "afternoon_shift_end", "afternoon_therapists_count"] },
+              ].map(shift => (
+                <div key={shift.label} className="space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{shift.label}</h3>
+                  {shift.keys.map(key => (
+                    <Field key={key} label={key.includes("start") ? "Hora inicio" : key.includes("end") ? "Hora fin" : "Nº terapeutas"}>
+                      <input
+                        type={key.includes("count") ? "number" : "time"} min={key.includes("count") ? 1 : undefined}
+                        value={(scheduleFields as any)[key]}
+                        onChange={e => setScheduleFields(p => ({ ...p, [key]: e.target.value }))}
+                        className={inputCls} />
+                    </Field>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button onClick={handleSaveSchedules} disabled={savingSchedules}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+                {savingSchedules ? "Guardando..." : "Guardar horarios"}
+              </button>
+            </div>
+          </Card>
+
+          {/* Sesiones */}
+          <Card title="Sesiones" icon="⏱️">
+            <Field label="Duración predeterminada (minutos)">
+              <input type="number" min={1} value={defaultDuration}
+                onChange={e => setDefaultDuration(e.target.value)}
+                className={`${inputCls} max-w-[140px]`} />
+            </Field>
+            <div className="mt-4 flex justify-end">
+              <button onClick={handleSaveSessions} disabled={savingSessions}
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
+                {savingSessions ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </Card>
+
+          {/* Restaurar */}
+          <div className="flex justify-end">
+            <button onClick={() => setRestoreDialog(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Restaurar valores predeterminados
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialogs ──────────────────────────────────────────────────────────── */}
+      <ConfirmDialog isOpen={!!deleteUserDialog} onClose={() => setDeleteUserDialog(null)}
+        onConfirm={handleDeleteUser} title="Eliminar usuario"
+        message={`¿Eliminar a "${deleteUserDialog?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar" cancelText="Cancelar" type="danger" />
+
+      <ConfirmDialog isOpen={restoreDialog} onClose={() => setRestoreDialog(false)}
+        onConfirm={handleRestoreDefaults} title="Restaurar valores predeterminados"
+        message="¿Restaurar todos los valores de operación a sus defaults? Los datos de la clínica y usuarios no se verán afectados."
         confirmText={restoringDefaults ? "Restaurando..." : "Restaurar"}
-        cancelText="Cancelar"
-        type="warning"
-      />
+        cancelText="Cancelar" type="warning" />
+    </div>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const inputCls = "w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+function Card({ title, icon, children, action }: {
+  title: string; icon: string; children: React.ReactNode; action?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">{icon}</span>
+          {title}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{label}</label>
+      {children}
     </div>
   );
 }

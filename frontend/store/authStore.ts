@@ -6,6 +6,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  mustChangePassword: boolean;
 }
 
 interface AuthState {
@@ -14,6 +15,7 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
+  setMustChangePassword: (value: boolean) => void;
   logout: () => void;
   updateToken: (accessToken: string) => void;
 }
@@ -32,6 +34,10 @@ export const useAuthStore = create<AuthState>()(
           refreshToken,
           isAuthenticated: true,
         }),
+      setMustChangePassword: (value) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, mustChangePassword: value } : null,
+        })),
       logout: () =>
         set({
           user: null,
@@ -49,4 +55,3 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
-

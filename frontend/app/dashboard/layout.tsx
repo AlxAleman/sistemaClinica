@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import Link from "next/link";
+import Image from "next/image";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useTranslation } from "@/hooks/useTranslation";
+import { configService } from "@/services/configService";
 
 export default function DashboardLayout({
   children,
@@ -21,6 +23,18 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [clinicName, setClinicName] = useState("Clínica Gestor");
+  const [clinicLogo, setClinicLogo] = useState("");
+
+  useEffect(() => {
+    configService.getAll("clinic").then(configs => {
+      const v = (key: string) => configs.find(c => c.key === key)?.value ?? "";
+      const name = v("clinic_name");
+      const logo = v("clinic_logo_url");
+      if (name) setClinicName(name);
+      if (logo) setClinicLogo(logo);
+    }).catch(() => {});
+  }, []);
 
   // Cerrar menús al hacer clic fuera
   useEffect(() => {
@@ -47,15 +61,16 @@ export default function DashboardLayout({
   };
 
   useEffect(() => {
-    // Esperar un momento para que el store se cargue desde localStorage
     const checkAuth = setTimeout(() => {
       if (!isAuthenticated) {
         router.push("/login");
+      } else if (user?.mustChangePassword) {
+        router.replace("/cambiar-password");
       }
     }, 100);
 
     return () => clearTimeout(checkAuth);
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   // Mostrar loading mientras se verifica la autenticación
   if (!isAuthenticated) {
@@ -76,9 +91,15 @@ export default function DashboardLayout({
           <div className="flex justify-between h-14 sm:h-16">
             <div className="flex items-center flex-1 min-w-0">
               <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-indigo-600 dark:text-indigo-400 truncate">
-                  Clínica Gestor
-                </h1>
+                <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  {clinicLogo
+                    ? <Image src={clinicLogo} alt="Logo" width={32} height={32} className="h-8 w-8 object-contain rounded-md" unoptimized />
+                    : <span className="w-8 h-8 rounded-md bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-lg">🏥</span>
+                  }
+                  <span className="text-base sm:text-lg font-bold text-indigo-600 dark:text-indigo-400 truncate max-w-[140px] sm:max-w-[200px]">
+                    {clinicName}
+                  </span>
+                </Link>
               </div>
               {/* Menú desktop */}
               <div className="hidden md:ml-4 lg:ml-6 md:flex md:items-center md:space-x-1 lg:space-x-2">
@@ -107,7 +128,7 @@ export default function DashboardLayout({
                   <button
                     onClick={() => setMoreMenuOpen(!moreMenuOpen)}
                     className={`${
-                      ["/dashboard/reports", "/dashboard/payments", "/dashboard/prescriptions"].some(p => pathname.startsWith(p))
+                      ["/dashboard/reports", "/dashboard/payments", "/dashboard/prescriptions", "/dashboard/personal"].some(p => pathname.startsWith(p))
                         ? "border-indigo-500 text-gray-900 dark:text-gray-100"
                         : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                     } inline-flex items-center gap-1 px-2 xl:px-3 pt-1 pb-0 border-b-2 text-sm font-medium transition-colors whitespace-nowrap h-full`}
@@ -120,6 +141,7 @@ export default function DashboardLayout({
                   {moreMenuOpen && (
                     <div className="absolute left-0 top-full mt-1 w-52 rounded-xl shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black/5 dark:ring-white/10 z-50 py-1">
                       {[
+                        { href: "/dashboard/personal", label: "Personal" },
                         { href: "/dashboard/reports", label: t("common.reports") || "Reportes" },
                         { href: "/dashboard/payments", label: "Pagos" },
                         { href: "/dashboard/prescriptions", label: t("common.prescriptions") || "Recetas" },

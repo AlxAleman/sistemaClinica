@@ -8,6 +8,8 @@ export interface AppUser {
   name: string;
   role: UserRole;
   therapistId: string | null;
+  isActive: boolean;
+  mustChangePassword: boolean;
   createdAt: string;
 }
 
@@ -24,6 +26,7 @@ export interface UpdateUserData {
   name?: string;
   role?: UserRole;
   password?: string;
+  isActive?: boolean;
 }
 
 export const userService = {

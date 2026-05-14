@@ -10,6 +10,10 @@ export interface Therapist {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  _count?: {
+    appointments: number;
+    sessions: number;
+  };
 }
 
 export interface TherapistsResponse {
@@ -38,6 +42,14 @@ export const therapistService = {
   getById: async (id: string): Promise<Therapist> => {
     const response = await api.get<{ success: boolean; data: Therapist }>(
       `/therapists/${id}`
+    );
+    return response.data.data;
+  },
+
+  update: async (id: string, data: { name?: string; phone?: string; specialization?: string | null }): Promise<Therapist> => {
+    const response = await api.put<{ success: boolean; data: Therapist }>(
+      `/therapists/${id}`,
+      data
     );
     return response.data.data;
   },

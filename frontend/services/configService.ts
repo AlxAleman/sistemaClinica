@@ -33,6 +33,17 @@ export const configService = {
     await api.post('/config/init');
   },
 
+  uploadLogo: async (file: File): Promise<string> => {
+    const form = new FormData();
+    form.append('logo', file);
+    const response = await api.post<{ success: boolean; data: SystemConfig }>(
+      '/config/logo',
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return response.data.data.value;
+  },
+
   getTherapyTypes: async (): Promise<string[]> => {
     const configs = await configService.getAll('therapy_types');
     const config = configs.find((c) => c.key === 'therapy_types');

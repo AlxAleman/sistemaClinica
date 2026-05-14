@@ -75,6 +75,31 @@ export const refreshToken = async (
   }
 };
 
+export const changePassword = async (
+  req: AuthRequest,
+  res: Response<ApiResponse>
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, error: 'No autenticado' });
+      return;
+    }
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ success: false, error: 'Se requieren contraseña actual y nueva' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res.status(400).json({ success: false, error: 'La nueva contraseña debe tener al menos 8 caracteres' });
+      return;
+    }
+    await authService.changePassword(req.user.userId, currentPassword, newPassword);
+    res.status(200).json({ success: true, message: 'Contraseña actualizada exitosamente' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message || 'Error al cambiar contraseña' });
+  }
+};
+
 export const getMe = async (
   req: AuthRequest,
   res: Response<ApiResponse>

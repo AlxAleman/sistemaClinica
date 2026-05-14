@@ -87,14 +87,16 @@ enum EvaluationType {
 // ─────────────────────────────────────────────
 
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  password   String
-  name       String
-  role       UserRole @default(ADMIN)
-  therapistId String? // Vincula usuario con perfil de terapista
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  password            String
+  name                String
+  role                UserRole @default(ADMIN)
+  therapistId         String?
+  isActive            Boolean  @default(true)
+  mustChangePassword  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([email])
 }
@@ -185,10 +187,13 @@ model Diagnosis {
   medicalProfileId String
   medicalProfile   MedicalProfile  @relation(fields: [medicalProfileId], references: [id], onDelete: Cascade)
 
-  clinicalDiagnosis String          // Diagnóstico clínico formal
-  diagnosisDate     DateTime        @default(now())
-  observations      String?         // Observaciones clínicas
-  status            DiagnosisStatus @default(ACTIVE)
+  clinicalDiagnosis    String          // Diagnóstico clínico formal
+  diagnosisDate        DateTime        @default(now())
+  observations         String?         // Observaciones clínicas
+  status               DiagnosisStatus @default(ACTIVE)
+
+  evaluacionFisicaId   String?
+  evaluacionFisica     EvaluacionFisica? @relation(fields: [evaluacionFisicaId], references: [id], onDelete: SetNull)
 
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
@@ -199,6 +204,7 @@ model Diagnosis {
   @@index([patientId])
   @@index([medicalProfileId])
   @@index([status])
+  @@index([evaluacionFisicaId])
 }
 
 // ─────────────────────────────────────────────
@@ -612,6 +618,8 @@ model EvaluacionFisica {
   creadoPor         String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  diagnoses         Diagnosis[]
 
   @@index([historiaClinicaId])
   @@index([patientId])

@@ -22,6 +22,7 @@ export interface AuthResponse {
     email: string;
     name: string;
     role: UserRole;
+    mustChangePassword: boolean;
   };
   accessToken: string;
   refreshToken: string;
@@ -37,6 +38,10 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 
   if (!user) {
     throw new Error('Credenciales inválidas');
+  }
+
+  if (!user.isActive) {
+    throw new Error('Cuenta desactivada. Contacte al administrador.');
   }
 
   // Verificar contraseña
@@ -61,10 +66,29 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
       email: user.email,
       name: user.name,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
     },
     accessToken,
     refreshToken,
   };
+};
+
+export const changePassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error('Usuario no encontrado');
+
+  const isValid = await comparePassword(currentPassword, user.password);
+  if (!isValid) throw new Error('Contraseña actual incorrecta');
+
+  const hashed = await hashPassword(newPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashed, mustChangePassword: false },
+  });
 };
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
@@ -108,6 +132,7 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
       email: user.email,
       name: user.name,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
     },
     accessToken,
     refreshToken,
