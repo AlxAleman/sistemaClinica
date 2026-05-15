@@ -300,22 +300,35 @@ export default function AppointmentsPage() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
 
+  const CALENDAR_DEFAULT_VIEW_KEY = "calendarDefaultView";
+  const getSavedView = (): View => {
+    try { return (localStorage.getItem(CALENDAR_DEFAULT_VIEW_KEY) as View) ?? "week"; } catch { return "week"; }
+  };
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [sessions, setSessions] = useState<TreatmentSession[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"calendar" | "list">("calendar");
-  const [calendarView, setCalendarView] = useState<View>("month");
+  const [calendarView, setCalendarView] = useState<View>("week");
   const [calendarDate, setCalendarDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<UnifiedCalendarEvent | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string }>({ isOpen: false, id: "" });
+  const [savedDefaultView, setSavedDefaultView] = useState<View>("week");
 
   useEffect(() => {
+    const saved = getSavedView();
+    setSavedDefaultView(saved);
+
     fetchAll();
 
     const viewParam = searchParams.get("view");
     const dateParam = searchParams.get("date");
-    if (viewParam && ["month","week","day","agenda"].includes(viewParam)) setCalendarView(viewParam as View);
+    if (viewParam && ["month","week","day"].includes(viewParam)) {
+      setCalendarView(viewParam as View);
+    } else {
+      setCalendarView(saved);
+    }
     if (dateParam) { const d = new Date(dateParam); if (!isNaN(d.getTime())) setCalendarDate(d); }
   }, [searchParams]);
 
@@ -348,6 +361,17 @@ export default function AppointmentsPage() {
     const p = new URLSearchParams(searchParams.toString());
     p.set("view", v);
     router.push(`/dashboard/appointments?${p.toString()}`, { scroll: false });
+  };
+
+  const handleSaveDefaultView = (v: View) => {
+    try { localStorage.setItem(CALENDAR_DEFAULT_VIEW_KEY, v); } catch {}
+    setSavedDefaultView(v);
+    setCalendarView(v);
+    const p = new URLSearchParams(searchParams.toString());
+    p.set("view", v);
+    router.push(`/dashboard/appointments?${p.toString()}`, { scroll: false });
+    const labels: Record<string, string> = { month: "Mes", week: "Semana", day: "Día" };
+    toast.success(`Vista "${labels[v] ?? v}" guardada como predeterminada`);
   };
 
   const handleCalendarDateChange = (date: Date) => {
@@ -387,7 +411,29 @@ export default function AppointmentsPage() {
       <Breadcrumbs items={[{ label: t("common.dashboard"), href: "/dashboard" }, { label: t("appointments.title") }]} />
 
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-2 mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t("appointments.title")}</h1>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t("appointments.title")}</h1>
+          {view === "calendar" && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-400 dark:text-gray-500">Vista predeterminada:</span>
+              {(["month","week","day"] as const).map(v => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleSaveDefaultView(v)}
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
+                    savedDefaultView === v
+                      ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  }`}
+                >
+                  {v === "month" ? "Mes" : v === "week" ? "Semana" : "Día"}
+                  {savedDefaultView === v && " ✓"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={() => setView(view === "calendar" ? "list" : "calendar")}
