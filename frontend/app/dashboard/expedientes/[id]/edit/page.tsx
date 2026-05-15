@@ -156,13 +156,13 @@ export default function ExpedienteEditPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Sección: Datos baseline */}
-        <Section title="Datos Baseline" icon="📏">
+        {/* Sección: Datos físicos */}
+        <Section title="Datos Físicos" icon="📏">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <FormField label="Peso (kg)">
+            <FormField label="Peso (lb)">
               <input type="number" step="0.1" value={form.peso}
                 onChange={e => setForm(p => ({ ...p, peso: e.target.value }))}
-                className={inputCls} placeholder="65.0" />
+                className={inputCls} placeholder="143.0" />
             </FormField>
             <FormField label="Altura (cm)">
               <input type="number" step="1" value={form.talla}

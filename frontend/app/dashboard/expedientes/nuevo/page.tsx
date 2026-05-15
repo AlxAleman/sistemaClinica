@@ -154,15 +154,15 @@ export default function NuevoExpedientePage() {
         )}
       </div>
 
-      {/* Datos baseline */}
+      {/* Datos físicos */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">📏</span>
-          Datos Baseline
+          Datos Físicos
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {[
-            { label: "Peso (kg)",    key: "peso",  placeholder: "65.0", step: "0.1" },
+            { label: "Peso (lb)",    key: "peso",  placeholder: "143.0", step: "0.1" },
             { label: "Altura (cm)", key: "talla", placeholder: "170",   step: "1"   },
             { label: "Etnia",        key: "etnia", placeholder: "",      step: undefined },
           ].map(f => (

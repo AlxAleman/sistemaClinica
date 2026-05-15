@@ -35,7 +35,6 @@ interface AppointmentCalendarProps {
 // ── Color palettes ────────────────────────────────────────────────────────────
 
 const appointmentColor = (appt: Appointment): string => {
-  if (!appt.therapistId) return "#d97706"; // amber — sin terapeuta
   switch (appt.status) {
     case "CONFIRMED":  return "#16a34a"; // green-600
     case "COMPLETED":  return "#6b7280"; // gray-500
@@ -53,6 +52,37 @@ const sessionColor = (s: TreatmentSession): string => {
     default:              return "#0891b2"; // cyan-600 — PENDING
   }
 };
+
+// ── Custom event renderer ─────────────────────────────────────────────────────
+
+function CalendarEventWrapper({ event, title }: { event: UnifiedCalendarEvent; title: string }) {
+  const noTherapist = event.eventType === "appointment"
+    ? !(event.resource as Appointment).therapistId
+    : !(event.resource as TreatmentSession).therapistId;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", height: "100%", overflow: "hidden", gap: "4px", paddingLeft: "1px" }}>
+      {noTherapist && (
+        <span style={{
+          backgroundColor: "#fbbf24",
+          color: "#78350f",
+          fontSize: "9px",
+          fontWeight: 800,
+          padding: "1px 4px",
+          borderRadius: "4px",
+          flexShrink: 0,
+          lineHeight: "1.5",
+          letterSpacing: "0.03em",
+        }}>
+          ST
+        </span>
+      )}
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "11px", fontWeight: 500 }}>
+        {title}
+      </span>
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -199,13 +229,12 @@ export default function AppointmentCalendar({
 
   const Legend = () => (
     <div className="flex flex-wrap items-center gap-3 mb-3 text-xs text-gray-600 dark:text-gray-400">
-      <span className="font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Citas:</span>
+      <span className="font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Evaluaciones:</span>
       {[
         { color: "#4f46e5", label: "Programada" },
         { color: "#16a34a", label: "Confirmada" },
         { color: "#6b7280", label: "Completada" },
         { color: "#dc2626", label: "Cancelada" },
-        { color: "#d97706", label: "Sin terapeuta" },
       ].map(({ color, label }) => (
         <span key={label} className="flex items-center gap-1">
           <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: color }} />
@@ -224,6 +253,20 @@ export default function AppointmentCalendar({
           {label}
         </span>
       ))}
+      <span className="ml-2 flex items-center gap-1.5">
+        <span style={{
+          backgroundColor: "#fbbf24",
+          color: "#78350f",
+          fontSize: "9px",
+          fontWeight: 800,
+          padding: "1px 5px",
+          borderRadius: "4px",
+          letterSpacing: "0.03em",
+        }}>
+          ST
+        </span>
+        Sin terapeuta
+      </span>
     </div>
   );
 
@@ -305,7 +348,7 @@ export default function AppointmentCalendar({
         </div>
       )}
 
-      <div className="h-[600px] relative">
+      <div className="h-[600px] relative [&_.rbc-timeslot-group]:min-h-[60px]">
         <Calendar
           localizer={localizer}
           events={events}
@@ -319,11 +362,13 @@ export default function AppointmentCalendar({
           onSelectSlot={onSelectSlot}
           onSelectEvent={event => onSelectEvent?.(event as UnifiedCalendarEvent)}
           eventPropGetter={eventStyleGetter}
+          components={{ event: CalendarEventWrapper as any }}
+          dayLayoutAlgorithm={currentView === "day" ? "no-overlap" : "overlap"}
           selectable
           formats={{
             monthHeaderFormat: (date: Date) => moment(date).format("MMMM YYYY"),
-            dayFormat: (date: Date) => moment(date).format("ddd"),
-            dayHeaderFormat: (date: Date) => moment(date).format("ddd"),
+            dayFormat: (date: Date) => moment(date).format("ddd D"),
+            dayHeaderFormat: (date: Date) => moment(date).format("dddd D - YYYY"),
             dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
               `${moment(start).format("MMM D")} - ${moment(end).format("MMM D, YYYY")}`,
           }}

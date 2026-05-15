@@ -110,6 +110,11 @@ export default function PatientDetailPage() {
   const [finalizingPlan, setFinalizingPlan] = useState(false);
   const [extendPlanModal, setExtendPlanModal] = useState<TreatmentPlan | null>(null);
   const [extendSessions, setExtendSessions] = useState(5);
+  const [extScheduledSessions, setExtScheduledSessions] = useState<{ date: string; time: string }[]>([]);
+  const [extDefaultTime, setExtDefaultTime] = useState("09:00");
+  const [extSelectedDays, setExtSelectedDays] = useState<number[]>([]);
+  const [extTherapistId, setExtTherapistId] = useState("");
+  const [extStartDate, setExtStartDate] = useState("");
 
   // Historial pagination
   const [completedPlansPage, setCompletedPlansPage] = useState(1);
@@ -340,16 +345,114 @@ export default function PatientDetailPage() {
     }
   };
 
+  const EXT_FREQ_DAYS_REQUIRED: Record<string, number> = {
+    "1 vez por semana": 1, "2 veces por semana": 2, "3 veces por semana": 3,
+    "4 veces por semana": 4, "5 veces por semana (diario)": 5,
+    "Cada 2 semanas": 1, "1 vez al mes": 1,
+  };
+  const EXT_DAY_LABELS = ["Do", "Lu", "Ma", "Mi", "Ju", "Vi", "Sá"];
+
+  const extDaysRequired = extendPlanModal?.frequency ? (EXT_FREQ_DAYS_REQUIRED[extendPlanModal.frequency] ?? 0) : 0;
+  const extCanGenerate = extDaysRequired === 0 || extSelectedDays.length === extDaysRequired;
+
+  const extToggleDay = (day: number) => {
+    setExtSelectedDays(prev => {
+      if (prev.includes(day)) return prev.filter(d => d !== day);
+      if (prev.length >= extDaysRequired) return prev;
+      return [...prev, day];
+    });
+    setExtScheduledSessions([]);
+  };
+
+  const extGenerateDates = () => {
+    const plan = extendPlanModal;
+    if (!plan || !extStartDate || extendSessions < 1) return;
+    const frequency = plan.frequency ?? "";
+    const sessions: { date: string; time: string }[] = [];
+    const current = new Date(extStartDate + "T12:00:00");
+    const sorted = [...extSelectedDays].sort((a, b) => a - b);
+    const count = extendSessions;
+
+    if (frequency === "1 vez al mes") {
+      if (sorted.length > 0) {
+        while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
+        for (let i = 0; i < count; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: extDefaultTime });
+          current.setDate(current.getDate() + 28);
+          while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
+        }
+      } else {
+        for (let i = 0; i < count; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: extDefaultTime });
+          current.setDate(current.getDate() + 30);
+        }
+      }
+    } else if (frequency === "Cada 2 semanas") {
+      if (sorted.length > 0) {
+        while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
+        for (let i = 0; i < count; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: extDefaultTime });
+          current.setDate(current.getDate() + 14);
+          while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
+        }
+      } else {
+        for (let i = 0; i < count; i++) {
+          sessions.push({ date: current.toISOString().split("T")[0], time: extDefaultTime });
+          current.setDate(current.getDate() + 14);
+        }
+      }
+    } else {
+      const limit = count * 60;
+      for (let d = 0; d < limit && sessions.length < count; d++) {
+        if (sorted.length > 0) {
+          if (sorted.includes(current.getDay()))
+            sessions.push({ date: current.toISOString().split("T")[0], time: extDefaultTime });
+        } else {
+          sessions.push({ date: current.toISOString().split("T")[0], time: extDefaultTime });
+          const perWeek = EXT_FREQ_DAYS_REQUIRED[frequency] ?? 1;
+          current.setDate(current.getDate() + Math.floor(7 / perWeek) - 1);
+        }
+        current.setDate(current.getDate() + 1);
+      }
+    }
+    setExtScheduledSessions(sessions);
+  };
+
   const handleExtendPlan = async () => {
     if (!extendPlanModal) return;
+    if (extScheduledSessions.length === 0) {
+      toast.error("Genera las fechas antes de guardar");
+      return;
+    }
     try {
+      const duration = extendPlanModal.sessionDuration ?? 60;
+      const results = await Promise.allSettled(
+        extScheduledSessions.map((sess) => {
+          const [h, m] = sess.time.split(":").map(Number);
+          const d = new Date(sess.date + "T12:00:00");
+          d.setHours(h, m, 0, 0);
+          return sessionService.create({
+            patientId: extendPlanModal.patientId,
+            therapistId: extTherapistId || null,
+            treatmentPlanId: extendPlanModal.id,
+            sessionNumber: extendPlanModal.sessionsPlanned + extScheduledSessions.indexOf(sess) + 1,
+            sessionDate: d.toISOString(),
+            duration,
+            attendanceStatus: "PENDING",
+          });
+        })
+      );
+      const ok = results.filter(r => r.status === "fulfilled").length;
       const updated = await treatmentPlanService.update(extendPlanModal.id, {
-        sessionsPlanned: extendPlanModal.sessionsPlanned + extendSessions,
+        sessionsPlanned: extendPlanModal.sessionsPlanned + ok,
       });
       setTreatmentPlans(prev => prev.map(p => p.id === updated.id ? updated : p));
       setExtendPlanModal(null);
+      setExtScheduledSessions([]);
+      setExtSelectedDays([]);
+      setExtStartDate("");
       setExtendSessions(5);
-      toast.success(`Se agregaron ${extendSessions} sesiones al tratamiento`);
+      toast.success(`${ok} sesiones agendadas al tratamiento`);
     } catch {
       toast.error("Error al extender el tratamiento");
     }
@@ -523,12 +626,6 @@ export default function PatientDetailPage() {
 
               {/* Stats inline */}
               <div className="flex items-center gap-4 mt-3">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="w-6 h-6 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-semibold text-xs">
-                    {patient._count?.appointments || 0}
-                  </span>
-                  Citas
-                </div>
                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <span className="w-6 h-6 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 font-semibold text-xs">
                     {patient._count?.sessions || 0}
@@ -898,12 +995,7 @@ export default function PatientDetailPage() {
                 <span className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-sm">📅</span>
                 Registro en el sistema
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                <StatCard
-                  label="Citas totales"
-                  value={patient._count?.appointments || 0}
-                  color="indigo"
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
                 <StatCard
                   label="Sesiones"
                   value={patient._count?.sessions || 0}
@@ -1018,7 +1110,6 @@ export default function PatientDetailPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-semibold text-gray-900 dark:text-gray-100">{plan.title}</p>
-                              <PlanStatusBadge status={plan.status} />
                             </div>
                             <div className="flex items-center gap-4 mt-1 flex-wrap">
                               {plan.therapyType && <span className="text-xs text-gray-500 dark:text-gray-400">{plan.therapyType}</span>}
@@ -1057,7 +1148,16 @@ export default function PatientDetailPage() {
                             {plan.sessionsCompleted >= plan.sessionsPlanned && plan.sessionsPlanned > 0 && (
                               <>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setExtendPlanModal(plan); setExtendSessions(5); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExtendPlanModal(plan);
+                                    setExtendSessions(5);
+                                    setExtScheduledSessions([]);
+                                    setExtSelectedDays([]);
+                                    setExtTherapistId("");
+                                    setExtDefaultTime("09:00");
+                                    setExtStartDate(new Date().toISOString().split("T")[0]);
+                                  }}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-lg transition-colors"
                                   title="Agregar más sesiones"
                                 >
@@ -1339,7 +1439,96 @@ export default function PatientDetailPage() {
           return (
           <div className="space-y-6">
 
-            {/* ── SECCIÓN 1: Tratamientos completados ── */}
+            {/* ── Documentos médicos ── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-sm">📁</span>
+                  Documentos Médicos
+                  {allDocs.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{allDocs.length}</span>
+                  )}
+                </h2>
+                <DocumentUpload
+                  patientId={id}
+                  preselectedCategory={activeDocCategory === "todos" ? "otro" : activeDocCategory as any}
+                  onUploadComplete={() => fetchPatient()}
+                />
+              </div>
+              {/* Category tabs */}
+              <div className="px-6 pt-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex gap-1 overflow-x-auto pb-3 scrollbar-none">
+                  {DOC_CATEGORIES.map(cat => {
+                    const count = cat.value === "todos" ? allDocs.length : allDocs.filter(d => (d as any).category === cat.value).length;
+                    return (
+                      <button
+                        key={cat.value}
+                        onClick={() => setActiveDocCategory(cat.value)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
+                          activeDocCategory === cat.value
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                      >
+                        <span>{cat.icon}</span>
+                        {cat.label}
+                        {count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${activeDocCategory === cat.value ? "bg-white/20" : "bg-gray-100 dark:bg-gray-700 text-gray-500"}`}>{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                {filteredDocs.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3 text-2xl">
+                      {DOC_CATEGORIES.find(c => c.value === activeDocCategory)?.icon ?? "📁"}
+                    </div>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">No hay documentos en esta categoría</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      {filteredDocs.length} documento{filteredDocs.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className="space-y-2">
+                      {filteredDocs.map((doc) => {
+                        const isImage = doc.fileType.startsWith("image/");
+                        const isPdf = doc.fileType === "application/pdf";
+                        return (
+                          <div key={doc.id} className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-all group">
+                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => { const a = window.document.createElement("a"); a.href = doc.fileUrl; a.target = "_blank"; window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a); }}>
+                              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                                {isImage ? (
+                                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                ) : isPdf ? (
+                                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                ) : (
+                                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{doc.fileName}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                  {new Date(doc.uploadedAt).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" })}
+                                  {doc.description && <span className="ml-2 text-gray-500 dark:text-gray-400">· {doc.description}</span>}
+                                </p>
+                              </div>
+                              <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteDocumentId(doc.id); }} className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100" title="Eliminar documento">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Tratamientos completados ── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -1440,7 +1629,7 @@ export default function PatientDetailPage() {
               </div>
             </div>
 
-            {/* ── SECCIÓN 2: Historial de sesiones ── */}
+            {/* ── SECCIÓN 3b: Historial de sesiones ── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -1489,111 +1678,6 @@ export default function PatientDetailPage() {
               </div>
             </div>
 
-            {/* ── SECCIÓN 3: Documentos médicos ── */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-sm">📁</span>
-                  Documentos Médicos
-                  {allDocs.length > 0 && (
-                    <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{allDocs.length}</span>
-                  )}
-                </h2>
-                <DocumentUpload
-                  patientId={id}
-                  preselectedCategory={activeDocCategory === "todos" ? "otro" : activeDocCategory as any}
-                  onUploadComplete={() => fetchPatient()}
-                />
-              </div>
-
-              {/* Category tabs */}
-              <div className="px-6 pt-4 border-b border-gray-100 dark:border-gray-700">
-                <div className="flex gap-1 overflow-x-auto pb-3 scrollbar-none">
-                  {DOC_CATEGORIES.map(cat => {
-                    const count = cat.value === "todos" ? allDocs.length : allDocs.filter(d => (d as any).category === cat.value).length;
-                    return (
-                      <button
-                        key={cat.value}
-                        onClick={() => setActiveDocCategory(cat.value)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
-                          activeDocCategory === cat.value
-                            ? "bg-indigo-600 text-white shadow-sm"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }`}
-                      >
-                        <span>{cat.icon}</span>
-                        {cat.label}
-                        {count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${activeDocCategory === cat.value ? "bg-white/20" : "bg-gray-100 dark:bg-gray-700 text-gray-500"}`}>{count}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {/* Documents list */}
-                {filteredDocs.length === 0 ? (
-                  <div className="py-6 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3 text-2xl">
-                      {DOC_CATEGORIES.find(c => c.value === activeDocCategory)?.icon ?? "📁"}
-                    </div>
-                    <p className="text-sm text-gray-400 dark:text-gray-500">No hay documentos en esta categoría</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                      {filteredDocs.length} documento{filteredDocs.length !== 1 ? "s" : ""}
-                    </p>
-                    <div className="space-y-2">
-                      {filteredDocs.map((doc) => {
-                        const isImage = doc.fileType.startsWith("image/");
-                        const isPdf = doc.fileType === "application/pdf";
-                        return (
-                          <div
-                            key={doc.id}
-                            className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 hover:bg-indigo-50/20 dark:hover:bg-indigo-900/10 transition-all group"
-                          >
-                            <div
-                              className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-                              onClick={() => {
-                                const a = window.document.createElement("a");
-                                a.href = doc.fileUrl; a.target = "_blank";
-                                window.document.body.appendChild(a); a.click(); window.document.body.removeChild(a);
-                              }}
-                            >
-                              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
-                                {isImage ? (
-                                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                ) : isPdf ? (
-                                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                                ) : (
-                                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{doc.fileName}</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                  {new Date(doc.uploadedAt).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" })}
-                                  {doc.description && <span className="ml-2 text-gray-500 dark:text-gray-400">· {doc.description}</span>}
-                                </p>
-                              </div>
-                              <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-indigo-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDeleteDocumentId(doc.id); }}
-                              className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
-                              title="Eliminar documento"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
           );
         })()}
@@ -1624,29 +1708,122 @@ export default function PatientDetailPage() {
       {/* ── Modal agregar sesiones ── */}
       {extendPlanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setExtendPlanModal(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Agregar sesiones</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{extendPlanModal.title}</p>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              ¿Cuántas sesiones agregar?
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={extendSessions}
-              onChange={(e) => setExtendSessions(Math.max(1, parseInt(e.target.value) || 1))}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 mb-1"
-            />
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">
-              Total pasará de {extendPlanModal.sessionsPlanned} a {extendPlanModal.sessionsPlanned + extendSessions} sesiones
-            </p>
-            <div className="flex gap-3 justify-end">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-0.5">Agregar sesiones</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">{extendPlanModal.title}</p>
+
+            {/* Cuántas sesiones + desde cuándo */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sesiones a agregar</label>
+                <input
+                  type="number" min={1} max={100} value={extendSessions}
+                  onChange={(e) => { setExtendSessions(Math.max(1, parseInt(e.target.value) || 1)); setExtScheduledSessions([]); }}
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+                <p className="text-xs text-gray-400 mt-1">Total: {extendPlanModal.sessionsPlanned} → {extendPlanModal.sessionsPlanned + extendSessions}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desde</label>
+                <input
+                  type="date" value={extStartDate}
+                  onChange={(e) => { setExtStartDate(e.target.value); setExtScheduledSessions([]); }}
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </div>
+
+            {/* Scheduler */}
+            <div className="bg-gray-50 dark:bg-gray-700/40 rounded-xl p-4 space-y-4 mb-4">
+              {/* Días */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Días preferidos</span>
+                  {extDaysRequired > 0 && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      extSelectedDays.length === extDaysRequired
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    }`}>
+                      {extSelectedDays.length}/{extDaysRequired} seleccionados
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {EXT_DAY_LABELS.map((label, dayIdx) => {
+                    const isSelected = extSelectedDays.includes(dayIdx);
+                    const isDisabled = !isSelected && extSelectedDays.length >= extDaysRequired;
+                    return (
+                      <button key={dayIdx} type="button" disabled={isDisabled} onClick={() => extToggleDay(dayIdx)}
+                        className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all border-2 ${
+                          isSelected
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                            : isDisabled
+                            ? "border-gray-200 dark:border-gray-600 text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                            : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600"
+                        }`}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {extendPlanModal.frequency && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Frecuencia del plan: {extendPlanModal.frequency}</p>
+                )}
+              </div>
+              {/* Hora + generar */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Hora por defecto:</label>
+                  <input type="time" value={extDefaultTime}
+                    onChange={(e) => setExtDefaultTime(e.target.value)}
+                    className="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100" />
+                </div>
+                <button type="button" onClick={extGenerateDates} disabled={!extCanGenerate || !extStartDate}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
+                  {extCanGenerate ? "Generar fechas" : `Selecciona ${extDaysRequired - extSelectedDays.length} día${extDaysRequired - extSelectedDays.length !== 1 ? "s" : ""} más`}
+                </button>
+              </div>
+            </div>
+
+            {/* Lista generada */}
+            {extScheduledSessions.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{extScheduledSessions.length} sesiones generadas</p>
+                  <select value={extTherapistId} onChange={(e) => setExtTherapistId(e.target.value)}
+                    className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <option value="">— Sin terapeuta —</option>
+                    {therapists.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {extScheduledSessions.map((sess, idx) => (
+                    <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <span className="text-xs font-semibold text-gray-400 w-6 shrink-0 text-right">#{extendPlanModal.sessionsPlanned + idx + 1}</span>
+                      <input type="date" value={sess.date}
+                        onChange={(e) => setExtScheduledSessions(prev => prev.map((s, i) => i === idx ? { ...s, date: e.target.value } : s))}
+                        className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100" />
+                      <input type="time" value={sess.time}
+                        onChange={(e) => setExtScheduledSessions(prev => prev.map((s, i) => i === idx ? { ...s, time: e.target.value } : s))}
+                        className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100" />
+                      <button type="button" onClick={() => setExtScheduledSessions(prev => prev.filter((_, i) => i !== idx))}
+                        className="shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-2 border-t border-gray-100 dark:border-gray-700">
               <button onClick={() => setExtendPlanModal(null)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                 Cancelar
               </button>
-              <button onClick={handleExtendPlan} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
-                Agregar sesiones
+              <button onClick={handleExtendPlan} disabled={extScheduledSessions.length === 0}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors">
+                Agendar {extScheduledSessions.length > 0 ? `${extScheduledSessions.length} sesiones` : "sesiones"}
               </button>
             </div>
           </div>
@@ -2113,7 +2290,7 @@ function ExpedienteView({
             )}
             {(historia.peso != null || historia.talla != null || historia.antecedentes?.alergia !== undefined) && (
               <div className="flex flex-wrap gap-3">
-                {historia.peso != null && <HCDataCard label="Peso" value={`${historia.peso} kg`} />}
+                {historia.peso != null && <HCDataCard label="Peso" value={`${historia.peso} lb`} />}
                 {historia.talla != null && <HCDataCard label="Altura" value={`${historia.talla} cm`} />}
                 {(() => {
                   const al = historia.antecedentes?.alergia as AntecedentItem | undefined;

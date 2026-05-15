@@ -213,7 +213,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
               <input type="datetime-local" value={form.fechaEvaluacion}
                 onChange={e => set("fechaEvaluacion", e.target.value)} className={inputCls} />
             </FormField>
-            <FormField label="Peso (kg)">
+            <FormField label="Peso (lb)">
               <input type="number" step="0.1" value={form.peso}
                 onChange={e => set("peso", e.target.value)} onBlur={autoImc} className={inputCls} />
             </FormField>
@@ -221,22 +221,6 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
               <input type="number" step="0.01" value={form.talla}
                 onChange={e => set("talla", e.target.value)} onBlur={autoImc} className={inputCls} />
             </FormField>
-            <FormField label="IMC">
-              <input type="number" step="0.01" value={form.imc}
-                onChange={e => set("imc", e.target.value)} className={inputCls} placeholder="Auto" />
-            </FormField>
-          </div>
-        </Section>
-
-        {/* Signos Vitales */}
-        <Section title="Signos Vitales" icon="❤️">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {(["ta","temperatura","pc","pb"] as const).map(k => (
-              <FormField key={k} label={k === "ta" ? "T/A" : k === "temperatura" ? "Temperatura" : k === "pc" ? "P.C." : "P.B."}>
-                <input type="text" value={(form.signosVitales as any)[k]}
-                  onChange={e => set(`signosVitales.${k}`, e.target.value)} className={inputCls} />
-              </FormField>
-            ))}
           </div>
         </Section>
 
@@ -257,10 +241,23 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                 onChange={e => set("escalaDolor", parseInt(e.target.value))}
                 className="w-full h-1 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:-mt-1.5"
               />
-              {/* Etiquetas 0-10 */}
-              <div className="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 px-0.5">
+              {/* Etiquetas 0-10 clicables */}
+              <div className="flex justify-between px-0.5">
                 {Array.from({ length: 11 }, (_, i) => (
-                  <span key={i}>{i}</span>
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => set("escalaDolor", i)}
+                    className={`text-[10px] font-semibold w-5 text-center rounded transition-colors ${
+                      form.escalaDolor === i
+                        ? i <= 3 ? "text-green-600 dark:text-green-400"
+                          : i <= 6 ? "text-yellow-500 dark:text-yellow-400"
+                          : "text-red-600 dark:text-red-400"
+                        : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    }`}
+                  >
+                    {i}
+                  </button>
                 ))}
               </div>
             </div>
