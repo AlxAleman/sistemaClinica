@@ -2268,8 +2268,8 @@ function ExpedienteView({
         Actualizado {moment(historia.updatedAt).fromNow()}
       </p>
 
-      {/* Expediente Base + Diagnósticos en grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+      {/* Expediente Base → Evaluación Física → Diagnósticos */}
+      <div className="space-y-5">
         {/* Datos base */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -2325,6 +2325,114 @@ function ExpedienteView({
               <p className="text-sm text-gray-400 dark:text-gray-500 italic">Sin datos registrados.</p>
             )}
           </div>
+        </div>
+
+        {/* Evaluaciones Físicas */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <HCSectionHeader icon="🩺" title="Evaluaciones Físicas" />
+            <Link
+              href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
+              className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium"
+            >
+              + Nueva
+            </Link>
+          </div>
+
+          {loadingEvals ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
+            </div>
+          ) : evals.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sin evaluaciones físicas registradas</p>
+              <Link
+                href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
+                className="text-sm text-teal-600 dark:text-teal-400 hover:underline font-medium"
+              >
+                Registrar primera evaluación →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {evals.length >= 2 && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 pb-1">
+                  Selecciona 2 evaluaciones para compararlas.
+                  {selected.length === 2 && (
+                    <button onClick={() => setSelected([])} className="ml-2 text-indigo-500 hover:underline">
+                      Limpiar selección
+                    </button>
+                  )}
+                </p>
+              )}
+
+              {selected.length === 2 && (() => {
+                const evA = evals.find(e => e.id === selected[0])!;
+                const evB = evals.find(e => e.id === selected[1])!;
+                return <ComparisonPanel evA={evA} evB={evB} />;
+              })()}
+
+              {evals.map(ev => {
+                const isSelected = selected.includes(ev.id);
+                const isExpanded = expanded === ev.id;
+                const canSelect = isSelected || selected.length < 2;
+                return (
+                  <div key={ev.id} className={`rounded-xl border transition-colors ${
+                    isSelected
+                      ? "border-indigo-300 dark:border-indigo-600 bg-indigo-50/30 dark:bg-indigo-900/10"
+                      : "border-gray-100 dark:border-gray-700"
+                  }`}>
+                    <div className="flex items-center gap-3 p-3">
+                      {evals.length >= 2 && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={!canSelect}
+                          onChange={() => toggleSelect(ev.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0 disabled:opacity-30 cursor-pointer"
+                        />
+                      )}
+                      <button
+                        onClick={() => setExpanded(prev => prev === ev.id ? null : ev.id)}
+                        className="flex-1 flex items-center gap-3 text-left min-w-0"
+                      >
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                          ev.tipo === "inicial"    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" :
+                          ev.tipo === "final"      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" :
+                          ev.tipo === "progreso"   ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300" :
+                          ev.tipo === "seguimiento"? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" :
+                          "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                        }`}>
+                          {ev.tipo ?? "evaluación"}
+                        </span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+                          {moment(ev.fechaEvaluacion).format("DD/MM/YYYY")}
+                        </span>
+                        {ev.escalaDolor != null && (
+                          <span className={`text-xs font-medium flex-shrink-0 ${
+                            ev.escalaDolor <= 3 ? "text-green-600 dark:text-green-400" :
+                            ev.escalaDolor <= 6 ? "text-yellow-600 dark:text-yellow-400" :
+                            "text-red-600 dark:text-red-400"
+                          }`}>
+                            Dolor {ev.escalaDolor}/10
+                          </span>
+                        )}
+                        <span className={`text-gray-400 text-xs transition-transform duration-200 flex-shrink-0 ${isExpanded ? "rotate-180" : ""}`}>▾</span>
+                      </button>
+                      <Link
+                        href={`/dashboard/expedientes/${historia.id}/evaluaciones/${ev.id}/edit?patientId=${patientId}`}
+                        onClick={e => e.stopPropagation()}
+                        className="text-xs text-gray-400 hover:text-indigo-500 transition-colors flex-shrink-0"
+                      >
+                        Editar
+                      </Link>
+                    </div>
+                    {isExpanded && <EvalDetail ev={ev} />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Diagnósticos */}
@@ -2538,7 +2646,7 @@ function ExpedienteView({
             </div>
           )}
         </div>
-      </div>{/* fin grid Expediente Base + Diagnósticos */}
+      </div>
 
       {/* Antecedentes + Hábitos */}
       {(activeAnt.length > 0 || activeHabitos.length > 0) && (
@@ -2577,114 +2685,6 @@ function ExpedienteView({
           )}
         </div>
       )}
-
-      {/* Evaluaciones Físicas */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <HCSectionHeader icon="🩺" title="Evaluaciones Físicas" />
-          <Link
-            href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
-            className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium"
-          >
-            + Nueva
-          </Link>
-        </div>
-
-        {loadingEvals ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
-          </div>
-        ) : evals.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sin evaluaciones físicas registradas</p>
-            <Link
-              href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
-              className="text-sm text-teal-600 dark:text-teal-400 hover:underline font-medium"
-            >
-              Registrar primera evaluación →
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {evals.length >= 2 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500 pb-1">
-                Selecciona 2 evaluaciones para compararlas.
-                {selected.length === 2 && (
-                  <button onClick={() => setSelected([])} className="ml-2 text-indigo-500 hover:underline">
-                    Limpiar selección
-                  </button>
-                )}
-              </p>
-            )}
-
-            {selected.length === 2 && (() => {
-              const evA = evals.find(e => e.id === selected[0])!;
-              const evB = evals.find(e => e.id === selected[1])!;
-              return <ComparisonPanel evA={evA} evB={evB} />;
-            })()}
-
-            {evals.map(ev => {
-              const isSelected = selected.includes(ev.id);
-              const isExpanded = expanded === ev.id;
-              const canSelect = isSelected || selected.length < 2;
-              return (
-                <div key={ev.id} className={`rounded-xl border transition-colors ${
-                  isSelected
-                    ? "border-indigo-300 dark:border-indigo-600 bg-indigo-50/30 dark:bg-indigo-900/10"
-                    : "border-gray-100 dark:border-gray-700"
-                }`}>
-                  <div className="flex items-center gap-3 p-3">
-                    {evals.length >= 2 && (
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={!canSelect}
-                        onChange={() => toggleSelect(ev.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 flex-shrink-0 disabled:opacity-30 cursor-pointer"
-                      />
-                    )}
-                    <button
-                      onClick={() => setExpanded(prev => prev === ev.id ? null : ev.id)}
-                      className="flex-1 flex items-center gap-3 text-left min-w-0"
-                    >
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                        ev.tipo === "inicial"    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" :
-                        ev.tipo === "final"      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" :
-                        ev.tipo === "progreso"   ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300" :
-                        ev.tipo === "seguimiento"? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" :
-                        "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
-                      }`}>
-                        {ev.tipo ?? "evaluación"}
-                      </span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
-                        {moment(ev.fechaEvaluacion).format("DD/MM/YYYY")}
-                      </span>
-                      {ev.escalaDolor != null && (
-                        <span className={`text-xs font-medium flex-shrink-0 ${
-                          ev.escalaDolor <= 3 ? "text-green-600 dark:text-green-400" :
-                          ev.escalaDolor <= 6 ? "text-yellow-600 dark:text-yellow-400" :
-                          "text-red-600 dark:text-red-400"
-                        }`}>
-                          Dolor {ev.escalaDolor}/10
-                        </span>
-                      )}
-                      <span className={`text-gray-400 text-xs transition-transform duration-200 flex-shrink-0 ${isExpanded ? "rotate-180" : ""}`}>▾</span>
-                    </button>
-                    <Link
-                      href={`/dashboard/expedientes/${historia.id}/evaluaciones/${ev.id}/edit?patientId=${patientId}`}
-                      onClick={e => e.stopPropagation()}
-                      className="text-xs text-gray-400 hover:text-indigo-500 transition-colors flex-shrink-0"
-                    >
-                      Editar
-                    </Link>
-                  </div>
-                  {isExpanded && <EvalDetail ev={ev} />}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
     </div>
   );

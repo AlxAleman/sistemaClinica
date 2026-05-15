@@ -117,11 +117,6 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
       .finally(() => setLoading(false));
   }, [evaluacionId]);
 
-  const autoImc = () => {
-    const p = parseFloat(form.peso);
-    const t = parseFloat(form.talla);
-    if (p > 0 && t > 0) setForm(prev => ({ ...prev, imc: (p / (t * t)).toFixed(2) }));
-  };
 
   const set = (path: string, value: unknown) => {
     setForm(prev => {
@@ -200,7 +195,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Datos generales */}
         <Section title="Datos de la Evaluación" icon="📅">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <FormField label="Tipo">
               <select value={form.tipo} onChange={e => set("tipo", e.target.value)} className={inputCls}>
                 <option value="inicial">Inicial</option>
@@ -212,14 +207,6 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
             <FormField label="Fecha">
               <input type="datetime-local" value={form.fechaEvaluacion}
                 onChange={e => set("fechaEvaluacion", e.target.value)} className={inputCls} />
-            </FormField>
-            <FormField label="Peso (lb)">
-              <input type="number" step="0.1" value={form.peso}
-                onChange={e => set("peso", e.target.value)} onBlur={autoImc} className={inputCls} />
-            </FormField>
-            <FormField label="Talla (m)">
-              <input type="number" step="0.01" value={form.talla}
-                onChange={e => set("talla", e.target.value)} onBlur={autoImc} className={inputCls} />
             </FormField>
           </div>
         </Section>
@@ -360,14 +347,10 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                     <col />
                     <col className="w-16" />
                     <col className="w-16" />
-                    <col className="w-16" />
-                    <col className="w-16" />
                   </colgroup>
                   <thead>
                     <tr className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
                       <th className="text-left py-2 pl-2 pr-4 font-medium rounded-l-lg">Movimiento</th>
-                      <th className="text-center py-2 px-1 font-medium">D.I.</th>
-                      <th className="text-center py-2 px-1 font-medium">D.D.</th>
                       <th className="text-center py-2 px-1 font-medium">F.I.</th>
                       <th className="text-center py-2 px-1 font-medium rounded-r-lg">F.D.</th>
                     </tr>
@@ -380,7 +363,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                           <td className="py-1.5 pl-2 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
                             {key.replace(/([A-Z])/g, " $1").trim()}
                           </td>
-                          {(["di","dd","fi","fd"] as const).map(f => (
+                          {(["fi","fd"] as const).map(f => (
                             <td key={f} className="py-1 px-1 text-center">
                               <input type="text" value={entry[f]}
                                 onChange={e => set(`fuerzaMuscular.${member}.${key}.${f}`, e.target.value)}

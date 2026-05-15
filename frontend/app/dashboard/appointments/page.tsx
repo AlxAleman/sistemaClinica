@@ -61,17 +61,19 @@ function EventPanel({
   const patient = isAppt ? appt!.patient : sess!.patient;
   const therapist = isAppt ? appt!.therapist : sess!.therapist;
 
-  // Inicializar el selector con el terapeuta actual de la sesión
   useEffect(() => {
-    setSelectedTherapistId(sess?.therapistId ?? "");
+    setSelectedTherapistId(isAppt ? (appt?.therapistId ?? "") : (sess?.therapistId ?? ""));
     setAssigningTherapist(false);
   }, [event.resource]);
 
   const handleAssignTherapist = async () => {
-    if (!sess) return;
     setUpdating(true);
     try {
-      await sessionService.update(sess.id, { therapistId: selectedTherapistId || null });
+      if (isAppt && appt) {
+        await appointmentService.update(appt.id, { therapistId: selectedTherapistId || null });
+      } else if (sess) {
+        await sessionService.update(sess.id, { therapistId: selectedTherapistId || null });
+      }
       toast.success(selectedTherapistId ? "Terapeuta asignado" : "Terapeuta removido");
       onAppointmentUpdated();
       setAssigningTherapist(false);
@@ -123,7 +125,7 @@ function EventPanel({
         <div className={`px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 ${isAppt ? "bg-indigo-50 dark:bg-indigo-900/20" : "bg-teal-50 dark:bg-teal-900/20"}`}>
           <div className="flex items-center gap-2">
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${isAppt ? "bg-indigo-600 text-white" : "bg-teal-600 text-white"}`}>
-              {isAppt ? "Cita" : "Sesión"}
+              {isAppt ? "Evaluación" : "Sesión"}
             </span>
             {isAppt && appt && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${APPT_STATUS[appt.status]?.color}`}>
@@ -168,9 +170,12 @@ function EventPanel({
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Terapeuta</p>
-              {!isAppt && !assigningTherapist && (
+              {!assigningTherapist && (
                 <button
-                  onClick={() => { setAssigningTherapist(true); setSelectedTherapistId(sess?.therapistId ?? ""); }}
+                  onClick={() => {
+                    setAssigningTherapist(true);
+                    setSelectedTherapistId(isAppt ? (appt?.therapistId ?? "") : (sess?.therapistId ?? ""));
+                  }}
                   className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
                 >
                   {therapist ? "Cambiar" : "Asignar"}
@@ -187,8 +192,8 @@ function EventPanel({
               )
             )}
 
-            {/* Modo edición (solo sesiones) */}
-            {!isAppt && assigningTherapist && (
+            {/* Modo edición */}
+            {assigningTherapist && (
               <div className="space-y-2">
                 <select
                   value={selectedTherapistId}
@@ -252,34 +257,14 @@ function EventPanel({
 
         {/* Footer actions */}
         <div className="p-5 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          {isAppt && appt && (
-            <>
-              {appt.status === "SCHEDULED" && (
-                <button
-                  onClick={handleConfirm}
-                  disabled={updating}
-                  className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
-                >
-                  Confirmar cita
-                </button>
-              )}
-              {(appt.status === "SCHEDULED" || appt.status === "CONFIRMED") && (
-                <button
-                  onClick={handleCancel}
-                  disabled={updating}
-                  className="w-full py-2.5 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
-                >
-                  Cancelar cita
-                </button>
-              )}
-              <Link
-                href={`/dashboard/appointments/${appt.id}?returnView=${encodeURIComponent("month")}&returnDate=${encodeURIComponent(new Date().toISOString())}`}
-                className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
-                onClick={onClose}
-              >
-                Ver detalle completo
-              </Link>
-            </>
+          {isAppt && appt && patient && (
+            <Link
+              href={`/dashboard/patients/${patient.id}`}
+              className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
+              onClick={onClose}
+            >
+              Ver expediente del paciente
+            </Link>
           )}
 
           {!isAppt && sess && sess.patient && (
@@ -353,7 +338,9 @@ export default function AppointmentsPage() {
   };
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
-    router.push(`/dashboard/appointments/new?date=${encodeURIComponent(slotInfo.start.toISOString())}`);
+    router.push(
+      `/dashboard/appointments/new?date=${encodeURIComponent(slotInfo.start.toISOString())}&returnView=${calendarView}&returnDate=${encodeURIComponent(calendarDate.toISOString())}`
+    );
   };
 
   const handleCalendarViewChange = (v: View) => {
@@ -409,7 +396,7 @@ export default function AppointmentsPage() {
             {view === "calendar" ? t("appointments.viewList") : t("appointments.viewCalendar")}
           </button>
           <Link
-            href="/dashboard/appointments/new"
+            href={`/dashboard/appointments/new?returnView=${calendarView}&returnDate=${encodeURIComponent(calendarDate.toISOString())}`}
             className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors flex-1 sm:flex-none"
           >
             <PlusIcon className="h-4 w-4" />

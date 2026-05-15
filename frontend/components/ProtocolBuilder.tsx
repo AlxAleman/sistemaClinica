@@ -29,11 +29,9 @@ const AREA_OPTIONS = [
   "Gemelar D", "Gemelar I", "General",
 ];
 
-const SIDE_OPTIONS = ["Derecho", "Izquierdo", "Bilateral", "N/A"];
 const INTENSITY_OPTIONS = ["Baja", "Media", "Alta", "Muy alta"];
 
 const F_AREA: FieldDef = { key: "area", label: "Área corporal", type: "select", options: AREA_OPTIONS };
-const F_SIDE: FieldDef = { key: "side", label: "Lado", type: "select", options: SIDE_OPTIONS };
 const F_DURATION: FieldDef = { key: "duration", label: "Duración", type: "number", unit: "min", placeholder: "20" };
 const F_INTENSITY: FieldDef = { key: "intensity", label: "Intensidad", type: "select", options: INTENSITY_OPTIONS };
 const F_SERIES: FieldDef = { key: "series", label: "Series", type: "number", placeholder: "3" };
@@ -44,51 +42,51 @@ const F_RESISTANCE: FieldDef = { key: "resistance", label: "Resistencia", type: 
 const THERAPY_CATALOG: Record<string, TherapyTypeDef> = {
   "Electroterapia": {
     procedures: ["TENS", "EMS", "Interferencial", "Corriente rusa", "Iontoforesis", "Electroestimulación muscular"],
-    fields: [F_AREA, F_SIDE, F_DURATION, F_INTENSITY],
+    fields: [F_AREA, F_DURATION, F_INTENSITY],
   },
   "Termoterapia": {
     procedures: ["Compresas calientes", "Parafina", "Infrarrojo", "Ultrasonido térmico", "Baño de parafina"],
-    fields: [F_AREA, F_SIDE, F_DURATION],
+    fields: [F_AREA, F_DURATION],
   },
   "Crioterapia": {
     procedures: ["Hielo local", "Cold pack", "Criocompresión", "Baño de contraste", "Masaje con hielo"],
-    fields: [F_AREA, F_SIDE, F_DURATION],
+    fields: [F_AREA, F_DURATION],
   },
   "Ultrasonido": {
     procedures: ["Pulsado 1 MHz", "Pulsado 3 MHz", "Continuo 1 MHz", "Continuo 3 MHz"],
-    fields: [F_AREA, F_SIDE, F_DURATION, { key: "intensity", label: "Intensidad (W/cm²)", type: "text", placeholder: "0.5" }],
+    fields: [F_AREA, F_DURATION, { key: "intensity", label: "Intensidad (W/cm²)", type: "text", placeholder: "0.5" }],
   },
   "Láser": {
     procedures: ["Láser frío (LLLT)", "Láser puntual", "Láser de barrido"],
-    fields: [F_AREA, F_SIDE, F_DURATION, F_INTENSITY],
+    fields: [F_AREA, F_DURATION, F_INTENSITY],
   },
   "Terapia manual": {
     procedures: ["Masoterapia", "Liberación miofascial", "Movilización pasiva", "Manipulación articular",
       "Drenaje linfático", "Terapia de puntos gatillo", "Técnica neuromuscular (TNM)"],
-    fields: [F_AREA, F_SIDE, F_DURATION],
+    fields: [F_AREA, F_DURATION],
   },
   "Ejercicio terapéutico": {
     procedures: ["Bicicleta estática", "Caminadora", "Elevación de pierna recta", "Sentadillas asistidas",
       "Poleas", "Banda elástica", "Ejercicios cervicales", "Ejercicios lumbares",
       "Propiocepción", "Ejercicios de hombro", "Ejercicios de rodilla",
       "Abducción de cadera", "Curl de bíceps", "Extensión de tríceps"],
-    fields: [F_AREA, F_SIDE, F_SERIES, F_REPS, F_WEIGHT, F_RESISTANCE],
+    fields: [F_AREA, F_SERIES, F_REPS, F_WEIGHT, F_RESISTANCE],
   },
   "Estiramientos": {
     procedures: ["Estiramiento cervical", "Estiramiento lumbar", "Isquiotibiales",
       "Cuádriceps", "Gemelos", "Hombro", "Cadera", "Pectorales",
       "Piriformis", "Flexores de cadera", "Banda iliotibial"],
-    fields: [F_AREA, F_SIDE, F_DURATION, F_REPS],
+    fields: [F_AREA, F_DURATION, F_REPS],
   },
   "Fortalecimiento": {
     procedures: ["Mancuernas", "Liga de resistencia", "Poleas", "Sentadilla",
       "Escalón terapéutico", "Press de hombro", "Curl de bíceps", "Plancha"],
-    fields: [F_AREA, F_SIDE, F_SERIES, F_REPS, F_WEIGHT, F_RESISTANCE],
+    fields: [F_AREA, F_SERIES, F_REPS, F_WEIGHT, F_RESISTANCE],
   },
   "Balance y coordinación": {
     procedures: ["Tabla de propiocepción", "Bosu", "Ejercicios oculomotores",
       "Marcha controlada", "Equilibrio monopodal", "Ejercicios vestibulares"],
-    fields: [F_AREA, F_SIDE, F_DURATION, F_REPS],
+    fields: [F_AREA, F_DURATION, F_REPS],
   },
   "Reeducación funcional": {
     procedures: ["Marcha con andadera", "Marcha con bastón", "Transferencias",
@@ -98,25 +96,25 @@ const THERAPY_CATALOG: Record<string, TherapyTypeDef> = {
   "Movilización articular": {
     procedures: ["Movilización grado I", "Movilización grado II", "Movilización grado III",
       "Movilización grado IV", "Tracción articular", "Deslizamiento articular"],
-    fields: [F_AREA, F_SIDE, F_REPS, F_DURATION],
+    fields: [F_AREA, F_REPS, F_DURATION],
   },
   "Tracción": {
     procedures: ["Tracción cervical mecánica", "Tracción cervical manual",
       "Tracción lumbar mecánica", "Tracción lumbar manual"],
-    fields: [F_SIDE, F_DURATION, { key: "weight", label: "Peso de tracción", type: "text", placeholder: "Ej: 8 kg" }],
+    fields: [F_DURATION, { key: "weight", label: "Peso de tracción", type: "text", placeholder: "Ej: 8 kg" }],
   },
   "Punción seca": {
     procedures: ["Punción seca superficial", "Punción seca profunda"],
-    fields: [F_AREA, F_SIDE],
+    fields: [F_AREA],
   },
   "Vendaje": {
     procedures: ["Vendaje funcional", "Vendaje neuromuscular (kinesiotape)", "Vendaje rígido", "Vendaje compresivo"],
-    fields: [F_AREA, F_SIDE],
+    fields: [F_AREA],
   },
   "Masoterapia": {
     procedures: ["Masaje sueco", "Masaje descontracturante", "Masaje transverso profundo (Cyriax)",
       "Masaje deportivo", "Effleurage", "Petrissage"],
-    fields: [F_AREA, F_SIDE, F_DURATION],
+    fields: [F_AREA, F_DURATION],
   },
   "Terapia respiratoria": {
     procedures: ["Técnicas de higiene bronquial", "Reeducación diafragmática",
@@ -129,7 +127,7 @@ const THERAPY_CATALOG: Record<string, TherapyTypeDef> = {
   },
   "Otros": {
     procedures: ["Especificar en notas"],
-    fields: [F_AREA, F_SIDE, F_DURATION],
+    fields: [F_AREA, F_DURATION],
   },
 };
 
@@ -195,7 +193,7 @@ export default function ProtocolBuilder({ items, onChange }: ProtocolBuilderProp
 
   const handleTypeChange = (idx: number, newType: string) => {
     updateItem(idx, {
-      type: newType, procedure: "", area: undefined, side: undefined,
+      type: newType, procedure: "", area: undefined,
       duration: undefined, intensity: undefined, series: undefined, reps: undefined,
       weight: undefined, resistance: undefined, notes: undefined,
     });

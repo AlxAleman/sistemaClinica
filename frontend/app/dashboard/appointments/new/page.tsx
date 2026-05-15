@@ -30,6 +30,9 @@ const isSessionType = (t: EventType) => t === "session";
 export default function NewAppointmentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const returnView = searchParams.get("returnView") ?? "month";
+  const returnDate = searchParams.get("returnDate") ?? new Date().toISOString();
+  const calendarBack = `/dashboard/appointments?view=${returnView}&date=${encodeURIComponent(returnDate)}`;
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -162,7 +165,7 @@ export default function NewAppointmentPage() {
         toast.success(`${typeLabel} creada exitosamente`);
       }
 
-      router.push("/dashboard/appointments");
+      router.push(calendarBack);
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Error al guardar");
     } finally {
@@ -189,7 +192,7 @@ export default function NewAppointmentPage() {
   return (
     <div className="px-4 py-6 sm:px-0">
       <div className="mb-6">
-        <Link href="/dashboard/appointments" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-sm font-medium">
+        <Link href={calendarBack} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-sm font-medium">
           ← Volver al Calendario
         </Link>
         <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -437,7 +440,7 @@ export default function NewAppointmentPage() {
 
         <div className="flex justify-end gap-4 pt-2">
           <Link
-            href="/dashboard/appointments"
+            href={calendarBack}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
             Cancelar

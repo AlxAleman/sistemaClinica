@@ -144,7 +144,7 @@ export default function AppointmentCalendar({
       return {
         id: a.id,
         eventType: "appointment" as const,
-        title: `${a.patient?.name ?? "Paciente"} · Cita`,
+        title: `${a.patient?.name ?? "Paciente"} · Evaluación`,
         start,
         end,
         resource: a,
