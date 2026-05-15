@@ -4,6 +4,7 @@ export interface CreateDiagnosisData {
   diagnosisDate?: string | Date;
   observations?: string | null;
   status?: 'ACTIVE' | 'RESOLVED' | 'CHRONIC';
+  episodeId?: string | null;
 }
 
 export interface UpdateDiagnosisData {
@@ -12,4 +13,5 @@ export interface UpdateDiagnosisData {
   observations?: string | null;
   status?: 'ACTIVE' | 'RESOLVED' | 'CHRONIC';
   evaluacionFisicaId?: string | null;
+  episodeId?: string | null;
 }

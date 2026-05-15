@@ -41,6 +41,7 @@ export interface TreatmentPlan {
 export interface CreateTreatmentPlanData {
   patientId: string;
   diagnosisId?: string | null;
+  episodeId?: string | null;
   title: string;
   therapyType?: string | null;
   description?: string | null;

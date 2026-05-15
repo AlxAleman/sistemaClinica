@@ -140,6 +140,7 @@ model Patient {
   therapistNotes       TherapistNote[]
   payments             Payment[]
   invoices             Invoice[]
+  episodes             ConsultaEpisode[]
 
   @@index([email])
   @@index([phone])
@@ -195,6 +196,9 @@ model Diagnosis {
   evaluacionFisicaId   String?
   evaluacionFisica     EvaluacionFisica? @relation(fields: [evaluacionFisicaId], references: [id], onDelete: SetNull)
 
+  episodeId        String?
+  episode          ConsultaEpisode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -205,6 +209,7 @@ model Diagnosis {
   @@index([medicalProfileId])
   @@index([status])
   @@index([evaluacionFisicaId])
+  @@index([episodeId])
 }
 
 // ─────────────────────────────────────────────
@@ -332,6 +337,9 @@ model TreatmentPlan {
   diagnosisId       String?
   diagnosis         Diagnosis?          @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
 
+  episodeId         String?
+  episode           ConsultaEpisode?    @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
   title             String
   therapyType       String?             // Tipo de terapia (viene de SystemConfig)
   description       String?
@@ -356,6 +364,7 @@ model TreatmentPlan {
 
   @@index([patientId])
   @@index([diagnosisId])
+  @@index([episodeId])
   @@index([status])
 }
 
@@ -516,6 +525,30 @@ model SystemConfig {
 }
 
 // ─────────────────────────────────────────────
+// CONSULTA / EPISODIO DE REINGRESO
+// ─────────────────────────────────────────────
+
+model ConsultaEpisode {
+  id             String    @id @default(cuid())
+  patientId      String
+  patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  motivoConsulta String
+  fecha          DateTime  @default(now())
+  notas          String?
+  isActive       Boolean   @default(true)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  evaluaciones   EvaluacionFisica[]
+  diagnoses      Diagnosis[]
+  treatmentPlans TreatmentPlan[]
+
+  @@index([patientId])
+}
+
+// ─────────────────────────────────────────────
 // HISTORIA CLÍNICA DE FISIOTERAPIA (Expediente Base — un registro por paciente)
 // ─────────────────────────────────────────────
 
@@ -615,6 +648,9 @@ model EvaluacionFisica {
   // Columna { planoSagital, planoFrontal }
   columna                Json?
 
+  episodeId         String?
+  episode           ConsultaEpisode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
   creadoPor         String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -624,5 +660,6 @@ model EvaluacionFisica {
   @@index([historiaClinicaId])
   @@index([patientId])
   @@index([fechaEvaluacion])
+  @@index([episodeId])
 }
 

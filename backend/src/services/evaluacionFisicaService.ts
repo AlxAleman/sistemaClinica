@@ -20,6 +20,7 @@ export interface EvaluacionFisicaInput {
   goniometriaInfer?: Record<string, unknown>;
   valoracionPostural?: Record<string, unknown>;
   columna?: Record<string, unknown>;
+  episodeId?: string | null;
   creadoPor?: string;
 }
 

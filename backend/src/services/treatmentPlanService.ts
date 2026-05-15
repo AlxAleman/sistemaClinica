@@ -15,6 +15,7 @@ export const createTreatmentPlan = async (data: CreateTreatmentPlanData) => {
     data: {
       patientId: data.patientId,
       diagnosisId: data.diagnosisId || null,
+      episodeId: data.episodeId || null,
       title: data.title,
       therapyType: data.therapyType || null,
       description: data.description || null,

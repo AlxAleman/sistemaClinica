@@ -32,6 +32,7 @@ export const createDiagnosis = async (data: CreateDiagnosisData) => {
       diagnosisDate: data.diagnosisDate ? new Date(data.diagnosisDate) : undefined,
       observations: data.observations || null,
       status: data.status || 'ACTIVE',
+      episodeId: data.episodeId ?? null,
     },
     include: {
       patient: {
@@ -120,6 +121,7 @@ export const updateDiagnosis = async (id: string, data: UpdateDiagnosisData) => 
       observations: data.observations,
       status: data.status,
       evaluacionFisicaId: data.evaluacionFisicaId !== undefined ? data.evaluacionFisicaId : undefined,
+      episodeId: data.episodeId !== undefined ? data.episodeId : undefined,
     },
     include: {
       patient: {
