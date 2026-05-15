@@ -46,10 +46,17 @@ function EventPanel({
   onAppointmentUpdated: () => void;
   therapists: Therapist[];
 }) {
-  const router = useRouter();
   const [updating, setUpdating] = useState(false);
   const [assigningTherapist, setAssigningTherapist] = useState(false);
   const [selectedTherapistId, setSelectedTherapistId] = useState<string>("");
+
+  // Inline session completion state
+  const [completing, setCompleting] = useState(false);
+  const [attendanceChoice, setAttendanceChoice] = useState<"ATTENDED" | "NOT_ATTENDED" | null>(null);
+  const [noShowChoice, setNoShowChoice] = useState<"consumed" | "rescheduled" | null>(null);
+  const [painLevel, setPainLevel] = useState<number | null>(null);
+  const [sessionNotes, setSessionNotes] = useState("");
+  const [rescheduleDate, setRescheduleDate] = useState("");
 
   const isAppt = event.eventType === "appointment";
   const appt   = isAppt ? (event.resource as Appointment) : null;
@@ -61,9 +68,17 @@ function EventPanel({
   const patient = isAppt ? appt!.patient : sess!.patient;
   const therapist = isAppt ? appt!.therapist : sess!.therapist;
 
+  const isPending = !isAppt && (sess?.attendanceStatus === "PENDING" || sess?.attendanceStatus == null);
+
   useEffect(() => {
     setSelectedTherapistId(isAppt ? (appt?.therapistId ?? "") : (sess?.therapistId ?? ""));
     setAssigningTherapist(false);
+    setCompleting(false);
+    setAttendanceChoice(null);
+    setNoShowChoice(null);
+    setPainLevel(null);
+    setSessionNotes("");
+    setRescheduleDate("");
   }, [event.resource]);
 
   const handleAssignTherapist = async () => {
@@ -84,35 +99,47 @@ function EventPanel({
     }
   };
 
-  const handleConfirm = async () => {
-    if (!appt) return;
+  const handleCompleteSession = async () => {
+    if (!sess) return;
     setUpdating(true);
     try {
-      await appointmentService.update(appt.id, { status: "CONFIRMED" });
-      toast.success("Cita confirmada");
+      if (attendanceChoice === "ATTENDED") {
+        await sessionService.update(sess.id, {
+          attendanceStatus: "ATTENDED",
+          painLevel: painLevel,
+          notes: sessionNotes || null,
+        });
+        toast.success("Sesión registrada como realizada");
+      } else if (attendanceChoice === "NOT_ATTENDED" && noShowChoice === "consumed") {
+        await sessionService.update(sess.id, { attendanceStatus: "NOT_ATTENDED" });
+        toast.success("Sesión registrada como no asistida");
+      } else if (attendanceChoice === "NOT_ATTENDED" && noShowChoice === "rescheduled") {
+        await sessionService.update(sess.id, { attendanceStatus: "RESCHEDULED" });
+        await sessionService.create({
+          patientId: sess.patientId,
+          therapistId: sess.therapistId,
+          treatmentPlanId: sess.treatmentPlanId ?? null,
+          sessionNumber: sess.sessionNumber ?? null,
+          duration: sess.duration,
+          sessionDate: new Date(rescheduleDate).toISOString(),
+          attendanceStatus: "PENDING",
+          sessionProtocol: sess.sessionProtocol ?? null,
+        });
+        toast.success("Sesión reagendada para nueva fecha");
+      }
       onAppointmentUpdated();
       onClose();
     } catch {
-      toast.error("Error al confirmar");
+      toast.error("Error al guardar");
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleCancel = async () => {
-    if (!appt) return;
-    setUpdating(true);
-    try {
-      await appointmentService.update(appt.id, { status: "CANCELLED" });
-      toast.success("Cita cancelada");
-      onAppointmentUpdated();
-      onClose();
-    } catch {
-      toast.error("Error al cancelar");
-    } finally {
-      setUpdating(false);
-    }
-  };
+  const canSave =
+    attendanceChoice === "ATTENDED" ||
+    (attendanceChoice === "NOT_ATTENDED" && noShowChoice === "consumed") ||
+    (attendanceChoice === "NOT_ATTENDED" && noShowChoice === "rescheduled" && rescheduleDate.length > 0);
 
   return (
     <>
@@ -125,14 +152,14 @@ function EventPanel({
         <div className={`px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 ${isAppt ? "bg-indigo-50 dark:bg-indigo-900/20" : "bg-teal-50 dark:bg-teal-900/20"}`}>
           <div className="flex items-center gap-2">
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${isAppt ? "bg-indigo-600 text-white" : "bg-teal-600 text-white"}`}>
-              {isAppt ? "Evaluación" : "Sesión"}
+              {isAppt ? "Evaluación" : completing ? "Registrar asistencia" : "Sesión"}
             </span>
-            {isAppt && appt && (
+            {!completing && isAppt && appt && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${APPT_STATUS[appt.status]?.color}`}>
                 {APPT_STATUS[appt.status]?.label ?? appt.status}
               </span>
             )}
-            {!isAppt && sess && (
+            {!completing && !isAppt && sess && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${SESSION_STATUS[sess.attendanceStatus ?? "PENDING"]?.color}`}>
                 {SESSION_STATUS[sess.attendanceStatus ?? "PENDING"]?.label}
               </span>
@@ -147,116 +174,257 @@ function EventPanel({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* Patient */}
+          {/* Patient always visible */}
           <div>
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Paciente</p>
             <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{patient?.name ?? "—"}</p>
             {patient?.phone && <p className="text-sm text-gray-500 dark:text-gray-400">{patient.phone}</p>}
           </div>
 
-          {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Fecha</p>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{moment(date).format("ddd D MMM YYYY")}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Hora</p>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{moment(date).format("HH:mm")} · {dur} min</p>
-            </div>
-          </div>
-
-          {/* Therapist */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Terapeuta</p>
-              {!assigningTherapist && (
-                <button
-                  onClick={() => {
-                    setAssigningTherapist(true);
-                    setSelectedTherapistId(isAppt ? (appt?.therapistId ?? "") : (sess?.therapistId ?? ""));
-                  }}
-                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-                >
-                  {therapist ? "Cambiar" : "Asignar"}
-                </button>
-              )}
-            </div>
-
-            {/* Modo visualización */}
-            {!assigningTherapist && (
-              therapist ? (
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{therapist.name}</p>
-              ) : (
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Sin asignar</span>
-              )
-            )}
-
-            {/* Modo edición */}
-            {assigningTherapist && (
-              <div className="space-y-2">
-                <select
-                  value={selectedTherapistId}
-                  onChange={e => setSelectedTherapistId(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">— Sin asignar —</option>
-                  {therapists.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAssignTherapist}
-                    disabled={updating}
-                    className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
-                  >
-                    {updating ? "Guardando…" : "Guardar"}
-                  </button>
-                  <button
-                    onClick={() => setAssigningTherapist(false)}
-                    disabled={updating}
-                    className="flex-1 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    Cancelar
-                  </button>
+          {!completing && (
+            <>
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Fecha</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{moment(date).format("ddd D MMM YYYY")}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Hora</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{moment(date).format("HH:mm")} · {dur} min</p>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Session-only: plan info */}
-          {!isAppt && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Plan de tratamiento</p>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{plan?.title ?? "—"}</p>
-              {sess?.sessionNumber && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Sesión {sess.sessionNumber}{plan?.sessionsPlanned ? ` de ${plan.sessionsPlanned}` : ""}
-                </p>
+              {/* Therapist */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Terapeuta</p>
+                  {!assigningTherapist && (
+                    <button
+                      onClick={() => {
+                        setAssigningTherapist(true);
+                        setSelectedTherapistId(isAppt ? (appt?.therapistId ?? "") : (sess?.therapistId ?? ""));
+                      }}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                    >
+                      {therapist ? "Cambiar" : "Asignar"}
+                    </button>
+                  )}
+                </div>
+
+                {!assigningTherapist && (
+                  therapist ? (
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{therapist.name}</p>
+                  ) : (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Sin asignar</span>
+                  )
+                )}
+
+                {assigningTherapist && (
+                  <div className="space-y-2">
+                    <select
+                      value={selectedTherapistId}
+                      onChange={e => setSelectedTherapistId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">— Sin asignar —</option>
+                      {therapists.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAssignTherapist}
+                        disabled={updating}
+                        className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
+                      >
+                        {updating ? "Guardando…" : "Guardar"}
+                      </button>
+                      <button
+                        onClick={() => setAssigningTherapist(false)}
+                        disabled={updating}
+                        className="flex-1 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Session-only: plan info */}
+              {!isAppt && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Plan de tratamiento</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{plan?.title ?? "—"}</p>
+                  {sess?.sessionNumber && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Sesión {sess.sessionNumber}{plan?.sessionsPlanned ? ` de ${plan.sessionsPlanned}` : ""}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+
+              {/* Appointment-only: notes */}
+              {isAppt && appt?.notes && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Notas</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{appt.notes}</p>
+                </div>
+              )}
+
+              {/* Session-only: notes */}
+              {!isAppt && sess?.notes && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Notas</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{sess.notes}</p>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Appointment-only: notes */}
-          {isAppt && appt?.notes && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Notas</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{appt.notes}</p>
-            </div>
-          )}
+          {/* ── Inline completion form ── */}
+          {completing && (
+            <div className="space-y-4">
+              {/* Step 1: attendance choice */}
+              {!attendanceChoice && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">¿Cómo resultó la sesión?</p>
+                  <button
+                    onClick={() => setAttendanceChoice("ATTENDED")}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 text-sm font-semibold hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors text-left"
+                  >
+                    ✓ Realizada
+                    <span className="block text-xs font-normal text-teal-600 dark:text-teal-400 mt-0.5">El paciente asistió y se completó la sesión</span>
+                  </button>
+                  <button
+                    onClick={() => setAttendanceChoice("NOT_ATTENDED")}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors text-left"
+                  >
+                    ✗ No asistió
+                    <span className="block text-xs font-normal text-amber-600 dark:text-amber-400 mt-0.5">El paciente no se presentó a la sesión</span>
+                  </button>
+                </div>
+              )}
 
-          {/* Session-only: quick notes */}
-          {!isAppt && sess?.notes && (
-            <div>
-              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Notas</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{sess.notes}</p>
+              {/* Step 2a: ATTENDED form */}
+              {attendanceChoice === "ATTENDED" && (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setAttendanceChoice(null)}
+                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1"
+                  >
+                    ← Volver
+                  </button>
+                  <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800">
+                    <p className="text-xs font-semibold text-teal-700 dark:text-teal-300">✓ Sesión realizada</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-2">
+                      Nivel de dolor{painLevel !== null ? ` · ${painLevel}/10` : " (opcional)"}
+                    </label>
+                    <input
+                      type="range" min={0} max={10} step={1}
+                      value={painLevel ?? 0}
+                      onChange={e => setPainLevel(Number(e.target.value))}
+                      className="w-full accent-teal-600"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      <span>0 Sin dolor</span>
+                      <span>10 Máximo</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-1">
+                      Notas de la sesión (opcional)
+                    </label>
+                    <textarea
+                      value={sessionNotes}
+                      onChange={e => setSessionNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Observaciones, evolución, indicaciones…"
+                      className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2b: NOT_ATTENDED sub-options */}
+              {attendanceChoice === "NOT_ATTENDED" && !noShowChoice && (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setAttendanceChoice(null)}
+                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1"
+                  >
+                    ← Volver
+                  </button>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">¿Avisó con anticipación?</p>
+                  <button
+                    onClick={() => setNoShowChoice("consumed")}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors text-left"
+                  >
+                    No avisó · No reprogramó
+                    <span className="block text-xs font-normal text-amber-600 dark:text-amber-400 mt-0.5">La sesión se consume del plan de tratamiento</span>
+                  </button>
+                  <button
+                    onClick={() => setNoShowChoice("rescheduled")}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-sm font-semibold hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors text-left"
+                  >
+                    Avisó · Reprogramó
+                    <span className="block text-xs font-normal text-violet-600 dark:text-violet-400 mt-0.5">La sesión se mueve a nueva fecha sin consumirse</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Step 2b-i: RESCHEDULED date picker */}
+              {attendanceChoice === "NOT_ATTENDED" && noShowChoice === "rescheduled" && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setNoShowChoice(null)}
+                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1"
+                  >
+                    ← Volver
+                  </button>
+                  <div className="p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
+                    <p className="text-xs font-semibold text-violet-700 dark:text-violet-300">Avisó · Reprogramó</p>
+                    <p className="text-xs text-violet-600 dark:text-violet-400 mt-0.5">La sesión actual quedará como reagendada y se creará una nueva</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide block mb-1">
+                      Nueva fecha y hora
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={rescheduleDate}
+                      onChange={e => setRescheduleDate(e.target.value)}
+                      className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2b-ii: consumed confirmation */}
+              {attendanceChoice === "NOT_ATTENDED" && noShowChoice === "consumed" && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setNoShowChoice(null)}
+                    className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1"
+                  >
+                    ← Volver
+                  </button>
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">No avisó · No reprogramó</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">La sesión se marcará como no asistida y se descontará del plan</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer actions */}
         <div className="p-5 border-t border-gray-100 dark:border-gray-800 space-y-2">
+          {/* Appointment footer */}
           {isAppt && appt && patient && (
             <Link
               href={`/dashboard/patients/${patient.id}`}
@@ -267,24 +435,49 @@ function EventPanel({
             </Link>
           )}
 
-          {!isAppt && sess && sess.patient && (
+          {/* Session footer */}
+          {!isAppt && sess && (
             <>
-              {sess.attendanceStatus !== "ATTENDED" && sess.attendanceStatus !== "NOT_ATTENDED" && (
-                <Link
-                  href={`/dashboard/patients/${sess.patientId}?tab=tratamiento${sess.treatmentPlanId ? `&planId=${sess.treatmentPlanId}` : ""}&sessionId=${sess.id}`}
-                  className="block w-full py-2.5 text-center bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
-                  onClick={onClose}
-                >
-                  Completar sesión
-                </Link>
+              {completing ? (
+                <>
+                  {canSave && (
+                    <button
+                      onClick={handleCompleteSession}
+                      disabled={updating}
+                      className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                    >
+                      {updating ? "Guardando…" : "Guardar"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setCompleting(false); setAttendanceChoice(null); setNoShowChoice(null); }}
+                    disabled={updating}
+                    className="w-full py-2.5 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <>
+                  {isPending && (
+                    <button
+                      onClick={() => setCompleting(true)}
+                      className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
+                    >
+                      Completar sesión
+                    </button>
+                  )}
+                  {sess.patient && (
+                    <Link
+                      href={`/dashboard/patients/${sess.patientId}`}
+                      className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
+                      onClick={onClose}
+                    >
+                      Ver expediente del paciente
+                    </Link>
+                  )}
+                </>
               )}
-              <Link
-                href={`/dashboard/patients/${sess.patientId}`}
-                className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
-                onClick={onClose}
-              >
-                Ver expediente del paciente
-              </Link>
             </>
           )}
         </div>
