@@ -13,7 +13,7 @@ import Link from "next/link";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const defM = (): MuscleEntry => ({ di: "", dd: "", fi: "", fd: "" });
-const defG = (): GonioEntry  => ({ inicial: "", final: "" });
+const defG = (): GonioEntry  => ({ izquierdo: "", derecho: "" });
 const defP = (): PosturalDI  => ({ d: "", i: "" });
 
 function buildDefaultForm() {
@@ -398,8 +398,8 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                   <thead>
                     <tr className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
                       <th className="text-left py-2 pl-2 pr-4 font-medium rounded-l-lg">Movimiento</th>
-                      <th className="text-center py-2 px-1 font-medium">Inicial</th>
-                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">Final</th>
+                      <th className="text-center py-2 px-1 font-medium">Izq°</th>
+                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">Der°</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -410,7 +410,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                           <td className="py-1.5 pl-2 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
                             {key.replace(/([A-Z])/g, " $1").trim()}
                           </td>
-                          {(["inicial","final"] as const).map(f => (
+                          {(["izquierdo","derecho"] as const).map(f => (
                             <td key={f} className="py-1 px-1 text-center">
                               <input type="text" value={entry[f]}
                                 onChange={e => set(`goniometriaSuper.${joint}.${key}.${f}`, e.target.value)}
@@ -443,8 +443,8 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                   <thead>
                     <tr className="text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
                       <th className="text-left py-2 pl-2 pr-4 font-medium rounded-l-lg">Movimiento</th>
-                      <th className="text-center py-2 px-1 font-medium">Inicial</th>
-                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">Final</th>
+                      <th className="text-center py-2 px-1 font-medium">Izq°</th>
+                      <th className="text-center py-2 px-1 font-medium rounded-r-lg">Der°</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -455,7 +455,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
                           <td className="py-1.5 pl-2 pr-4 text-gray-700 dark:text-gray-300 capitalize whitespace-nowrap">
                             {key.replace(/([A-Z])/g, " $1").trim()}
                           </td>
-                          {(["inicial","final"] as const).map(f => (
+                          {(["izquierdo","derecho"] as const).map(f => (
                             <td key={f} className="py-1 px-1 text-center">
                               <input type="text" value={entry[f]}
                                 onChange={e => set(`goniometriaInfer.${joint}.${key}.${f}`, e.target.value)}

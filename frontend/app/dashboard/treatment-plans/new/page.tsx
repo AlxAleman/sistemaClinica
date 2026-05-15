@@ -7,7 +7,6 @@ import { sessionService } from "@/services/sessionService";
 import { patientService } from "@/services/patientService";
 import { diagnosisService, Diagnosis } from "@/services/diagnosisService";
 import { therapistService, Therapist } from "@/services/therapistService";
-import { configService } from "@/services/configService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -55,16 +54,15 @@ export default function NewTreatmentPlanPage() {
   const [loading, setLoading] = useState(false);
   const [patients, setPatients] = useState<any[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
-  const [therapyTypes, setTherapyTypes] = useState<string[]>([]);
-  const [customTherapyType, setCustomTherapyType] = useState("");
-  const [showCustomTherapy, setShowCustomTherapy] = useState(false);
   const [protocol, setProtocol] = useState<ProtocolItem[]>([]);
   const [endDateIsAuto, setEndDateIsAuto] = useState(false);
+
+  const computedDuration = protocol.reduce((sum, item) => sum + (item.duration ?? 0), 0);
 
   // Session scheduler
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [scheduledSessions, setScheduledSessions] = useState<{ date: string; time: string }[]>([]);
-  const [defaultSessionTime, setDefaultSessionTime] = useState("09:00");
+  const [dayTimes, setDayTimes] = useState<Record<number, string>>({});
   const [sessionTherapistId, setSessionTherapistId] = useState("");
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
@@ -74,8 +72,6 @@ export default function NewTreatmentPlanPage() {
     patientId: patientIdParam || "",
     diagnosisId: diagnosisIdParam || null,
     title: "",
-    therapyType: null,
-    description: null,
     goals: null,
     frequency: null,
     sessionDuration: null,
@@ -88,7 +84,6 @@ export default function NewTreatmentPlanPage() {
 
   useEffect(() => {
     fetchPatients();
-    fetchTherapyTypes();
     fetchTherapists();
   }, []);
 
@@ -133,15 +128,6 @@ export default function NewTreatmentPlanPage() {
     }
   };
 
-  const fetchTherapyTypes = async () => {
-    try {
-      const types = await configService.getTherapyTypes();
-      setTherapyTypes(types);
-    } catch {
-      setTherapyTypes([]);
-    }
-  };
-
   const fetchTherapists = async () => {
     try {
       const data = await therapistService.getAll({ limit: 200 });
@@ -168,11 +154,16 @@ export default function NewTreatmentPlanPage() {
 
   const toggleDay = (day: number) => {
     setSelectedDays(prev => {
-      if (prev.includes(day)) return prev.filter(d => d !== day);
-      if (prev.length >= daysRequired) return prev; // ya tiene suficientes días
+      if (prev.includes(day)) {
+        setDayTimes(t => { const n = { ...t }; delete n[day]; return n; });
+        setScheduledSessions([]);
+        return prev.filter(d => d !== day);
+      }
+      if (prev.length >= daysRequired) return prev;
+      setDayTimes(t => ({ ...t, [day]: t[day] ?? "09:00" }));
+      setScheduledSessions([]);
       return [...prev, day];
     });
-    setScheduledSessions([]); // resetear si cambia selección
   };
 
   const generateSessionDates = () => {
@@ -183,60 +174,46 @@ export default function NewTreatmentPlanPage() {
     const current = new Date(startDate + "T12:00:00");
     const sorted = [...selectedDays].sort((a, b) => a - b);
 
+    const timeFor = (d: number) => dayTimes[d] ?? "09:00";
+
     if (frequency === "1 vez al mes") {
-      // Cada ~30 días en el día preferido (o sin día preferido, +30 días)
       if (sorted.length > 0) {
-        // Avanzar hasta el primer día preferido a partir de startDate
-        while (!sorted.includes(current.getDay())) {
-          current.setDate(current.getDate() + 1);
-        }
+        while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
         for (let i = 0; i < sessionsPlanned; i++) {
-          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
-          current.setDate(current.getDate() + 28); // ~4 semanas
-          // Ajustar al día correcto de la semana
-          while (!sorted.includes(current.getDay())) {
-            current.setDate(current.getDate() + 1);
-          }
+          sessions.push({ date: current.toISOString().split("T")[0], time: timeFor(current.getDay()) });
+          current.setDate(current.getDate() + 28);
+          while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
         }
       } else {
         for (let i = 0; i < sessionsPlanned; i++) {
-          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          sessions.push({ date: current.toISOString().split("T")[0], time: "09:00" });
           current.setDate(current.getDate() + 30);
         }
       }
     } else if (frequency === "Cada 2 semanas") {
-      // Cada 2 semanas en el día preferido
       if (sorted.length > 0) {
-        while (!sorted.includes(current.getDay())) {
-          current.setDate(current.getDate() + 1);
-        }
+        while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
         for (let i = 0; i < sessionsPlanned; i++) {
-          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          sessions.push({ date: current.toISOString().split("T")[0], time: timeFor(current.getDay()) });
           current.setDate(current.getDate() + 14);
-          while (!sorted.includes(current.getDay())) {
-            current.setDate(current.getDate() + 1);
-          }
+          while (!sorted.includes(current.getDay())) current.setDate(current.getDate() + 1);
         }
       } else {
         for (let i = 0; i < sessionsPlanned; i++) {
-          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          sessions.push({ date: current.toISOString().split("T")[0], time: "09:00" });
           current.setDate(current.getDate() + 14);
         }
       }
     } else {
-      // N veces por semana — avanzar día a día seleccionando los días elegidos
-      const limit = sessionsPlanned * 60; // días máximos a iterar
+      const limit = sessionsPlanned * 60;
       for (let d = 0; d < limit && sessions.length < sessionsPlanned; d++) {
         if (sorted.length > 0) {
-          if (sorted.includes(current.getDay())) {
-            sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
-          }
+          if (sorted.includes(current.getDay()))
+            sessions.push({ date: current.toISOString().split("T")[0], time: timeFor(current.getDay()) });
         } else {
-          // Sin días seleccionados: fallback a distribuir uniformemente
-          sessions.push({ date: current.toISOString().split("T")[0], time: defaultSessionTime });
+          sessions.push({ date: current.toISOString().split("T")[0], time: "09:00" });
           const perWeek = FREQ_DAYS_REQUIRED[frequency] ?? 1;
-          const gap = Math.floor(7 / perWeek);
-          current.setDate(current.getDate() + gap - 1);
+          current.setDate(current.getDate() + Math.floor(7 / perWeek) - 1);
         }
         current.setDate(current.getDate() + 1);
       }
@@ -255,32 +232,27 @@ export default function NewTreatmentPlanPage() {
     );
   };
 
-  const handleTherapyTypeChange = (value: string) => {
-    if (value === "__custom__") {
-      setShowCustomTherapy(true);
-      setFormData({ ...formData, therapyType: "" });
-    } else {
-      setShowCustomTherapy(false);
-      setFormData({ ...formData, therapyType: value || null });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      const autoTitle = formData.diagnosisId
+        ? (diagnoses.find(d => d.id === formData.diagnosisId)?.clinicalDiagnosis?.slice(0, 60) ?? `Plan ${new Date().toLocaleDateString("es")}`)
+        : `Plan ${new Date().toLocaleDateString("es")}`;
+
       const data: CreateTreatmentPlanData = {
         ...formData,
-        therapyType: showCustomTherapy ? customTherapyType || null : formData.therapyType,
+        title: autoTitle,
         diagnosisId: formData.diagnosisId || null,
+        sessionDuration: computedDuration > 0 ? computedDuration : (formData.sessionDuration || 60),
         protocol: protocol.length > 0 ? protocol : null,
       };
 
       const plan = await treatmentPlanService.create(data);
 
       if (scheduledSessions.length > 0) {
-        const duration = formData.sessionDuration || 60;
+        const duration = computedDuration > 0 ? computedDuration : (formData.sessionDuration || 60);
         const results = await Promise.allSettled(
           scheduledSessions.map((sess, idx) => {
             const [h, m] = sess.time.split(":").map(Number);
@@ -388,65 +360,6 @@ export default function NewTreatmentPlanPage() {
             </div>
           )}
 
-          {/* Título */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Título del Plan <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="title"
-              required
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-              placeholder="Ej: Plan de Rehabilitación Post-Operatoria"
-            />
-          </div>
-
-          {/* Tipo de Terapia */}
-          <div>
-            <label htmlFor="therapyType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tipo de Terapia
-            </label>
-            <select
-              id="therapyType"
-              value={showCustomTherapy ? "__custom__" : (formData.therapyType || "")}
-              onChange={(e) => handleTherapyTypeChange(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="">— Seleccionar tipo —</option>
-              {therapyTypes.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-              <option value="__custom__">Otro (especificar)...</option>
-            </select>
-            {showCustomTherapy && (
-              <input
-                type="text"
-                value={customTherapyType}
-                onChange={(e) => setCustomTherapyType(e.target.value)}
-                className="mt-2 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-                placeholder="Especificar tipo de terapia..."
-              />
-            )}
-          </div>
-
-          {/* Descripción */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Descripción del Plan
-            </label>
-            <textarea
-              id="description"
-              rows={3}
-              value={formData.description || ""}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value || null })}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-              placeholder="Descripción detallada del plan de tratamiento..."
-            />
-          </div>
-
           {/* Objetivos */}
           <div>
             <label htmlFor="goals" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -482,21 +395,15 @@ export default function NewTreatmentPlanPage() {
             </div>
 
             <div>
-              <label htmlFor="sessionDuration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Duración por Sesión (minutos)
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Duración por Sesión
               </label>
-              <input
-                type="number"
-                id="sessionDuration"
-                min="15"
-                step="15"
-                value={formData.sessionDuration || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, sessionDuration: e.target.value ? parseInt(e.target.value) : null })
-                }
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-                placeholder="60"
-              />
+              <div className="mt-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700/50 text-sm text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <span className="font-semibold">{computedDuration > 0 ? computedDuration : "—"} min</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {computedDuration > 0 ? "calculado desde bloques del protocolo" : "se calculará al agregar bloques terapéuticos"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -635,17 +542,28 @@ export default function NewTreatmentPlanPage() {
                   </div>
                 </div>
 
-                {/* Hora y botón generar */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Hora por defecto:</label>
-                    <input
-                      type="time"
-                      value={defaultSessionTime}
-                      onChange={(e) => setDefaultSessionTime(e.target.value)}
-                      className="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
-                    />
+                {/* Hora por día */}
+                {selectedDays.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Hora por día</span>
+                    <div className="flex flex-wrap gap-3">
+                      {[...selectedDays].sort((a, b) => a - b).map(day => (
+                        <div key={day} className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-6 text-center">{DAY_LABELS[day]}</span>
+                          <input
+                            type="time"
+                            value={dayTimes[day] ?? "09:00"}
+                            onChange={(e) => setDayTimes(t => ({ ...t, [day]: e.target.value }))}
+                            className="px-1.5 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm dark:bg-gray-700 dark:text-gray-100"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
+
+                {/* Botón generar */}
+                <div>
                   <button
                     type="button"
                     onClick={generateSessionDates}
@@ -680,10 +598,10 @@ export default function NewTreatmentPlanPage() {
                       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-md text-sm text-gray-600 dark:text-gray-400 w-full">
                         Duración por sesión:{" "}
                         <span className="font-semibold text-gray-900 dark:text-gray-100">
-                          {formData.sessionDuration ?? 60} min
+                          {computedDuration > 0 ? computedDuration : 60} min
                         </span>
-                        {!formData.sessionDuration && (
-                          <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(valor por defecto — ajusta en «Duración por Sesión» de arriba)</span>
+                        {computedDuration === 0 && (
+                          <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(60 min por defecto — agrega bloques al protocolo para calcular)</span>
                         )}
                       </div>
                     </div>

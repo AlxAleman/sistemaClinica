@@ -1,7 +1,7 @@
 import api from './api';
 
 export interface MuscleEntry { di: string; dd: string; fi: string; fd: string }
-export interface GonioEntry  { inicial: string; final: string }
+export interface GonioEntry  { izquierdo: string; derecho: string }
 export interface PosturalDI  { d: string; i: string }
 
 export interface EvaluacionFisica {

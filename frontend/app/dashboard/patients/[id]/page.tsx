@@ -2925,7 +2925,7 @@ function ComparisonPanel({ evA, evB }: { evA: EvaluacionFisica; evB: EvaluacionF
     ...Object.keys(evB.fuerzaMuscular?.miembroInferior ?? {}),
   ]));
 
-  const allGonioGroups: { label: string; keysA: Record<string, { inicial: string; final: string }>; keysB: Record<string, { inicial: string; final: string }> }[] = [
+  const allGonioGroups: { label: string; keysA: Record<string, { izquierdo: string; derecho: string }>; keysB: Record<string, { izquierdo: string; derecho: string }> }[] = [
     { label: "Hombro",    keysA: evA.goniometriaSuper?.hombro    ?? {}, keysB: evB.goniometriaSuper?.hombro    ?? {} },
     { label: "Codo",      keysA: evA.goniometriaSuper?.codo      ?? {}, keysB: evB.goniometriaSuper?.codo      ?? {} },
     { label: "Antebrazo", keysA: evA.goniometriaSuper?.antebrazo ?? {}, keysB: evB.goniometriaSuper?.antebrazo ?? {} },
@@ -3035,12 +3035,12 @@ function ComparisonPanel({ evA, evB }: { evA: EvaluacionFisica; evB: EvaluacionF
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-100 dark:border-gray-700">
                   <th className="text-left py-2 px-3 font-medium text-gray-400">Movimiento</th>
-                  <th colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">Inicial</th>
-                  <th colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">Final</th>
+                  <th colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">Izq°</th>
+                  <th colSpan={3} className="text-center py-2 px-1 font-medium text-gray-400">Der°</th>
                 </tr>
                 <tr className="bg-gray-50 dark:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700">
                   <th />
-                  {["Inicial","Final"].map(h => (
+                  {["Izq°","Der°"].map(h => (
                     <React.Fragment key={h}>
                       <th className="text-center py-1 px-1 text-[10px] text-indigo-500">A</th>
                       <th className="text-center py-1 px-1 text-[10px] text-indigo-500">B</th>
@@ -3058,12 +3058,12 @@ function ComparisonPanel({ evA, evB }: { evA: EvaluacionFisica; evB: EvaluacionF
                         {i === 0 && <span className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-wide block leading-none mb-0.5">{label}</span>}
                         {mov.replace(/_/g, " ")}
                       </td>
-                      <td className="text-center py-2 px-1">{keysA[mov]?.inicial || "—"}</td>
-                      <td className="text-center py-2 px-1">{keysB[mov]?.inicial || "—"}</td>
-                      <td className="text-center py-2 px-1"><Delta a={keysA[mov]?.inicial} b={keysB[mov]?.inicial} /></td>
-                      <td className="text-center py-2 px-1">{keysA[mov]?.final || "—"}</td>
-                      <td className="text-center py-2 px-1">{keysB[mov]?.final || "—"}</td>
-                      <td className="text-center py-2 px-1"><Delta a={keysA[mov]?.final} b={keysB[mov]?.final} /></td>
+                      <td className="text-center py-2 px-1">{keysA[mov]?.izquierdo || "—"}</td>
+                      <td className="text-center py-2 px-1">{keysB[mov]?.izquierdo || "—"}</td>
+                      <td className="text-center py-2 px-1"><Delta a={keysA[mov]?.izquierdo} b={keysB[mov]?.izquierdo} /></td>
+                      <td className="text-center py-2 px-1">{keysA[mov]?.derecho || "—"}</td>
+                      <td className="text-center py-2 px-1">{keysB[mov]?.derecho || "—"}</td>
+                      <td className="text-center py-2 px-1"><Delta a={keysA[mov]?.derecho} b={keysB[mov]?.derecho} /></td>
                     </tr>
                   ));
                 })}
@@ -3076,25 +3076,21 @@ function ComparisonPanel({ evA, evB }: { evA: EvaluacionFisica; evB: EvaluacionF
   );
 }
 
-function HCMuscleTable({ data }: { data: Record<string, { di: string; dd: string; fi: string; fd: string }> }) {
+function HCMuscleTable({ data }: { data: Record<string, { fi: string; fd: string }> }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-gray-100 dark:border-gray-700">
             <th className="text-left py-2 pr-3 font-medium text-gray-400 dark:text-gray-500">Músculo</th>
-            <th className="text-center py-2 px-2 font-medium text-gray-400 dark:text-gray-500">D Ini</th>
-            <th className="text-center py-2 px-2 font-medium text-gray-400 dark:text-gray-500">D Fin</th>
-            <th className="text-center py-2 px-2 font-medium text-gray-400 dark:text-gray-500">I Ini</th>
-            <th className="text-center py-2 px-2 font-medium text-gray-400 dark:text-gray-500">I Fin</th>
+            <th className="text-center py-2 px-2 font-medium text-gray-400 dark:text-gray-500">F.I.</th>
+            <th className="text-center py-2 px-2 font-medium text-gray-400 dark:text-gray-500">F.D.</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
           {Object.entries(data).map(([muscle, vals]) => (
             <tr key={muscle} className="text-gray-700 dark:text-gray-300">
               <td className="py-2 pr-3 font-medium capitalize">{muscle.replace(/_/g, " ")}</td>
-              <td className="text-center py-2 px-2">{vals.di || "—"}</td>
-              <td className="text-center py-2 px-2">{vals.dd || "—"}</td>
               <td className="text-center py-2 px-2">{vals.fi || "—"}</td>
               <td className="text-center py-2 px-2">{vals.fd || "—"}</td>
             </tr>
@@ -3105,7 +3101,7 @@ function HCMuscleTable({ data }: { data: Record<string, { di: string; dd: string
   );
 }
 
-function HCGonioTable({ label, data }: { label: string; data: Record<string, { inicial: string; final: string }> }) {
+function HCGonioTable({ label, data }: { label: string; data: Record<string, { izquierdo: string; derecho: string }> }) {
   return (
     <div>
       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">{label}</p>
@@ -3114,16 +3110,16 @@ function HCGonioTable({ label, data }: { label: string; data: Record<string, { i
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-700">
               <th className="text-left py-1.5 pr-3 font-medium text-gray-400 dark:text-gray-500">Movimiento</th>
-              <th className="text-center py-1.5 px-2 font-medium text-gray-400 dark:text-gray-500">Inicial</th>
-              <th className="text-center py-1.5 px-2 font-medium text-gray-400 dark:text-gray-500">Final</th>
+              <th className="text-center py-1.5 px-2 font-medium text-gray-400 dark:text-gray-500">Izq°</th>
+              <th className="text-center py-1.5 px-2 font-medium text-gray-400 dark:text-gray-500">Der°</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
             {Object.entries(data).map(([mov, vals]) => (
               <tr key={mov} className="text-gray-700 dark:text-gray-300">
                 <td className="py-1.5 pr-3 font-medium capitalize">{mov.replace(/_/g, " ")}</td>
-                <td className="text-center py-1.5 px-2">{vals.inicial || "—"}</td>
-                <td className="text-center py-1.5 px-2">{vals.final || "—"}</td>
+                <td className="text-center py-1.5 px-2">{vals.izquierdo || "—"}</td>
+                <td className="text-center py-1.5 px-2">{vals.derecho || "—"}</td>
               </tr>
             ))}
           </tbody>
