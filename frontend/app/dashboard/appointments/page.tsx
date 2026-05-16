@@ -52,6 +52,9 @@ function EventPanel({
   const [updating, setUpdating] = useState(false);
   const [assigningTherapist, setAssigningTherapist] = useState(false);
   const [selectedTherapistId, setSelectedTherapistId] = useState<string>("");
+  const [rescheduling, setRescheduling] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [reschedulingSaving, setReschedulingSaving] = useState(false);
 
   const isAppt = event.eventType === "appointment";
   const appt   = isAppt ? (event.resource as Appointment) : null;
@@ -64,10 +67,15 @@ function EventPanel({
   const therapist = isAppt ? appt!.therapist : sess!.therapist;
 
   const isPending = !isAppt && (sess?.attendanceStatus === "PENDING" || sess?.attendanceStatus == null);
+  const isReschedulable = isAppt
+    ? (appt?.status === "SCHEDULED" || appt?.status === "CONFIRMED")
+    : isPending;
 
   useEffect(() => {
     setSelectedTherapistId(isAppt ? (appt?.therapistId ?? "") : (sess?.therapistId ?? ""));
     setAssigningTherapist(false);
+    setRescheduling(false);
+    setRescheduleDate("");
   }, [event.resource]);
 
   const handleAssignTherapist = async () => {
@@ -85,6 +93,45 @@ function EventPanel({
       toast.error("Error al asignar terapeuta");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!rescheduleDate) return;
+    setReschedulingSaving(true);
+    try {
+      const newDateISO = new Date(rescheduleDate).toISOString();
+      if (isAppt && appt) {
+        await appointmentService.update(appt.id, { status: "CANCELLED" });
+        await appointmentService.create({
+          patientId: appt.patientId,
+          therapistId: appt.therapistId,
+          appointmentDate: newDateISO,
+          duration: appt.duration,
+          notes: appt.notes,
+          treatmentPlanId: appt.treatmentPlanId,
+        });
+        toast.success("Evaluación reprogramada");
+      } else if (sess) {
+        await sessionService.update(sess.id, { attendanceStatus: "RESCHEDULED" });
+        await sessionService.create({
+          patientId: sess.patientId,
+          therapistId: sess.therapistId,
+          treatmentPlanId: sess.treatmentPlanId ?? null,
+          sessionNumber: sess.sessionNumber ?? null,
+          duration: sess.duration,
+          sessionDate: newDateISO,
+          attendanceStatus: "PENDING",
+          sessionProtocol: sess.sessionProtocol ?? null,
+        });
+        toast.success("Sesión reprogramada");
+      }
+      onAppointmentUpdated();
+      onClose();
+    } catch {
+      toast.error("Error al reprogramar");
+    } finally {
+      setReschedulingSaving(false);
     }
   };
 
@@ -231,34 +278,88 @@ function EventPanel({
 
         {/* Footer */}
         <div className="p-5 border-t border-gray-100 dark:border-gray-800 space-y-2">
-          {isAppt && appt && patient && (
-            <Link
-              href={`/dashboard/patients/${patient.id}`}
-              className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
-              onClick={onClose}
-            >
-              Ver expediente del paciente
-            </Link>
-          )}
 
-          {!isAppt && sess && (
+          {/* Reschedule picker (inline, replaces other actions) */}
+          {rescheduling ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">
+                  Nueva fecha y hora
+                </p>
+                <input
+                  type="datetime-local"
+                  value={rescheduleDate}
+                  onChange={e => setRescheduleDate(e.target.value)}
+                  className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
+              </div>
+              <button
+                onClick={handleReschedule}
+                disabled={!rescheduleDate || reschedulingSaving}
+                className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+              >
+                {reschedulingSaving ? "Reprogramando…" : "Confirmar reprogramación"}
+              </button>
+              <button
+                onClick={() => { setRescheduling(false); setRescheduleDate(""); }}
+                disabled={reschedulingSaving}
+                className="w-full py-2.5 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
             <>
-              {isPending && (
-                <button
-                  onClick={() => onStartSession(sess)}
-                  className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
-                >
-                  Iniciar sesión
-                </button>
+              {/* Session actions */}
+              {!isAppt && sess && (
+                <>
+                  {isPending && (
+                    <button
+                      onClick={() => onStartSession(sess)}
+                      className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-xl transition-colors"
+                    >
+                      Iniciar sesión
+                    </button>
+                  )}
+                  {isReschedulable && (
+                    <button
+                      onClick={() => setRescheduling(true)}
+                      className="w-full py-2.5 border-2 border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-sm font-medium rounded-xl transition-colors"
+                    >
+                      Reprogramar sesión
+                    </button>
+                  )}
+                  {sess.patient && (
+                    <Link
+                      href={`/dashboard/patients/${sess.patientId}`}
+                      className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
+                      onClick={onClose}
+                    >
+                      Ver expediente del paciente
+                    </Link>
+                  )}
+                </>
               )}
-              {sess.patient && (
-                <Link
-                  href={`/dashboard/patients/${sess.patientId}`}
-                  className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
-                  onClick={onClose}
-                >
-                  Ver expediente del paciente
-                </Link>
+
+              {/* Appointment actions */}
+              {isAppt && appt && patient && (
+                <>
+                  {isReschedulable && (
+                    <button
+                      onClick={() => setRescheduling(true)}
+                      className="w-full py-2.5 border-2 border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-sm font-medium rounded-xl transition-colors"
+                    >
+                      Reprogramar evaluación
+                    </button>
+                  )}
+                  <Link
+                    href={`/dashboard/patients/${patient.id}`}
+                    className="block w-full py-2.5 text-center border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
+                    onClick={onClose}
+                  >
+                    Ver expediente del paciente
+                  </Link>
+                </>
               )}
             </>
           )}
