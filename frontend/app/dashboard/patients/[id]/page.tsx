@@ -664,7 +664,7 @@ export default function PatientDetailPage() {
                 return (
                   <div className="mt-2 flex gap-6">
                     {antActivos.length > 0 && (
-                      <div>
+                      <div className="border border-gray-100 dark:border-gray-700 rounded-lg px-3 py-2">
                         <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Antecedentes</p>
                         <ul className="space-y-0.5">
                           {antActivos.map(([key, val]) => (
@@ -680,7 +680,7 @@ export default function PatientDetailPage() {
                       </div>
                     )}
                     {habActivos.length > 0 && (
-                      <div>
+                      <div className="border border-gray-100 dark:border-gray-700 rounded-lg px-3 py-2">
                         <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Hábitos</p>
                         <ul className="space-y-0.5">
                           {habActivos.map(([key, val]) => (
