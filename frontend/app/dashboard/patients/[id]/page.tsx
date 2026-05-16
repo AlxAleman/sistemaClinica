@@ -764,13 +764,6 @@ export default function PatientDetailPage() {
           const currentMeds = patient.medicalProfile?.currentMedications;
           const alergiaEntry = historia?.antecedentes?.alergia as AntecedentItem | undefined;
 
-          // Antecedentes con tiene=true desde historia
-          const activeAntecedentes = historia?.antecedentes
-            ? Object.entries(historia.antecedentes).filter(([, v]) => v.tiene)
-            : [];
-          const activeHabitos = historia?.habitosSalud
-            ? Object.entries(historia.habitosSalud).filter(([, v]) => v.tiene)
-            : [];
 
           return (
             <div className="space-y-5">
@@ -925,54 +918,14 @@ export default function PatientDetailPage() {
                 </div>
               )}
 
-              {/* Antecedentes + Hábitos + Medicamentos */}
-              {(activeAntecedentes.length > 0 || activeHabitos.length > 0 || currentMeds) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {activeAntecedentes.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-xs">📂</span>
-                        Antecedentes patológicos
-                      </h3>
-                      <ul className="space-y-2">
-                        {activeAntecedentes.map(([key, val]) => (
-                          <li key={key} className="text-sm text-gray-700 dark:text-gray-300">
-                            <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>
-                            {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {(activeHabitos.length > 0 || currentMeds) && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 space-y-4">
-                      {activeHabitos.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-xs">🌿</span>
-                            Hábitos de salud
-                          </h3>
-                          <ul className="space-y-2">
-                            {activeHabitos.map(([key, val]) => (
-                              <li key={key} className="text-sm text-gray-700 dark:text-gray-300">
-                                <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>
-                                {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {currentMeds && (
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-xs">💊</span>
-                            Medicamentos / tratamientos actuales
-                          </h3>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">{currentMeds}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              {/* Medicamentos actuales */}
+              {currentMeds && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-xs">💊</span>
+                    Medicamentos / tratamientos actuales
+                  </h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{currentMeds}</p>
                 </div>
               )}
 
