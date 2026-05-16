@@ -29,6 +29,8 @@ export interface ConsultaEpisode {
   id: string;
   patientId: string;
   motivoConsulta: string;
+  referidoPor: string | null;
+  tratamientosPrevios: string | null;
   fecha: string;
   notas: string | null;
   isActive: boolean;
@@ -50,6 +52,8 @@ export const consultaEpisodeService = {
   create: async (data: {
     patientId: string;
     motivoConsulta: string;
+    referidoPor?: string;
+    tratamientosPrevios?: string;
     fecha?: string;
     notas?: string;
   }): Promise<ConsultaEpisode> => {
@@ -59,7 +63,14 @@ export const consultaEpisodeService = {
 
   update: async (
     id: string,
-    data: { motivoConsulta?: string; fecha?: string; notas?: string; isActive?: boolean }
+    data: {
+      motivoConsulta?: string;
+      referidoPor?: string;
+      tratamientosPrevios?: string;
+      fecha?: string;
+      notas?: string;
+      isActive?: boolean;
+    }
   ): Promise<ConsultaEpisode> => {
     const res = await api.put<{ success: boolean; data: ConsultaEpisode }>(`/episodes/${id}`, data);
     return res.data.data;

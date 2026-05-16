@@ -13,17 +13,24 @@ if (typeof window !== "undefined") {
   require("react-big-calendar/lib/css/react-big-calendar.css");
 }
 
-export type CalendarEventType = "appointment" | "session";
+export type CalendarEventType = "appointment" | "session" | "proposed";
 
 export interface UnifiedCalendarEvent extends Event {
   id: string;
   eventType: CalendarEventType;
-  resource: Appointment | TreatmentSession;
+  resource: Appointment | TreatmentSession | null;
+}
+
+export interface ProposedEvent {
+  start: Date;
+  end: Date;
+  label: string;
 }
 
 interface AppointmentCalendarProps {
   appointments: Appointment[];
   sessions?: TreatmentSession[];
+  proposedEvents?: ProposedEvent[];
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void;
   onSelectEvent?: (event: UnifiedCalendarEvent) => void;
   defaultDate?: Date;
@@ -56,9 +63,11 @@ const sessionColor = (s: TreatmentSession): string => {
 // ── Custom event renderer ─────────────────────────────────────────────────────
 
 function CalendarEventWrapper({ event, title }: { event: UnifiedCalendarEvent; title: string }) {
-  const noTherapist = event.eventType === "appointment"
-    ? !(event.resource as Appointment).therapistId
-    : !(event.resource as TreatmentSession).therapistId;
+  const noTherapist = event.eventType !== "proposed" && (
+    event.eventType === "appointment"
+      ? !(event.resource as Appointment).therapistId
+      : !(event.resource as TreatmentSession).therapistId
+  );
 
   return (
     <div style={{ display: "flex", alignItems: "center", height: "100%", overflow: "hidden", gap: "4px", paddingLeft: "1px" }}>
@@ -89,6 +98,7 @@ function CalendarEventWrapper({ event, title }: { event: UnifiedCalendarEvent; t
 export default function AppointmentCalendar({
   appointments,
   sessions = [],
+  proposedEvents = [],
   onSelectSlot,
   onSelectEvent,
   defaultDate = new Date(),
@@ -166,13 +176,39 @@ export default function AppointmentCalendar({
       };
     });
 
-    return [...apptEvents, ...sessionEvents];
-  }, [appointments, sessions]);
+    const proposedCalendarEvents: UnifiedCalendarEvent[] = proposedEvents.map((p, i) => ({
+      id: `proposed-${i}`,
+      eventType: "proposed" as const,
+      title: p.label,
+      start: p.start,
+      end: p.end,
+      resource: null,
+    }));
+
+    return [...apptEvents, ...sessionEvents, ...proposedCalendarEvents];
+  }, [appointments, sessions, proposedEvents]);
 
   // ── Styles ──────────────────────────────────────────────────────────────────
 
   const eventStyleGetter = (event: Event) => {
     const e = event as UnifiedCalendarEvent;
+
+    if (e.eventType === "proposed") {
+      return {
+        style: {
+          backgroundColor: "#f97316",
+          borderRadius: "6px",
+          opacity: 0.85,
+          color: "white",
+          border: "2px dashed #ea580c",
+          display: "block",
+          fontSize: "11px",
+          fontWeight: 500,
+          paddingLeft: "4px",
+        },
+      };
+    }
+
     const color = e.eventType === "appointment"
       ? appointmentColor(e.resource as Appointment)
       : sessionColor(e.resource as TreatmentSession);
@@ -267,6 +303,12 @@ export default function AppointmentCalendar({
         </span>
         Sin terapeuta
       </span>
+      {proposedEvents.length > 0 && (
+        <span className="ml-2 flex items-center gap-1">
+          <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: "#f97316", border: "1.5px dashed #ea580c" }} />
+          Propuestas
+        </span>
+      )}
     </div>
   );
 
@@ -360,7 +402,11 @@ export default function AppointmentCalendar({
           onNavigate={handleNavigate}
           onView={handleViewChange}
           onSelectSlot={onSelectSlot}
-          onSelectEvent={event => onSelectEvent?.(event as UnifiedCalendarEvent)}
+          onSelectEvent={event => {
+            const e = event as UnifiedCalendarEvent;
+            if (e.eventType === "proposed") return;
+            onSelectEvent?.(e);
+          }}
           eventPropGetter={eventStyleGetter}
           components={{ event: CalendarEventWrapper as any }}
           dayLayoutAlgorithm={currentView === "day" ? "no-overlap" : "overlap"}

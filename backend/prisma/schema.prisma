@@ -533,10 +533,12 @@ model ConsultaEpisode {
   patientId      String
   patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
-  motivoConsulta String
-  fecha          DateTime  @default(now())
-  notas          String?
-  isActive       Boolean   @default(true)
+  motivoConsulta      String
+  referidoPor         String?
+  tratamientosPrevios String?
+  fecha               DateTime  @default(now())
+  notas               String?
+  isActive            Boolean   @default(true)
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

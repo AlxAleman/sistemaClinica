@@ -3,15 +3,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { treatmentPlanService, TreatmentPlan, UpdateTreatmentPlanData, ProtocolItem } from "@/services/treatmentPlanService";
-import { sessionService } from "@/services/sessionService";
+import { sessionService, TreatmentSession } from "@/services/sessionService";
 import { patientService } from "@/services/patientService";
 import { diagnosisService, Diagnosis } from "@/services/diagnosisService";
 import { therapistService, Therapist } from "@/services/therapistService";
+import { appointmentService, Appointment } from "@/services/appointmentService";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import PatientSelector from "@/components/PatientSelector";
 import ProtocolBuilder from "@/components/ProtocolBuilder";
+import AppointmentCalendar, { ProposedEvent } from "@/components/AppointmentCalendar";
 
 const FREQUENCY_OPTIONS = [
   "1 vez por semana",
@@ -64,6 +66,12 @@ export default function EditTreatmentPlanPage() {
   const [dayTimes, setDayTimes] = useState<Record<number, string>>({});
   const [sessionTherapistId, setSessionTherapistId] = useState("");
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
+
+  // Availability calendar modal
+  const [showAvailability, setShowAvailability] = useState(false);
+  const [availAppts, setAvailAppts] = useState<Appointment[]>([]);
+  const [availSessions, setAvailSessions] = useState<TreatmentSession[]>([]);
+  const [loadingAvail, setLoadingAvail] = useState(false);
 
   const applyEndDateCalc = (
     current: UpdateTreatmentPlanData,
@@ -230,6 +238,31 @@ export default function EditTreatmentPlanPage() {
 
   const updateScheduledSession = (idx: number, field: "date" | "time", value: string) =>
     setScheduledSessions(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
+
+  const proposedCalendarEvents: ProposedEvent[] = scheduledSessions.map((sess, idx) => {
+    const [h, m] = sess.time.split(":").map(Number);
+    const d = new Date(sess.date + "T12:00:00");
+    d.setHours(h, m, 0, 0);
+    const end = new Date(d.getTime() + (computedDuration > 0 ? computedDuration : (formData.sessionDuration ?? 60)) * 60000);
+    return { start: d, end, label: `Sesión #${idx + 1}` };
+  });
+
+  const openAvailability = async () => {
+    setLoadingAvail(true);
+    setShowAvailability(true);
+    try {
+      const [apptRes, sessRes] = await Promise.all([
+        appointmentService.getAll({ limit: 500 }),
+        sessionService.getAll({ limit: 500 }),
+      ]);
+      setAvailAppts(apptRes.appointments);
+      setAvailSessions(sessRes.sessions);
+    } catch {
+      toast.error("Error al cargar el calendario");
+    } finally {
+      setLoadingAvail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -535,12 +568,22 @@ export default function EditTreatmentPlanPage() {
                     </div>
                   </div>
                 )}
-                <div>
+                <div className="flex items-center gap-3 flex-wrap">
                   <button type="button" onClick={generateSessionDates} disabled={!canGenerate}
                     className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
                     {canGenerate
                       ? "Generar fechas"
                       : `Selecciona ${daysRequired - selectedDays.length} día${daysRequired - selectedDays.length !== 1 ? "s" : ""} más`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openAvailability}
+                    className="px-4 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Ver disponibilidad
                   </button>
                 </div>
               </div>
@@ -642,6 +685,44 @@ export default function EditTreatmentPlanPage() {
           </div>
         </form>
       </div>
+
+      {/* Availability calendar modal */}
+      {showAvailability && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Disponibilidad del calendario</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Las sesiones propuestas aparecen en naranja.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAvailability(false)}
+                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
+              {loadingAvail ? (
+                <div className="flex items-center justify-center h-48 text-gray-500 dark:text-gray-400 text-sm">
+                  Cargando calendario...
+                </div>
+              ) : (
+                <AppointmentCalendar
+                  appointments={availAppts}
+                  sessions={availSessions}
+                  proposedEvents={proposedCalendarEvents}
+                  defaultView="month"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

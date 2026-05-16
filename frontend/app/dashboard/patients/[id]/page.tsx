@@ -2237,6 +2237,8 @@ function ExpedienteView({
   const [expandedEpisode, setExpandedEpisode] = useState<string | null>(null);
   const [showNewEpisodeModal, setShowNewEpisodeModal] = useState(false);
   const [newMotivo, setNewMotivo] = useState("");
+  const [newReferidoPor, setNewReferidoPor] = useState("");
+  const [newTratamientosPrevios, setNewTratamientosPrevios] = useState("");
   const [newEpisodeFecha, setNewEpisodeFecha] = useState("");
   const [savingEpisode, setSavingEpisode] = useState(false);
   const [deleteEpisodeId, setDeleteEpisodeId] = useState<string | null>(null);
@@ -2255,11 +2257,15 @@ function ExpedienteView({
       const ep = await consultaEpisodeService.create({
         patientId,
         motivoConsulta: newMotivo.trim(),
+        referidoPor: newReferidoPor.trim() || undefined,
+        tratamientosPrevios: newTratamientosPrevios.trim() || undefined,
         fecha: newEpisodeFecha || undefined,
       });
       setEpisodes(prev => [ep, ...prev]);
       setShowNewEpisodeModal(false);
       setNewMotivo("");
+      setNewReferidoPor("");
+      setNewTratamientosPrevios("");
       setNewEpisodeFecha("");
       toast.success("Reingreso registrado");
     } catch {
@@ -2309,23 +2315,70 @@ function ExpedienteView({
 
   return (
     <div className="space-y-6">
-      {/* Cabecera */}
-      <p className="text-xs text-gray-400 dark:text-gray-500">
-        Actualizado {moment(historia.updatedAt).fromNow()}
-      </p>
+      {/* ── Flujo clínico ── */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5">
+        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">
+          Flujo de atención clínica
+        </p>
+        <div className="flex flex-wrap gap-3 items-center">
+          {([
+            { n: 1, icon: "📋", label: "Consulta",    done: true },
+            { n: 2, icon: "🩺", label: "Evaluación",  done: evals.length > 0 },
+            { n: 3, icon: "🏥", label: "Diagnóstico", done: diagnoses.length > 0 },
+          ] as const).map((step, i) => (
+            <React.Fragment key={step.n}>
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
+                step.done
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700"
+                  : "bg-gray-50 dark:bg-gray-700/30 border-gray-200 dark:border-gray-600"
+              }`}>
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                  step.done ? "bg-indigo-600 text-white" : "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                }`}>
+                  {step.done ? "✓" : step.n}
+                </div>
+                <div>
+                  <p className={`text-sm font-semibold leading-tight ${step.done ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}`}>
+                    {step.icon} {step.label}
+                  </p>
+                  <p className={`text-xs mt-0.5 ${step.done ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500"}`}>
+                    {step.done ? "Completado" : "Pendiente"}
+                  </p>
+                </div>
+              </div>
+              {i < 2 && (
+                <svg className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+          Actualizado {moment(historia.updatedAt).fromNow()}
+        </p>
+      </div>
 
       {/* Expediente Base → Evaluación Física → Diagnósticos */}
-      <div className="space-y-5">
-        {/* Datos base */}
+      <div className="space-y-3">
+        {/* Paso 1: Consulta */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <HCSectionHeader icon="📋" title="Expediente Base" />
-            <Link
-              href={`/dashboard/expedientes/${historia.id}/edit`}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-            >
-              Editar →
-            </Link>
+          <div className="flex items-start gap-4 mb-5">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-lg font-black text-white">1</span>
+            </div>
+            <div className="flex-1 pt-0.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Consulta Inicial</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Datos de ingreso, motivo de visita y reingresos</p>
+                </div>
+                <Link href={`/dashboard/expedientes/${historia.id}/edit`}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium flex-shrink-0">
+                  Editar
+                </Link>
+              </div>
+            </div>
           </div>
           <div className="space-y-3">
             {historia.referidoPor && (
@@ -2371,124 +2424,136 @@ function ExpedienteView({
               <p className="text-sm text-gray-400 dark:text-gray-500 italic">Sin datos registrados.</p>
             )}
           </div>
-        </div>
 
-        {/* ── Reingresos / Episodios ── */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <HCSectionHeader icon="🔄" title="Reingresos" />
-            <button
-              onClick={() => setShowNewEpisodeModal(true)}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-            >
-              + Nuevo reingreso
-            </button>
-          </div>
-
-          {loadingEpisodes ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500" />
-            </div>
-          ) : episodes.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-5 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Sin reingresos registrados</p>
+          {/* ── Reingresos integrados ── */}
+          <div className="border-t border-gray-100 dark:border-gray-700 mt-5 pt-5">
+            <div className="flex items-center justify-between mb-3">
+              <HCSectionHeader icon="🔄" title="Reingresos" />
               <button
                 onClick={() => setShowNewEpisodeModal(true)}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
               >
-                Registrar primer reingreso →
+                + Nuevo reingreso
               </button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {episodes.map(ep => {
-                const isExp = expandedEpisode === ep.id;
-                return (
-                  <div key={ep.id} className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                    <button
-                      onClick={() => setExpandedEpisode(isExp ? null : ep.id)}
-                      className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
-                    >
-                      <span className="text-base">{isExp ? "▾" : "▸"}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                          {ep.motivoConsulta}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                          {moment(ep.fecha).format("D MMM YYYY")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {ep.diagnoses.length > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-medium">
-                            {ep.diagnoses.length} diag.
-                          </span>
-                        )}
-                        {ep.treatmentPlans.length > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-300 font-medium">
-                            {ep.treatmentPlans.length} plan{ep.treatmentPlans.length > 1 ? "es" : ""}
-                          </span>
-                        )}
-                        {ep.evaluaciones.length > 0 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 font-medium">
-                            {ep.evaluaciones.length} eval.
-                          </span>
-                        )}
-                      </div>
-                    </button>
 
-                    {isExp && (
-                      <div className="border-t border-gray-100 dark:border-gray-700 p-4 bg-gray-50/50 dark:bg-gray-800/50 space-y-3">
-                        {ep.notas && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 italic">{ep.notas}</p>
-                        )}
-                        {ep.diagnoses.length > 0 && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Diagnósticos</p>
-                            <div className="space-y-1">
-                              {ep.diagnoses.map(d => (
-                                <div key={d.id} className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-800 dark:text-gray-200 truncate">{d.clinicalDiagnosis}</span>
-                                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ml-2 ${
-                                    d.status === "ACTIVE" ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300" :
-                                    d.status === "CHRONIC" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300" :
-                                    "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                                  }`}>{d.status === "ACTIVE" ? "Activo" : d.status === "CHRONIC" ? "Crónico" : "Resuelto"}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {ep.treatmentPlans.length > 0 && (
-                          <div>
-                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Planes de tratamiento</p>
-                            <div className="space-y-1">
-                              {ep.treatmentPlans.map(p => (
-                                <div key={p.id} className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-800 dark:text-gray-200 truncate">{p.title}</span>
-                                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">
-                                    {p.sessionsCompleted}/{p.sessionsPlanned} ses.
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <div className="flex justify-end pt-1">
-                          <button
-                            onClick={() => setDeleteEpisodeId(ep.id)}
-                            className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:underline"
-                          >
-                            Eliminar reingreso
-                          </button>
+            {loadingEpisodes ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500" />
+              </div>
+            ) : episodes.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-4 text-center">
+                <p className="text-sm text-gray-400 dark:text-gray-500 mb-1.5">Sin reingresos registrados</p>
+                <button
+                  onClick={() => setShowNewEpisodeModal(true)}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+                >
+                  Registrar primer reingreso →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {episodes.map(ep => {
+                  const isExp = expandedEpisode === ep.id;
+                  return (
+                    <div key={ep.id} className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                      <button
+                        onClick={() => setExpandedEpisode(isExp ? null : ep.id)}
+                        className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                      >
+                        <span className="text-base">{isExp ? "▾" : "▸"}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            {ep.motivoConsulta}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            {moment(ep.fecha).format("D MMM YYYY")}
+                          </p>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {ep.diagnoses.length > 0 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 font-medium">
+                              {ep.diagnoses.length} diag.
+                            </span>
+                          )}
+                          {ep.treatmentPlans.length > 0 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-300 font-medium">
+                              {ep.treatmentPlans.length} plan{ep.treatmentPlans.length > 1 ? "es" : ""}
+                            </span>
+                          )}
+                          {ep.evaluaciones.length > 0 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 font-medium">
+                              {ep.evaluaciones.length} eval.
+                            </span>
+                          )}
+                        </div>
+                      </button>
+
+                      {isExp && (
+                        <div className="border-t border-gray-100 dark:border-gray-700 p-4 bg-gray-50/50 dark:bg-gray-800/50 space-y-3">
+                          {ep.referidoPor && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Referido por</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{ep.referidoPor}</p>
+                            </div>
+                          )}
+                          {ep.tratamientosPrevios && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Tratamientos previos</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{ep.tratamientosPrevios}</p>
+                            </div>
+                          )}
+                          {ep.notas && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 italic">{ep.notas}</p>
+                          )}
+                          {ep.diagnoses.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Diagnósticos</p>
+                              <div className="space-y-1">
+                                {ep.diagnoses.map(d => (
+                                  <div key={d.id} className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-800 dark:text-gray-200 truncate">{d.clinicalDiagnosis}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ml-2 ${
+                                      d.status === "ACTIVE" ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300" :
+                                      d.status === "CHRONIC" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300" :
+                                      "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                                    }`}>{d.status === "ACTIVE" ? "Activo" : d.status === "CHRONIC" ? "Crónico" : "Resuelto"}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {ep.treatmentPlans.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1.5">Planes de tratamiento</p>
+                              <div className="space-y-1">
+                                {ep.treatmentPlans.map(p => (
+                                  <div key={p.id} className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-800 dark:text-gray-200 truncate">{p.title}</span>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">
+                                      {p.sessionsCompleted}/{p.sessionsPlanned} ses.
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex justify-end pt-1">
+                            <button
+                              onClick={() => setDeleteEpisodeId(ep.id)}
+                              className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:underline"
+                            >
+                              Eliminar reingreso
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Modal nuevo reingreso */}
@@ -2496,9 +2561,23 @@ function ExpedienteView({
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Nuevo Reingreso</h3>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-                  Motivo de consulta *
+                  Referido por
+                </label>
+                <input
+                  type="text"
+                  value={newReferidoPor}
+                  onChange={e => setNewReferidoPor(e.target.value)}
+                  placeholder="Dr. García / Hospital Nacional / Automático…"
+                  className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  Motivo de consulta <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={newMotivo}
@@ -2508,6 +2587,20 @@ function ExpedienteView({
                   className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  Tratamientos previos
+                </label>
+                <textarea
+                  value={newTratamientosPrevios}
+                  onChange={e => setNewTratamientosPrevios(e.target.value)}
+                  rows={2}
+                  placeholder="Fisioterapia anterior, cirugías, medicamentos…"
+                  className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                   Fecha (opcional)
@@ -2519,6 +2612,7 @@ function ExpedienteView({
                   className="w-full text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleCreateEpisode}
@@ -2528,7 +2622,13 @@ function ExpedienteView({
                   {savingEpisode ? "Guardando…" : "Guardar"}
                 </button>
                 <button
-                  onClick={() => { setShowNewEpisodeModal(false); setNewMotivo(""); setNewEpisodeFecha(""); }}
+                  onClick={() => {
+                    setShowNewEpisodeModal(false);
+                    setNewMotivo("");
+                    setNewReferidoPor("");
+                    setNewTratamientosPrevios("");
+                    setNewEpisodeFecha("");
+                  }}
                   disabled={savingEpisode}
                   className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium rounded-xl transition-colors"
                 >
@@ -2565,16 +2665,40 @@ function ExpedienteView({
           </div>
         )}
 
-        {/* Evaluaciones Físicas */}
+        {/* Conector 1→2 */}
+        <div className="flex justify-center py-0.5">
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 11L3 6h10L8 11z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Paso 2: Evaluación Física */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <HCSectionHeader icon="🩺" title="Evaluaciones Físicas" />
-            <Link
-              href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
-              className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium"
-            >
-              + Nueva
-            </Link>
+          <div className="flex items-start gap-4 mb-5">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+              evals.length > 0 ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-600"
+            }`}>
+              <span className={`text-lg font-black ${evals.length > 0 ? "text-white" : "text-gray-500 dark:text-gray-400"}`}>2</span>
+            </div>
+            <div className="flex-1 pt-0.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Evaluación Física</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {evals.length > 0
+                      ? `${evals.length} evaluación${evals.length > 1 ? "es" : ""} registrada${evals.length > 1 ? "s" : ""}`
+                      : "Se necesita antes de crear un diagnóstico"}
+                  </p>
+                </div>
+                <Link href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
+                  className="text-sm text-teal-600 dark:text-teal-400 hover:underline font-medium flex-shrink-0">
+                  + Nueva
+                </Link>
+              </div>
+            </div>
           </div>
 
           {loadingEvals ? (
@@ -2582,13 +2706,18 @@ function ExpedienteView({
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500" />
             </div>
           ) : evals.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-6 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Sin evaluaciones físicas registradas</p>
+            <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-8 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mx-auto mb-4 text-3xl">🩺</div>
+              <p className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Sin evaluaciones físicas</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-xs mx-auto">
+                La evaluación registra el estado físico del paciente y es la base para crear el diagnóstico.
+              </p>
               <Link
                 href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
-                className="text-sm text-teal-600 dark:text-teal-400 hover:underline font-medium"
+                className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
               >
-                Registrar primera evaluación →
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                Registrar evaluación física
               </Link>
             </div>
           ) : (
@@ -2673,18 +2802,42 @@ function ExpedienteView({
           )}
         </div>
 
-        {/* Diagnósticos */}
+        {/* Conector 2→3 */}
+        <div className="flex justify-center py-0.5">
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 11L3 6h10L8 11z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Paso 3: Diagnósticos */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <HCSectionHeader icon="🏥" title={`Diagnósticos${diagnoses.length > 0 ? ` (${diagnoses.length})` : ""}`} />
-            <div className="flex items-center gap-2">
-              {loadingDiagnoses && <span className="text-xs text-gray-400">Cargando...</span>}
-              <Link
-                href={`/dashboard/diagnoses/new?patientId=${patientId}`}
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium whitespace-nowrap"
-              >
-                + Nuevo
-              </Link>
+          <div className="flex items-start gap-4 mb-5">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+              diagnoses.length > 0 ? "bg-indigo-600" : "bg-gray-200 dark:bg-gray-600"
+            }`}>
+              <span className={`text-lg font-black ${diagnoses.length > 0 ? "text-white" : "text-gray-500 dark:text-gray-400"}`}>3</span>
+            </div>
+            <div className="flex-1 pt-0.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">
+                    Diagnósticos {diagnoses.length > 0 && <span className="text-sm font-normal text-gray-400">({diagnoses.length})</span>}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {diagnoses.length > 0 ? "Define el plan de tratamiento" : "Se registra a partir de la evaluación física"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {loadingDiagnoses && <span className="text-xs text-gray-400">Cargando...</span>}
+                  <Link href={`/dashboard/diagnoses/new?patientId=${patientId}`}
+                    className="text-sm text-violet-600 dark:text-violet-400 hover:underline font-medium whitespace-nowrap">
+                    + Nuevo
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2875,12 +3028,26 @@ function ExpedienteView({
               <button onClick={() => setDiagnosisFilter("all")} className="mt-1 text-xs text-indigo-500 hover:underline">Ver todos</button>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-5 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Sin diagnósticos registrados.</p>
-              <Link href={`/dashboard/diagnoses/new?patientId=${patientId}`}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-                Crear diagnóstico
-              </Link>
+            <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-8 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center mx-auto mb-4 text-3xl">🏥</div>
+              <p className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Sin diagnósticos</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-xs mx-auto">
+                {evals.length === 0
+                  ? "Primero registra una evaluación física — el diagnóstico se hace a partir de ella."
+                  : "Registra el diagnóstico clínico basado en la evaluación física del paciente."}
+              </p>
+              {evals.length > 0 ? (
+                <Link href={`/dashboard/diagnoses/new?patientId=${patientId}`}
+                  className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  Registrar diagnóstico
+                </Link>
+              ) : (
+                <Link href={`/dashboard/expedientes/${historia.id}/evaluaciones/nueva?patientId=${patientId}`}
+                  className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                  Ir a registrar evaluación →
+                </Link>
+              )}
             </div>
           )}
         </div>
