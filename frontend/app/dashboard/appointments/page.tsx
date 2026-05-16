@@ -107,7 +107,6 @@ function EventPanel({
     try {
       const newDateISO = new Date(rescheduleDate).toISOString();
       if (isAppt && appt) {
-        await appointmentService.update(appt.id, { status: "CANCELLED" });
         await appointmentService.create({
           patientId: appt.patientId,
           therapistId: appt.therapistId,
@@ -116,9 +115,9 @@ function EventPanel({
           notes: appt.notes,
           treatmentPlanId: appt.treatmentPlanId,
         });
+        await appointmentService.delete(appt.id);
         toast.success("Evaluación reprogramada");
       } else if (sess) {
-        await sessionService.update(sess.id, { attendanceStatus: "RESCHEDULED" });
         await sessionService.create({
           patientId: sess.patientId,
           therapistId: sess.therapistId,
@@ -129,6 +128,7 @@ function EventPanel({
           attendanceStatus: "PENDING",
           sessionProtocol: sess.sessionProtocol ?? null,
         });
+        await sessionService.delete(sess.id);
         toast.success("Sesión reprogramada");
       }
       onAppointmentUpdated();
