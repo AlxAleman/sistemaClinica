@@ -655,28 +655,40 @@ export default function PatientDetailPage() {
                 };
                 const BAD_HABITS = new Set(["tabaquismo", "alcoholismo", "drogas", "automedica"]);
                 const antActivos = historia.antecedentes
-                  ? Object.entries(historia.antecedentes).filter(([k, v]) => k !== "alergia" && (v as any).tiene).map(([k]) => ANT[k] ?? k)
+                  ? Object.entries(historia.antecedentes).filter(([k, v]) => k !== "alergia" && (v as any).tiene)
                   : [];
                 const habActivos = historia.habitosSalud
-                  ? Object.entries(historia.habitosSalud).filter(([, v]) => (v as any).tiene).map(([k]) => ({ label: HAB[k] ?? k, bad: BAD_HABITS.has(k) }))
+                  ? Object.entries(historia.habitosSalud).filter(([, v]) => (v as any).tiene)
                   : [];
                 if (antActivos.length === 0 && habActivos.length === 0) return null;
                 return (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {antActivos.map(label => (
-                      <span key={label} className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 leading-none">
-                        {label}
-                      </span>
-                    ))}
-                    {habActivos.map(({ label, bad }) => (
-                      <span key={label} className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded leading-none ${
-                        bad
-                          ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
-                          : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                      }`}>
-                        {label}
-                      </span>
-                    ))}
+                  <div className="mt-2 space-y-0.5">
+                    {antActivos.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        {antActivos.map(([key, val]) => (
+                          <span key={key} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                            <span className="font-medium text-gray-700 dark:text-gray-300">{ANT[key] ?? key}</span>
+                            {(val as any).especifique && (
+                              <span className="text-gray-400 dark:text-gray-500">— {(val as any).especifique}</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {habActivos.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        {habActivos.map(([key, val]) => (
+                          <span key={key} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${BAD_HABITS.has(key) ? "bg-amber-400" : "bg-green-400"}`} />
+                            <span className="font-medium text-gray-700 dark:text-gray-300">{HAB[key] ?? key}</span>
+                            {(val as any).especifique && (
+                              <span className="text-gray-400 dark:text-gray-500">— {(val as any).especifique}</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })()}
