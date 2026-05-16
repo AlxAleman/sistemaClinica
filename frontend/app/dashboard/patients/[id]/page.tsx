@@ -640,6 +640,46 @@ export default function PatientDetailPage() {
                   Evaluaciones
                 </div>
               </div>
+
+              {/* Antecedentes y hábitos activos */}
+              {historia && (() => {
+                const ANT: Record<string, string> = {
+                  diabetes: "Diabetes", alergia: "Alergia", hta: "HTA",
+                  cancer: "Cáncer", transfusiones: "Transfusiones", enfReumaticas: "Enf. Reumáticas",
+                  hospitalizacion: "Hospitalización", encames: "Encames", accidentes: "Accidentes",
+                  cardiopatias: "Cardiopatías", cirugias: "Cirugías", fracturas: "Fracturas",
+                };
+                const HAB: Record<string, string> = {
+                  tabaquismo: "Tabaquismo", alcoholismo: "Alcoholismo", drogas: "Drogas",
+                  actividadFisica: "Act. Física", automedica: "Automedicación", pasatiempo: "Pasatiempo",
+                };
+                const BAD_HABITS = new Set(["tabaquismo", "alcoholismo", "drogas", "automedica"]);
+                const antActivos = historia.antecedentes
+                  ? Object.entries(historia.antecedentes).filter(([k, v]) => k !== "alergia" && (v as any).tiene).map(([k]) => ANT[k] ?? k)
+                  : [];
+                const habActivos = historia.habitosSalud
+                  ? Object.entries(historia.habitosSalud).filter(([, v]) => (v as any).tiene).map(([k]) => ({ label: HAB[k] ?? k, bad: BAD_HABITS.has(k) }))
+                  : [];
+                if (antActivos.length === 0 && habActivos.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {antActivos.map(label => (
+                      <span key={label} className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 leading-none">
+                        {label}
+                      </span>
+                    ))}
+                    {habActivos.map(({ label, bad }) => (
+                      <span key={label} className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded leading-none ${
+                        bad
+                          ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                          : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                      }`}>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
