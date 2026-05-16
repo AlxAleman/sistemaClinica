@@ -170,7 +170,7 @@ export const getSessions = async (filters: {
       where,
       skip,
       take: limit,
-      orderBy: { sessionDate: 'desc' },
+      orderBy: { sessionDate: 'asc' },
       include: {
         patient: { select: { id: true, name: true, phone: true, email: true } },
         therapist: { select: { id: true, name: true, specialization: true } },
