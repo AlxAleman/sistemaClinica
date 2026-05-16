@@ -167,7 +167,7 @@ export const approveTreatmentPlan = async (id: string) => {
 // Confirma asistencia de sesión y actualiza contador del plan
 export const updateSessionsCompleted = async (treatmentPlanId: string) => {
   const count = await prisma.treatmentSession.count({
-    where: { treatmentPlanId, attendanceStatus: 'ATTENDED' },
+    where: { treatmentPlanId, attendanceStatus: { in: ['ATTENDED', 'NOT_ATTENDED'] } },
   });
 
   const plan = await prisma.treatmentPlan.update({
