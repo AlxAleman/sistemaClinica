@@ -34,6 +34,11 @@ const SESSION_STATUS: Record<string, { label: string; color: string }> = {
   RESCHEDULED:  { label: "Reagendada",   color: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300" },
 };
 
+const toLocalDatetimeInput = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 // ── Side panel ────────────────────────────────────────────────────────────────
 
 function EventPanel({
@@ -323,7 +328,7 @@ function EventPanel({
                   )}
                   {isReschedulable && (
                     <button
-                      onClick={() => setRescheduling(true)}
+                      onClick={() => { setRescheduling(true); setRescheduleDate(toLocalDatetimeInput(date)); }}
                       className="w-full py-2.5 border-2 border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-sm font-medium rounded-xl transition-colors"
                     >
                       Reprogramar sesión
@@ -346,7 +351,7 @@ function EventPanel({
                 <>
                   {isReschedulable && (
                     <button
-                      onClick={() => setRescheduling(true)}
+                      onClick={() => { setRescheduling(true); setRescheduleDate(toLocalDatetimeInput(date)); }}
                       className="w-full py-2.5 border-2 border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 text-sm font-medium rounded-xl transition-colors"
                     >
                       Reprogramar evaluación
