@@ -109,9 +109,14 @@ export default function ConfigPage() {
   const [savingSessions, setSavingSessions]   = useState(false);
   const [restoreDialog, setRestoreDialog]     = useState(false);
   const [restoringDefaults, setRestoringDefaults] = useState(false);
+  const [calendarDefaultView, setCalendarDefaultView] = useState<"month" | "week" | "day">("week");
 
   // ─── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("calendarDefaultView");
+      if (saved === "month" || saved === "week" || saved === "day") setCalendarDefaultView(saved);
+    } catch {}
     Promise.all([fetchAllConfigs(), fetchUsers()]).finally(() => setLoading(false));
   }, []);
 
@@ -716,6 +721,33 @@ export default function ConfigPage() {
                 className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors">
                 {savingSchedules ? "Guardando..." : "Guardar horarios"}
               </button>
+            </div>
+          </Card>
+
+          {/* Calendario */}
+          <Card title="Calendario" icon="📅">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Vista predeterminada al abrir el calendario</p>
+            <div className="flex gap-2">
+              {(["month", "week", "day"] as const).map(v => {
+                const labels: Record<string, string> = { month: "Mes", week: "Semana", day: "Día" };
+                return (
+                  <button
+                    key={v}
+                    onClick={() => {
+                      try { localStorage.setItem("calendarDefaultView", v); } catch {}
+                      setCalendarDefaultView(v);
+                      toast.success(`Vista "${labels[v]}" guardada`);
+                    }}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-colors ${
+                      calendarDefaultView === v
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                        : "border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-indigo-300 hover:text-indigo-600"
+                    }`}
+                  >
+                    {labels[v]}
+                  </button>
+                );
+              })}
             </div>
           </Card>
 
