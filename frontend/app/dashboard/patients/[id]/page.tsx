@@ -1281,7 +1281,7 @@ export default function PatientDetailPage() {
                             </div>
                           ) : (
                             <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                              {[...sessionsForPlan].sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()).map((session) => (
+                              {[...sessionsForPlan].sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()).map((session) => (
                                 <div key={session.id} className="px-5 py-4 flex gap-4 hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors group">
                                   {/* Date box */}
                                   <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center justify-center">
@@ -1601,7 +1601,7 @@ export default function PatientDetailPage() {
                                   <div className="py-6 text-center"><p className="text-xs text-gray-400 dark:text-gray-500">Sin sesiones registradas</p></div>
                                 ) : (
                                   <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                                    {[...sessionsForPlan].sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()).map((session) => (
+                                    {[...sessionsForPlan].sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()).map((session) => (
                                       <div key={session.id} className="px-5 py-3 flex gap-3 hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
                                         <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-green-50 dark:bg-green-900/20 flex flex-col items-center justify-center">
                                           <span className="text-xs font-bold text-green-700 dark:text-green-400 leading-none">{moment(session.sessionDate).format("DD")}</span>
