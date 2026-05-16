@@ -314,7 +314,7 @@ function ProtocolItemCard({ item, idx, total, onTypeChange, onUpdate, onMoveUp, 
               >
                 <option value="">— Seleccionar tipo —</option>
                 {THERAPY_TYPE_LABELS.map((t) => (
-                  <option key={t} value={t}>{TYPE_ICONS[t]} {t}</option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
