@@ -662,11 +662,12 @@ export default function PatientDetailPage() {
                   : [];
                 if (antActivos.length === 0 && habActivos.length === 0) return null;
                 return (
-                  <div className="mt-2 space-y-0.5">
+                  <div className="mt-2 space-y-1">
                     {antActivos.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex-shrink-0">Antecedentes</span>
                         {antActivos.map(([key, val]) => (
-                          <span key={key} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <span key={key} className="flex items-center gap-1 text-xs">
                             <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
                             <span className="font-medium text-gray-700 dark:text-gray-300">{ANT[key] ?? key}</span>
                             {(val as any).especifique && (
@@ -677,9 +678,10 @@ export default function PatientDetailPage() {
                       </div>
                     )}
                     {habActivos.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex-shrink-0">Hábitos</span>
                         {habActivos.map(([key, val]) => (
-                          <span key={key} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                          <span key={key} className="flex items-center gap-1 text-xs">
                             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${BAD_HABITS.has(key) ? "bg-amber-400" : "bg-green-400"}`} />
                             <span className="font-medium text-gray-700 dark:text-gray-300">{HAB[key] ?? key}</span>
                             {(val as any).especifique && (
