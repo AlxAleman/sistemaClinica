@@ -2272,23 +2272,6 @@ function ExpedienteView({
   setDeleteDiagnosisId: React.Dispatch<React.SetStateAction<string | null>>;
   setDiagnoses: React.Dispatch<React.SetStateAction<Diagnosis[]>>;
 }) {
-  const ANTECEDENTES_LABELS: Record<string, string> = {
-    diabetes: "Diabetes", alergia: "Alergia", hta: "HTA",
-    cancer: "Cáncer", transfusiones: "Transfusiones", enfReumaticas: "Enf. Reumáticas",
-    hospitalizacion: "Hospitalización", encames: "Encames", accidentes: "Accidentes",
-    cardiopatias: "Cardiopatías", cirugias: "Cirugías", fracturas: "Fracturas",
-  };
-  const HABITOS_LABELS: Record<string, string> = {
-    tabaquismo: "Tabaquismo", alcoholismo: "Alcoholismo", drogas: "Drogas",
-    actividadFisica: "Act. Física", automedica: "Automedicación", pasatiempo: "Pasatiempo",
-  };
-
-  const activeAnt = historia.antecedentes
-    ? Object.entries(historia.antecedentes).filter(([, v]) => v.tiene)
-    : [];
-  const activeHabitos = historia.habitosSalud
-    ? Object.entries(historia.habitosSalud).filter(([, v]) => v.tiene)
-    : [];
 
   const [evals, setEvals] = useState<EvaluacionFisica[]>([]);
   const [loadingEvals, setLoadingEvals] = useState(true);
@@ -2950,43 +2933,6 @@ function ExpedienteView({
         </div>
       </div>
 
-      {/* Antecedentes + Hábitos */}
-      {(activeAnt.length > 0 || activeHabitos.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {activeAnt.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-              <HCSectionHeader icon="📂" title="Antecedentes Patológicos" />
-              <ul className="mt-4 space-y-2">
-                {activeAnt.map(([key, val]) => (
-                  <li key={key} className="flex items-start gap-2 text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
-                    <span>
-                      <span className="font-medium text-gray-800 dark:text-gray-200">{ANTECEDENTES_LABELS[key] ?? key}</span>
-                      {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {activeHabitos.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-              <HCSectionHeader icon="🌿" title="Hábitos de Salud" />
-              <ul className="mt-4 space-y-2">
-                {activeHabitos.map(([key, val]) => (
-                  <li key={key} className="flex items-start gap-2 text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 flex-shrink-0" />
-                    <span>
-                      <span className="font-medium text-gray-800 dark:text-gray-200">{HABITOS_LABELS[key] ?? key}</span>
-                      {val.especifique && <span className="text-gray-500 dark:text-gray-400"> — {val.especifique}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
 
     </div>
   );
