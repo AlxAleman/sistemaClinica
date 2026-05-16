@@ -355,6 +355,22 @@ function ProtocolItemCard({ item, idx, total, onTypeChange, onUpdate, onMoveUp, 
                 )}
               </div>
 
+              {catalog && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                    Área corporal
+                  </label>
+                  <select
+                    value={item.area ?? ""}
+                    onChange={(e) => onUpdate({ area: e.target.value || undefined })}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="">— Seleccionar área —</option>
+                    {F_AREA.options!.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                   Notas / Indicaciones especiales
@@ -371,9 +387,9 @@ function ProtocolItemCard({ item, idx, total, onTypeChange, onUpdate, onMoveUp, 
           </div>
 
           {/* Parámetros dinámicos */}
-          {catalog && catalog.fields.length > 0 && (
+          {catalog && catalog.fields.filter(f => f.key !== "area").length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-              {catalog.fields.map((field) => (
+              {catalog.fields.filter(f => f.key !== "area").map((field) => (
                 <DynamicField
                   key={String(field.key)}
                   field={field}

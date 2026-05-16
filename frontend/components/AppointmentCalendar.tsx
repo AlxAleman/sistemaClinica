@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
@@ -143,7 +143,14 @@ export default function AppointmentCalendar({
     return momentLocalizer(moment);
   }, [language]);
 
-  useEffect(() => { setCurrentDate(defaultDate); }, [defaultDate]);
+  const prevDefaultDateDay = useRef(Math.floor(defaultDate.getTime() / 86400000));
+  useEffect(() => {
+    const day = Math.floor(defaultDate.getTime() / 86400000);
+    if (day !== prevDefaultDateDay.current) {
+      prevDefaultDateDay.current = day;
+      setCurrentDate(defaultDate);
+    }
+  }, [defaultDate]);
   useEffect(() => { setCurrentView(defaultView); }, [defaultView]);
 
   // ── Build unified event list ────────────────────────────────────────────────
