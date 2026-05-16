@@ -7,6 +7,7 @@ import { historiaClinicaService, HistoriaClinica, AntecedentItem } from "@/servi
 import Avatar from "@/components/Avatar";
 import moment from "moment";
 import Link from "next/link";
+import { Ruler, ClipboardList, FolderOpen, Leaf, Stethoscope, AlertTriangle } from "lucide-react";
 
 const defAnt = (): AntecedentItem => ({ tiene: false, especifique: "" });
 
@@ -157,7 +158,7 @@ export default function ExpedienteEditPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Sección: Datos físicos */}
-        <Section title="Datos Físicos" icon="📏">
+        <Section title="Datos Físicos" icon={<Ruler className="w-4 h-4" />}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <FormField label="Peso (lb)">
               <input type="number" step="0.1" value={form.peso}
@@ -178,7 +179,7 @@ export default function ExpedienteEditPage() {
         </Section>
 
         {/* Sección: Consulta */}
-        <Section title="Motivo de Consulta" icon="📋">
+        <Section title="Motivo de Consulta" icon={<ClipboardList className="w-4 h-4" />}>
           <div className="space-y-4">
             <FormField label="Referido por">
               <input type="text" value={form.referidoPor}
@@ -199,7 +200,7 @@ export default function ExpedienteEditPage() {
         </Section>
 
         {/* Sección: Antecedentes Patológicos */}
-        <Section title="Antecedentes Patológicos y Heredofamiliares" icon="📂">
+        <Section title="Antecedentes Patológicos y Heredofamiliares" icon={<FolderOpen className="w-4 h-4" />}>
           {/* Alergia — highlighted at top */}
           <div className={`flex items-start gap-3 rounded-xl px-4 py-3 mb-4 border ${
             form.antecedentes["alergia"]?.tiene
@@ -213,7 +214,7 @@ export default function ExpedienteEditPage() {
                 onChange={e => handleAnt("antecedentes", "alergia", "tiene", e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
               />
-              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">⚠️ Alergia</span>
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Alergia</span>
             </div>
             {form.antecedentes["alergia"]?.tiene ? (
               <input
@@ -237,7 +238,7 @@ export default function ExpedienteEditPage() {
         </Section>
 
         {/* Sección: Hábitos de Salud */}
-        <Section title="Hábitos de Salud" icon="🌿">
+        <Section title="Hábitos de Salud" icon={<Leaf className="w-4 h-4" />}>
           <div className="space-y-3">
             {HABITOS_KEYS.map(({ key, label }) => (
               <AntRow key={key} label={label}
@@ -248,7 +249,7 @@ export default function ExpedienteEditPage() {
         </Section>
 
         {/* Sección: Datos Ginecológicos */}
-        <Section title="Datos Ginecológicos" icon="🩺">
+        <Section title="Datos Ginecológicos" icon={<Stethoscope className="w-4 h-4" />}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="¿Embarazada?">
               <select
@@ -304,11 +305,11 @@ export default function ExpedienteEditPage() {
 const inputCls =
   "w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
       <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-        <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">{icon}</span>
+        <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">{icon}</span>
         {title}
       </h2>
       {children}

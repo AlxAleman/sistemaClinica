@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Archive } from "lucide-react";
 import moment from "moment";
 import { historiaClinicaService, HistoriaClinica } from "@/services/historiaClinicaService";
 import { patientService, Patient } from "@/services/patientService";
@@ -101,8 +102,8 @@ export default function ExpedientesPage() {
         </div>
       ) : historias.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4 text-3xl">
-            🗂️
+          <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4 text-gray-300 dark:text-gray-600">
+            <Archive className="w-8 h-8" />
           </div>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
             {search ? "No se encontraron expedientes con ese nombre" : "No hay expedientes registrados"}

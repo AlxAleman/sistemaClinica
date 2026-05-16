@@ -17,6 +17,11 @@ import "moment/locale/es";
 moment.locale("es");
 import Avatar from "@/components/Avatar";
 import ImageModal from "@/components/ImageModal";
+import {
+  LayoutDashboard, User, Stethoscope, Dumbbell, ClipboardList,
+  AlertTriangle, CheckCircle2, AlertCircle, Calendar, Pill,
+  Archive, Folder, FileText, RefreshCw, Building2, Timer,
+} from "lucide-react";
 import DocumentUpload from "@/components/DocumentUpload";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -25,12 +30,12 @@ import { CalendarIcon, UsersIcon, PlusIcon } from "@/components/Icons";
 
 type TabId = "resumen" | "general" | "expediente" | "tratamiento" | "historial";
 
-const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: "resumen",     label: "Resumen",               icon: "🏠" },
-  { id: "general",     label: "Información General",   icon: "👤" },
-  { id: "expediente",  label: "Expediente Médico",     icon: "🩺" },
-  { id: "tratamiento", label: "Tratamiento",            icon: "💪" },
-  { id: "historial",   label: "Historial y Documentos", icon: "📋" },
+const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "resumen",     label: "Resumen",               icon: LayoutDashboard },
+  { id: "general",     label: "Información General",   icon: User },
+  { id: "expediente",  label: "Expediente Médico",     icon: Stethoscope },
+  { id: "tratamiento", label: "Tratamiento",            icon: Dumbbell },
+  { id: "historial",   label: "Historial y Documentos", icon: ClipboardList },
 ];
 
 export default function PatientDetailPage() {
@@ -737,7 +742,7 @@ export default function PatientDetailPage() {
                     : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 }`}
               >
-                <span>{tab.icon}</span>
+                <tab.icon className="w-4 h-4" />
                 {tab.label}
               </button>
             ))}
@@ -775,7 +780,7 @@ export default function PatientDetailPage() {
                 </div>
               ) : alergiaEntry?.tiene ? (
                 <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-2xl px-5 py-4">
-                  <span className="text-lg flex-shrink-0">⚠️</span>
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-500" />
                   <div>
                     <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Alergias registradas</p>
                     {alergiaEntry.especifique && (
@@ -785,7 +790,7 @@ export default function PatientDetailPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-2xl px-5 py-3.5">
-                  <span className="text-base flex-shrink-0">✅</span>
+                  <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-500" />
                   <p className="text-sm text-green-800 dark:text-green-300">Sin alergias conocidas</p>
                 </div>
               )}
@@ -807,7 +812,7 @@ export default function PatientDetailPage() {
                 {/* Planes de tratamiento */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-xs">💪</span>
+                    <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><Dumbbell className="w-3.5 h-3.5" /></span>
                     Planes de tratamiento
                   </h3>
                   {allPlansSorted.length > 0 ? (
@@ -870,7 +875,7 @@ export default function PatientDetailPage() {
                 {/* Última sesión */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-xs">📋</span>
+                    <span className="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400"><ClipboardList className="w-3.5 h-3.5" /></span>
                     Última sesión
                   </h3>
                   {lastSession ? (
@@ -904,7 +909,7 @@ export default function PatientDetailPage() {
               {activeDiagnoses.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-xs">🩺</span>
+                    <span className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400"><Stethoscope className="w-3.5 h-3.5" /></span>
                     Diagnósticos activos
                     <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{activeDiagnoses.length}</span>
                   </h3>
@@ -922,7 +927,7 @@ export default function PatientDetailPage() {
               {currentMeds && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-xs">💊</span>
+                    <span className="w-6 h-6 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-600 dark:text-violet-400"><Pill className="w-3.5 h-3.5" /></span>
                     Medicamentos / tratamientos actuales
                   </h3>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{currentMeds}</p>
@@ -966,7 +971,7 @@ export default function PatientDetailPage() {
             {/* Información Personal */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">👤</span>
+                <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><User className="w-4 h-4" /></span>
                 Datos Personales
               </h2>
               <dl className="space-y-4">
@@ -988,7 +993,7 @@ export default function PatientDetailPage() {
             {/* Contacto de Emergencia */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-sm">🚨</span>
+                <span className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400"><AlertCircle className="w-4 h-4" /></span>
                 Contacto de Emergencia
               </h2>
               {patient.emergencyContact || patient.emergencyPhone ? (
@@ -1004,7 +1009,7 @@ export default function PatientDetailPage() {
             {/* Registro */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:col-span-2">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-sm">📅</span>
+                <span className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400"><Calendar className="w-4 h-4" /></span>
                 Registro en el sistema
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
@@ -1052,7 +1057,7 @@ export default function PatientDetailPage() {
               />
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-10 text-center">
-                <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mx-auto mb-4 text-3xl">🗂️</div>
+                <div className="w-16 h-16 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center mx-auto mb-4 text-indigo-300 dark:text-indigo-700"><Archive className="w-8 h-8" /></div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Sin Expediente Médico</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
                   Este paciente aún no tiene un expediente médico de fisioterapia registrado.
@@ -1078,7 +1083,7 @@ export default function PatientDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-sm">💊</span>
+                <span className="w-7 h-7 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-600 dark:text-violet-400"><Pill className="w-4 h-4" /></span>
                 Planes de Tratamiento
               </h2>
               <Link
@@ -1125,8 +1130,8 @@ export default function PatientDetailPage() {
                             </div>
                             <div className="flex items-center gap-4 mt-1 flex-wrap">
                               {plan.therapyType && <span className="text-xs text-gray-500 dark:text-gray-400">{plan.therapyType}</span>}
-                              {plan.sessionDuration && <span className="text-xs text-gray-400 dark:text-gray-500">⏱ {plan.sessionDuration} min/sesión</span>}
-                              {plan.frequency && <span className="text-xs text-gray-400 dark:text-gray-500">📅 {plan.frequency}</span>}
+                              {plan.sessionDuration && <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><Timer className="w-3 h-3" />{plan.sessionDuration} min/sesión</span>}
+                              {plan.frequency && <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" />{plan.frequency}</span>}
                               {plan.totalCost != null && <span className="text-xs text-gray-400 dark:text-gray-500">💰 ${plan.totalCost.toFixed(2)}</span>}
                             </div>
                             {(plan.diagnosis || plan.description || plan.goals) && (
@@ -1385,15 +1390,15 @@ export default function PatientDetailPage() {
           const totalSessionPages = Math.max(1, Math.ceil(sortedSessions.length / sessionsPerPage));
           const pagedSessions = sortedSessions.slice((sessionsPage - 1) * sessionsPerPage, sessionsPage * sessionsPerPage);
 
-          const DOC_CATEGORIES = [
-            { value: "todos",      label: "Todos",             icon: "🗂️" },
-            { value: "receta",     label: "Recetas",           icon: "💊" },
-            { value: "radiografia",label: "Radiografías",      icon: "🩻" },
-            { value: "laboratorio",label: "Laboratorio",       icon: "🧪" },
-            { value: "referencia", label: "Referencias",       icon: "📋" },
-            { value: "informe",    label: "Informes",          icon: "📄" },
-            { value: "otro",       label: "Otros",             icon: "📁" },
-          ] as const;
+          const DOC_CATEGORIES: { value: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+            { value: "todos",      label: "Todos",             icon: Archive },
+            { value: "receta",     label: "Recetas",           icon: Pill },
+            { value: "radiografia",label: "Radiografías",      icon: Stethoscope },
+            { value: "laboratorio",label: "Laboratorio",       icon: ClipboardList },
+            { value: "referencia", label: "Referencias",       icon: ClipboardList },
+            { value: "informe",    label: "Informes",          icon: FileText },
+            { value: "otro",       label: "Otros",             icon: Folder },
+          ];
 
           const allDocs = patient.documents ?? [];
           const filteredDocs = activeDocCategory === "todos" ? allDocs : allDocs.filter(d => (d as any).category === activeDocCategory);
@@ -1455,7 +1460,7 @@ export default function PatientDetailPage() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-sm">📁</span>
+                  <span className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400"><Folder className="w-4 h-4" /></span>
                   Documentos Médicos
                   {allDocs.length > 0 && (
                     <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium">{allDocs.length}</span>
@@ -1482,7 +1487,7 @@ export default function PatientDetailPage() {
                             : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                       >
-                        <span>{cat.icon}</span>
+                        <cat.icon className="w-3.5 h-3.5" />
                         {cat.label}
                         {count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${activeDocCategory === cat.value ? "bg-white/20" : "bg-gray-100 dark:bg-gray-700 text-gray-500"}`}>{count}</span>}
                       </button>
@@ -1493,8 +1498,8 @@ export default function PatientDetailPage() {
               <div className="p-6 space-y-4">
                 {filteredDocs.length === 0 ? (
                   <div className="py-6 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3 text-2xl">
-                      {DOC_CATEGORIES.find(c => c.value === activeDocCategory)?.icon ?? "📁"}
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3 text-gray-300 dark:text-gray-500">
+                      {(() => { const CatIcon = DOC_CATEGORIES.find(c => c.value === activeDocCategory)?.icon ?? Folder; return <CatIcon className="w-6 h-6" />; })()}
                     </div>
                     <p className="text-sm text-gray-400 dark:text-gray-500">No hay documentos en esta categoría</p>
                   </div>
@@ -1544,7 +1549,7 @@ export default function PatientDetailPage() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-sm">✅</span>
+                  <span className="w-7 h-7 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400"><CheckCircle2 className="w-4 h-4" /></span>
                   Tratamientos Completados
                   {completedPlans.length > 0 && (
                     <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium">{completedPlans.length}</span>
@@ -1645,7 +1650,7 @@ export default function PatientDetailPage() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-sm">🗂️</span>
+                  <span className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-600 dark:text-teal-400"><Archive className="w-4 h-4" /></span>
                   Historial de Sesiones
                   {sessions.length > 0 && (
                     <span className="ml-1 px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 text-xs font-medium">{sessions.length}</span>
@@ -2183,10 +2188,10 @@ function EmptyState({ text }: { text: string }) {
 
 /* ── Historia Clínica helpers ── */
 
-function HCSectionHeader({ icon, title }: { icon: string; title: string }) {
+function HCSectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-      <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm flex-shrink-0">
+      <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
         {icon}
       </span>
       {title}
@@ -2322,9 +2327,9 @@ function ExpedienteView({
         </p>
         <div className="flex flex-wrap gap-3 items-center">
           {([
-            { n: 1, icon: "📋", label: "Consulta",    done: true },
-            { n: 2, icon: "🩺", label: "Evaluación",  done: evals.length > 0 },
-            { n: 3, icon: "🏥", label: "Diagnóstico", done: diagnoses.length > 0 },
+            { n: 1, icon: ClipboardList, label: "Consulta",    done: true },
+            { n: 2, icon: Stethoscope,   label: "Evaluación",  done: evals.length > 0 },
+            { n: 3, icon: Building2,     label: "Diagnóstico", done: diagnoses.length > 0 },
           ] as const).map((step, i) => (
             <React.Fragment key={step.n}>
               <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${
@@ -2338,8 +2343,8 @@ function ExpedienteView({
                   {step.done ? "✓" : step.n}
                 </div>
                 <div>
-                  <p className={`text-sm font-semibold leading-tight ${step.done ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}`}>
-                    {step.icon} {step.label}
+                  <p className={`text-sm font-semibold leading-tight flex items-center gap-1.5 ${step.done ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}`}>
+                    <step.icon className="w-4 h-4 flex-shrink-0" />{step.label}
                   </p>
                   <p className={`text-xs mt-0.5 ${step.done ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400 dark:text-gray-500"}`}>
                     {step.done ? "Completado" : "Pendiente"}
@@ -2396,13 +2401,13 @@ function ExpedienteView({
                   if (!al) return null;
                   return al.tiene ? (
                     <div className="flex flex-col items-start justify-center px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 min-w-[72px]">
-                      <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide leading-none mb-0.5">⚠️ Alergia</span>
+                      <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wide leading-none mb-0.5 flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> Alergia</span>
                       <span className="text-xs font-semibold text-amber-800 dark:text-amber-200 leading-tight">{al.especifique || "Sí"}</span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-start justify-center px-3 py-1.5 rounded-xl border border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20 min-w-[72px]">
                       <span className="text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide leading-none mb-0.5">Alergia</span>
-                      <span className="text-xs font-semibold text-green-700 dark:text-green-300 leading-tight">✅ Ninguna</span>
+                      <span className="text-xs font-semibold text-green-700 dark:text-green-300 leading-tight flex items-center gap-0.5"><CheckCircle2 className="w-3.5 h-3.5" /> Ninguna</span>
                     </div>
                   );
                 })()}
@@ -2428,7 +2433,7 @@ function ExpedienteView({
           {/* ── Reingresos integrados ── */}
           <div className="border-t border-gray-100 dark:border-gray-700 mt-5 pt-5">
             <div className="flex items-center justify-between mb-3">
-              <HCSectionHeader icon="🔄" title="Reingresos" />
+              <HCSectionHeader icon={<RefreshCw className="w-4 h-4" />} title="Reingresos" />
               <button
                 onClick={() => setShowNewEpisodeModal(true)}
                 className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
@@ -2707,7 +2712,7 @@ function ExpedienteView({
             </div>
           ) : evals.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-8 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mx-auto mb-4 text-3xl">🩺</div>
+              <div className="w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center mx-auto mb-4 text-teal-400 dark:text-teal-600"><Stethoscope className="w-8 h-8" /></div>
               <p className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Sin evaluaciones físicas</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-xs mx-auto">
                 La evaluación registra el estado físico del paciente y es la base para crear el diagnóstico.
@@ -3029,7 +3034,7 @@ function ExpedienteView({
             </div>
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-8 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center mx-auto mb-4 text-3xl">🏥</div>
+              <div className="w-14 h-14 rounded-2xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center mx-auto mb-4 text-violet-400 dark:text-violet-600"><Building2 className="w-8 h-8" /></div>
               <p className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">Sin diagnósticos</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-xs mx-auto">
                 {evals.length === 0

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
 import { toast } from "react-hot-toast";
+import { KeyRound } from "lucide-react";
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -54,8 +55,8 @@ export default function CambiarPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-xl shadow-md space-y-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-600 text-2xl mb-3">
-            🔑
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 text-amber-600 mb-3">
+            <KeyRound className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Cambiar contraseña

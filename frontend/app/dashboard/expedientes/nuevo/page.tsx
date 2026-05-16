@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { historiaClinicaService, AntecedentItem } from "@/services/historiaClinicaService";
 import { patientService, Patient } from "@/services/patientService";
 import Avatar from "@/components/Avatar";
+import { Ruler, ClipboardList, FolderOpen, Leaf, Stethoscope, AlertTriangle } from "lucide-react";
 
 const defAnt = (): AntecedentItem => ({ tiene: false, especifique: "" });
 
@@ -157,7 +158,7 @@ export default function NuevoExpedientePage() {
       {/* Datos físicos */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">📏</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><Ruler className="w-4 h-4" /></span>
           Datos Físicos
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -181,7 +182,7 @@ export default function NuevoExpedientePage() {
       {/* Motivo de consulta */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">📋</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><ClipboardList className="w-4 h-4" /></span>
           Motivo de Consulta
         </h2>
         <div className="space-y-4">
@@ -210,7 +211,7 @@ export default function NuevoExpedientePage() {
       {/* Antecedentes */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">📂</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><FolderOpen className="w-4 h-4" /></span>
           Antecedentes Patológicos
         </h2>
         {/* Alergia — highlighted at top */}
@@ -226,7 +227,7 @@ export default function NuevoExpedientePage() {
               onChange={e => handleAnt("antecedentes", "alergia", "tiene", e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
             />
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">⚠️ Alergia</span>
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Alergia</span>
           </div>
           {form.antecedentes["alergia"]?.tiene ? (
             <input
@@ -252,7 +253,7 @@ export default function NuevoExpedientePage() {
       {/* Hábitos */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">🌿</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><Leaf className="w-4 h-4" /></span>
           Hábitos de Salud
         </h2>
         <div className="space-y-3">
@@ -267,7 +268,7 @@ export default function NuevoExpedientePage() {
       {/* Datos Ginecológicos */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">🩺</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><Stethoscope className="w-4 h-4" /></span>
           Datos Ginecológicos
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { prescriptionService, Prescription } from "@/services/prescriptionService";
+import { ClipboardList } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import moment from "moment";
@@ -139,7 +140,7 @@ export default function PrescriptionsPage() {
                             )}
                             {prescription.diagnosis && (
                               <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 truncate">
-                                <span className="mr-1">📋</span>
+                                <ClipboardList className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
                                 <span className="truncate">{prescription.diagnosis.substring(0, 30)}...</span>
                               </p>
                             )}

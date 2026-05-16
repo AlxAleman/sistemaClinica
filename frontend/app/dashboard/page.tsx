@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { appointmentService, Appointment } from "@/services/appointmentService";
+import { Calendar, User, Pill, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import moment from "moment";
 moment.locale("es");
@@ -259,7 +260,7 @@ export default function DashboardPage() {
 
           {todayAppointments.length === 0 ? (
             <div className="py-20 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4 text-3xl">📅</div>
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center mx-auto mb-4 text-gray-300 dark:text-gray-500"><Calendar className="w-8 h-8" /></div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sin citas para hoy</p>
               <Link
                 href="/dashboard/appointments/new"
@@ -410,18 +411,18 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Acceso rápido</h2>
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { href: "/dashboard/patients/new",          label: "Nuevo paciente",   icon: "👤" },
-                { href: "/dashboard/appointments/new",      label: "Nueva cita",       icon: "📅" },
-                { href: "/dashboard/treatment-plans/new",   label: "Nuevo plan",       icon: "💊" },
-                { href: "/dashboard/appointments",          label: "Ver agenda",       icon: "🗓️" },
-              ].map(item => (
+              {([
+                { href: "/dashboard/patients/new",          label: "Nuevo paciente",   icon: User },
+                { href: "/dashboard/appointments/new",      label: "Nueva cita",       icon: Calendar },
+                { href: "/dashboard/treatment-plans/new",   label: "Nuevo plan",       icon: Pill },
+                { href: "/dashboard/appointments",          label: "Ver agenda",       icon: CalendarDays },
+              ] as const).map(item => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors text-gray-700 dark:text-gray-300"
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
                   <span className="text-xs font-medium truncate">{item.label}</span>
                 </Link>
               ))}

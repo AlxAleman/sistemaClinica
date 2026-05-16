@@ -10,6 +10,7 @@ import LanguageToggle from "@/components/LanguageToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useTranslation } from "@/hooks/useTranslation";
 import { configService } from "@/services/configService";
+import { Building2 } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -94,7 +95,7 @@ export default function DashboardLayout({
                 <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   {clinicLogo
                     ? <Image src={clinicLogo} alt="Logo" width={32} height={32} className="h-8 w-8 object-contain rounded-md" unoptimized />
-                    : <span className="w-8 h-8 rounded-md bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-lg">🏥</span>
+                    : <span className="w-8 h-8 rounded-md bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><Building2 className="w-5 h-5" /></span>
                   }
                   <span className="text-base sm:text-lg font-bold text-indigo-600 dark:text-indigo-400 truncate max-w-[140px] sm:max-w-[200px]">
                     {clinicName}

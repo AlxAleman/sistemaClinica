@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { evaluationService, Evaluation } from "@/services/evaluationService";
+import { Dumbbell, Ruler } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import moment from "moment";
@@ -163,13 +164,13 @@ export default function EvaluationsPage() {
                             </p>
                             {evaluation.rangeOfMotion && (
                               <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 truncate">
-                                <span className="mr-1">📏</span>
+                                <Ruler className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
                                 <span className="truncate">{evaluation.rangeOfMotion}</span>
                               </p>
                             )}
                             {evaluation.strength && (
                               <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 sm:ml-4 truncate">
-                                <span className="mr-1">💪</span>
+                                <Dumbbell className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
                                 <span className="truncate">{evaluation.strength}</span>
                               </p>
                             )}

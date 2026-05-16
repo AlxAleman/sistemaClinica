@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { ProtocolItem } from "@/services/treatmentPlanService";
+import {
+  Zap, Flame, Snowflake, Waves, Lightbulb, HandHelping, Dumbbell,
+  PersonStanding, Scale, RefreshCw, ArrowUpDown, Pin, Scissors,
+  Wind, Droplets, ClipboardList,
+} from "lucide-react";
 
 // ─── Catálogo de terapias ─────────────────────────────────────────────────────
 
@@ -133,26 +138,26 @@ const THERAPY_CATALOG: Record<string, TherapyTypeDef> = {
 
 const THERAPY_TYPE_LABELS = Object.keys(THERAPY_CATALOG);
 
-const TYPE_ICONS: Record<string, string> = {
-  "Electroterapia": "⚡",
-  "Termoterapia": "🔥",
-  "Crioterapia": "❄️",
-  "Ultrasonido": "📡",
-  "Láser": "💡",
-  "Terapia manual": "🙌",
-  "Ejercicio terapéutico": "🏋️",
-  "Estiramientos": "🤸",
-  "Fortalecimiento": "💪",
-  "Balance y coordinación": "⚖️",
-  "Reeducación funcional": "🚶",
-  "Movilización articular": "🔄",
-  "Tracción": "↕️",
-  "Punción seca": "📍",
-  "Vendaje": "🩹",
-  "Masoterapia": "👐",
-  "Terapia respiratoria": "🫁",
-  "Hidroterapia": "💧",
-  "Otros": "📋",
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Electroterapia": Zap,
+  "Termoterapia": Flame,
+  "Crioterapia": Snowflake,
+  "Ultrasonido": Waves,
+  "Láser": Lightbulb,
+  "Terapia manual": HandHelping,
+  "Ejercicio terapéutico": Dumbbell,
+  "Estiramientos": PersonStanding,
+  "Fortalecimiento": Dumbbell,
+  "Balance y coordinación": Scale,
+  "Reeducación funcional": PersonStanding,
+  "Movilización articular": RefreshCw,
+  "Tracción": ArrowUpDown,
+  "Punción seca": Pin,
+  "Vendaje": Scissors,
+  "Masoterapia": HandHelping,
+  "Terapia respiratoria": Wind,
+  "Hidroterapia": Droplets,
+  "Otros": ClipboardList,
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -249,7 +254,7 @@ interface ItemCardProps {
 function ProtocolItemCard({ item, idx, total, onTypeChange, onUpdate, onMoveUp, onMoveDown, onRemove }: ItemCardProps) {
   const [expanded, setExpanded] = useState(true);
   const catalog = item.type ? THERAPY_CATALOG[item.type] : null;
-  const icon = item.type ? (TYPE_ICONS[item.type] ?? "📋") : null;
+  const Icon = item.type ? (TYPE_ICONS[item.type] ?? ClipboardList) : null;
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
@@ -261,8 +266,9 @@ function ProtocolItemCard({ item, idx, total, onTypeChange, onUpdate, onMoveUp, 
 
         <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setExpanded(!expanded)}>
           {item.type ? (
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate block">
-              {icon} {item.type}{item.procedure ? ` · ${item.procedure}` : ""}
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate flex items-center gap-1.5">
+              {Icon && <Icon className="w-3.5 h-3.5 flex-shrink-0 text-indigo-500" />}
+              {item.type}{item.procedure ? ` · ${item.procedure}` : ""}
               {item.area ? ` — ${item.area}` : ""}
             </span>
           ) : (

@@ -8,6 +8,7 @@ import { Appointment } from "@/services/appointmentService";
 import { TreatmentSession } from "@/services/sessionService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguageStore } from "@/store/languageStore";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 if (typeof window !== "undefined") {
   require("react-big-calendar/lib/css/react-big-calendar.css");
@@ -323,7 +324,7 @@ export default function AppointmentCalendar({
             onClick={() => setShowDatePicker(!showDatePicker)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
-            📅 {t("calendar.selectDay")}
+            <CalendarIcon className="w-4 h-4 inline mr-1" />{t("calendar.selectDay")}
           </button>
           {showDatePicker && (
             <div className="absolute z-10 top-full left-0 mt-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4">
@@ -349,7 +350,7 @@ export default function AppointmentCalendar({
             onClick={() => setShowWeekRangePicker(!showWeekRangePicker)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
           >
-            📅 {t("calendar.selectRange")}
+            <CalendarIcon className="w-4 h-4 inline mr-1" />{t("calendar.selectRange")}
           </button>
           {showWeekRangePicker && (
             <div className="absolute z-10 top-full left-0 mt-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-4 min-w-[300px]">

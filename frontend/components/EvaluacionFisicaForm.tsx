@@ -10,6 +10,10 @@ import {
   PosturalDI,
 } from "@/services/evaluacionFisicaService";
 import Link from "next/link";
+import {
+  Calendar, Bandage, Zap, Scissors, PersonStanding, Building2,
+  Car, Dumbbell, Ruler, Bone,
+} from "lucide-react";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const defM = (): MuscleEntry => ({ di: "", dd: "", fi: "", fd: "" });
@@ -194,7 +198,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Datos generales */}
-        <Section title="Datos de la Evaluación" icon="📅">
+        <Section title="Datos de la Evaluación" icon={<Calendar className="w-4 h-4" />}>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Tipo">
               <select value={form.tipo} onChange={e => set("tipo", e.target.value)} className={inputCls}>
@@ -212,7 +216,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Escala de Dolor */}
-        <Section title="Escala de Dolor" icon="🩹">
+        <Section title="Escala de Dolor" icon={<Bandage className="w-4 h-4" />}>
           <div className="flex items-center gap-6">
             <div className="flex-1 space-y-2">
               {/* Barra de color degradada */}
@@ -257,7 +261,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Espasmos */}
-        <Section title="Espasmos / Contractura Muscular" icon="⚡">
+        <Section title="Espasmos / Contractura Muscular" icon={<Zap className="w-4 h-4" />}>
           <div className="flex items-center gap-3 mb-3">
             <input type="checkbox" checked={(form.espasmos as any).tiene}
               onChange={e => set("espasmos.tiene", e.target.checked)}
@@ -279,7 +283,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Cicatriz Quirúrgica */}
-        <Section title="Cicatriz Quirúrgica" icon="🔪">
+        <Section title="Cicatriz Quirúrgica" icon={<Scissors className="w-4 h-4" />}>
           <textarea rows={2} value={form.cicatrizQuirurgica}
             onChange={e => set("cicatrizQuirurgica", e.target.value)}
             placeholder="Describir ubicación, características..."
@@ -287,7 +291,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Marcha y Deambulación */}
-        <Section title="Marcha / Deambulación" icon="🚶">
+        <Section title="Marcha / Deambulación" icon={<PersonStanding className="w-4 h-4" />}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
             {(["libre","claudicante","conAyuda","espastica","ataxica","otros"] as const).map(k => (
               <label key={k} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
@@ -305,7 +309,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Diagnóstico Rehabilitación */}
-        <Section title="Diagnóstico en Rehabilitación" icon="🏥">
+        <Section title="Diagnóstico en Rehabilitación" icon={<Building2 className="w-4 h-4" />}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {(["reflejos","sensibilidad","lenguajeOrientacion","otros"] as const).map(k => (
               <FormField key={k} label={k === "lenguajeOrientacion" ? "Lenguaje / Orientación" : k.charAt(0).toUpperCase() + k.slice(1)}>
@@ -317,7 +321,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Traslados */}
-        <Section title="Traslados" icon="🚗">
+        <Section title="Traslados" icon={<Car className="w-4 h-4" />}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <FormField label="Velocidad inicial">
               <input type="text" value={(form.traslados as any).velInicial}
@@ -335,7 +339,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Fuerza Muscular */}
-        <Section title="Valoración de Fuerza Muscular" icon="💪">
+        <Section title="Valoración de Fuerza Muscular" icon={<Dumbbell className="w-4 h-4" />}>
           {(["miembroSuperior","miembroInferior"] as const).map(member => (
             <div key={member} className="mb-6">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
@@ -382,7 +386,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Goniometría Superior */}
-        <Section title="Goniometría — Miembro Superior" icon="📐">
+        <Section title="Goniometría — Miembro Superior" icon={<Ruler className="w-4 h-4" />}>
           {(["hombro","codo","antebrazo","muneca"] as const).map(joint => (
             <div key={joint} className="mb-5">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 capitalize">
@@ -429,7 +433,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Goniometría Inferior */}
-        <Section title="Goniometría — Miembro Inferior" icon="📐">
+        <Section title="Goniometría — Miembro Inferior" icon={<Ruler className="w-4 h-4" />}>
           {(["cadera","rodilla","tobillo"] as const).map(joint => (
             <div key={joint} className="mb-5">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 capitalize">{joint}</h3>
@@ -474,7 +478,7 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
         </Section>
 
         {/* Columna */}
-        <Section title="Columna" icon="🦴">
+        <Section title="Columna" icon={<Bone className="w-4 h-4" />}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Plano Sagital">
               <input type="text" value={(form.columna as any).planoSagital}
@@ -508,11 +512,11 @@ export default function EvaluacionFisicaForm({ historiaClinicaId, patientId, eva
 const inputCls =
   "w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
       <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-5 flex items-center gap-2">
-        <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">{icon}</span>
+        <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">{icon}</span>
         {title}
       </h2>
       {children}

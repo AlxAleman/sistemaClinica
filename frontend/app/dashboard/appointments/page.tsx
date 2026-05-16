@@ -6,6 +6,7 @@ import { appointmentService, Appointment } from "@/services/appointmentService";
 import { sessionService, TreatmentSession } from "@/services/sessionService";
 import { therapistService, Therapist } from "@/services/therapistService";
 import { toast } from "react-hot-toast";
+import { Calendar, Timer } from "lucide-react";
 import Link from "next/link";
 import AppointmentCalendar, { UnifiedCalendarEvent } from "@/components/AppointmentCalendar";
 import { View } from "react-big-calendar";
@@ -542,11 +543,11 @@ export default function AppointmentsPage() {
                           <span className="px-1.5 sm:px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Sin terapeuta</span>
                         )}
                         <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                          <span className="mr-1">📅</span>
+                          <Calendar className="w-3.5 h-3.5 mr-1 flex-shrink-0 inline" />
                           {new Date(appointment.appointmentDate).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                         <p className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                          <span className="mr-1">⏱️</span>
+                          <Timer className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
                           {appointment.duration} min
                         </p>
                       </div>

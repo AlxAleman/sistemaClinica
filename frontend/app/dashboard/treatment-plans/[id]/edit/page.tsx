@@ -14,6 +14,7 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import PatientSelector from "@/components/PatientSelector";
 import ProtocolBuilder from "@/components/ProtocolBuilder";
 import AppointmentCalendar, { ProposedEvent } from "@/components/AppointmentCalendar";
+import { AlertTriangle } from "lucide-react";
 
 const FREQUENCY_OPTIONS = [
   "1 vez por semana",
@@ -298,7 +299,7 @@ export default function EditTreatmentPlanPage() {
         if (fail > 0 && ok === 0) {
           toast.error("Plan actualizado, pero no se pudieron agendar las sesiones.");
         } else if (fail > 0) {
-          toast(`Plan actualizado. ${ok} sesiones agendadas, ${fail} fallaron.`, { icon: "⚠️" });
+          toast(`Plan actualizado. ${ok} sesiones agendadas, ${fail} fallaron.`, { icon: <AlertTriangle className="w-4 h-4 text-amber-500" /> });
         } else {
           toast.success(`Plan actualizado y ${ok} sesiones agendadas.`);
         }

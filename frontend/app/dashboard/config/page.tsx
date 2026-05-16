@@ -6,16 +6,20 @@ import { configService, SystemConfig } from "@/services/configService";
 import { userService, AppUser, CreateUserData, UserRole } from "@/services/userService";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import {
+  Building2, Users, ShieldCheck, Settings, ImageIcon, Palette,
+  UserPlus, Brain, Clock, Calendar, Timer, AlertTriangle,
+} from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TabId = "clinica" | "usuarios" | "roles" | "operacion";
 
-const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: "clinica",   label: "Clínica",          icon: "🏥" },
-  { id: "usuarios",  label: "Usuarios",          icon: "👥" },
-  { id: "roles",     label: "Roles y Accesos",   icon: "🔐" },
-  { id: "operacion", label: "Operación",         icon: "⚙️" },
+const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "clinica",   label: "Clínica",          icon: Building2 },
+  { id: "usuarios",  label: "Usuarios",          icon: Users },
+  { id: "roles",     label: "Roles y Accesos",   icon: ShieldCheck },
+  { id: "operacion", label: "Operación",         icon: Settings },
 ];
 
 const ACCENT_COLORS = [
@@ -338,7 +342,7 @@ export default function ConfigPage() {
                   ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
                   : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300"
               }`}>
-              <span>{tab.icon}</span>{tab.label}
+              <tab.icon className="w-4 h-4" />{tab.label}
             </button>
           ))}
         </nav>
@@ -347,7 +351,7 @@ export default function ConfigPage() {
       {/* ── Tab: Clínica ─────────────────────────────────────────────────────── */}
       {activeTab === "clinica" && (
         <div className="space-y-6">
-          <Card title="Perfil de la Clínica" icon="🏥">
+          <Card title="Perfil de la Clínica" icon={<Building2 className="w-4 h-4" />}>
             <div className="space-y-4">
               <Field label="Nombre de la clínica">
                 <input type="text" value={clinicFields.clinic_name}
@@ -374,13 +378,13 @@ export default function ConfigPage() {
             </div>
           </Card>
 
-          <Card title="Logo de la Clínica" icon="🖼️">
+          <Card title="Logo de la Clínica" icon={<ImageIcon className="w-4 h-4" />}>
             <div className="flex items-start gap-5">
               {/* Preview */}
               <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0 bg-gray-50 dark:bg-gray-700/30">
                 {logoPreview
                   ? <img src={logoPreview} alt="Logo" className="w-full h-full object-contain p-1" />
-                  : <span className="text-3xl opacity-30">🏥</span>
+                  : <Building2 className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                 }
               </div>
               <div className="flex-1 space-y-3">
@@ -412,7 +416,7 @@ export default function ConfigPage() {
             </div>
           </Card>
 
-          <Card title="Color de acento" icon="🎨">
+          <Card title="Color de acento" icon={<Palette className="w-4 h-4" />}>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Elige el color principal que se usará en botones y acentos del sistema.
             </p>
@@ -453,7 +457,7 @@ export default function ConfigPage() {
 
           {/* Form crear */}
           {showUserForm && !editingUser && (
-            <Card title="Nuevo Usuario" icon="➕">
+            <Card title="Nuevo Usuario" icon={<UserPlus className="w-4 h-4" />}>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Field label="Prefijo">
@@ -495,8 +499,9 @@ export default function ConfigPage() {
                     </Field>
                   )}
                 </div>
-                <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
-                  ⚠️ El usuario deberá cambiar su contraseña en el primer inicio de sesión.
+                <p className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  El usuario deberá cambiar su contraseña en el primer inicio de sesión.
                 </p>
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => setShowUserForm(false)}
@@ -660,7 +665,7 @@ export default function ConfigPage() {
       {activeTab === "operacion" && (
         <div className="space-y-6">
           {/* Tipos de Terapia */}
-          <Card title="Tipos de Terapia" icon="💆"
+          <Card title="Tipos de Terapia" icon={<Brain className="w-4 h-4" />}
             action={!editingTherapy ? (
               <button onClick={() => { setTherapyDraft(therapyTypes.join(", ")); setEditingTherapy(true); }}
                 className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
@@ -696,7 +701,7 @@ export default function ConfigPage() {
           </Card>
 
           {/* Horarios */}
-          <Card title="Horarios de Atención" icon="🕐">
+          <Card title="Horarios de Atención" icon={<Clock className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {[
                 { label: "Turno Mañana",  keys: ["morning_shift_start",   "morning_shift_end",   "morning_therapists_count"]   },
@@ -725,7 +730,7 @@ export default function ConfigPage() {
           </Card>
 
           {/* Calendario */}
-          <Card title="Calendario" icon="📅">
+          <Card title="Calendario" icon={<Calendar className="w-4 h-4" />}>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Vista predeterminada al abrir el calendario</p>
             <div className="flex gap-2">
               {(["month", "week", "day"] as const).map(v => {
@@ -752,7 +757,7 @@ export default function ConfigPage() {
           </Card>
 
           {/* Sesiones */}
-          <Card title="Sesiones" icon="⏱️">
+          <Card title="Sesiones" icon={<Timer className="w-4 h-4" />}>
             <Field label="Duración predeterminada (minutos)">
               <input type="number" min={1} value={defaultDuration}
                 onChange={e => setDefaultDuration(e.target.value)}
@@ -797,13 +802,13 @@ export default function ConfigPage() {
 const inputCls = "w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
 function Card({ title, icon, children, action }: {
-  title: string; icon: string; children: React.ReactNode; action?: React.ReactNode;
+  title: string; icon: React.ReactNode; children: React.ReactNode; action?: React.ReactNode;
 }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm">{icon}</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">{icon}</span>
           {title}
         </h2>
         {action}

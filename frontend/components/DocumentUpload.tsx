@@ -4,14 +4,15 @@ import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { DocumentCategory } from "@/services/patientService";
 import api from "@/services/api";
+import { Pill, ScanSearch, FlaskConical, ClipboardList, FileText, Folder } from "lucide-react";
 
-const CATEGORIES: { value: DocumentCategory; label: string; icon: string; color: string }[] = [
-  { value: "receta",      label: "Receta médica",         icon: "💊", color: "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-300" },
-  { value: "radiografia", label: "Radiografía / Imagen",  icon: "🩻", color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300" },
-  { value: "laboratorio", label: "Examen de laboratorio", icon: "🧪", color: "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300" },
-  { value: "referencia",  label: "Referencia médica",     icon: "📋", color: "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-300" },
-  { value: "informe",     label: "Informe / Reporte",     icon: "📄", color: "bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300" },
-  { value: "otro",        label: "Otro documento",        icon: "📁", color: "bg-gray-50 border-gray-200 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300" },
+const CATEGORIES: { value: DocumentCategory; label: string; icon: React.ComponentType<{ className?: string }>; color: string }[] = [
+  { value: "receta",      label: "Receta médica",         icon: Pill,          color: "bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-300" },
+  { value: "radiografia", label: "Radiografía / Imagen",  icon: ScanSearch,    color: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300" },
+  { value: "laboratorio", label: "Examen de laboratorio", icon: FlaskConical,  color: "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300" },
+  { value: "referencia",  label: "Referencia médica",     icon: ClipboardList, color: "bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-300" },
+  { value: "informe",     label: "Informe / Reporte",     icon: FileText,      color: "bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300" },
+  { value: "otro",        label: "Otro documento",        icon: Folder,        color: "bg-gray-50 border-gray-200 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300" },
 ];
 
 interface DocumentUploadProps {
@@ -153,7 +154,7 @@ export default function DocumentUpload({ patientId, onUploadComplete, preselecte
                           : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800"
                       }`}
                     >
-                      <span>{cat.icon}</span>
+                      <cat.icon className="w-4 h-4" />
                       <span className="truncate text-xs">{cat.label}</span>
                     </button>
                   ))}
