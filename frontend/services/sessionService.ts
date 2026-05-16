@@ -76,6 +76,7 @@ export interface UpdateSessionData {
   progress?: string | null;
   painLevel?: number | null;
   notes?: string | null;
+  sessionProtocol?: SessionProtocolItem[] | null;
 }
 
 export interface SessionsResponse {
