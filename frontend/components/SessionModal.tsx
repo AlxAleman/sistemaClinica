@@ -184,13 +184,11 @@ export default function SessionModal({ session, onClose, onSaved }: SessionModal
 
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Asistencia</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {([["ATTENDED", "Asistió", "green"], ["NOT_ATTENDED", "No asistió", "red"], ["RESCHEDULED", "Reprogramada", "yellow"], ["PENDING", "Pendiente", "gray"]] as const).map(([val, lbl, color]) => {
+                  <div className="grid grid-cols-2 gap-2">
+                    {([["ATTENDED", "Asistió", "green"], ["NOT_ATTENDED", "No asistió", "red"]] as const).map(([val, lbl, color]) => {
                       const colors: Record<string, string> = {
-                        green:  "border-green-400 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                        red:    "border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                        yellow: "border-yellow-400 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-                        gray:   "border-gray-300 bg-gray-50 text-gray-600 dark:bg-gray-700 dark:text-gray-400",
+                        green: "border-green-400 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                        red:   "border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400",
                       };
                       const isActive = sessionForm.attendanceStatus === val;
                       return (
