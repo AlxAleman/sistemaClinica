@@ -662,33 +662,37 @@ export default function PatientDetailPage() {
                   : [];
                 if (antActivos.length === 0 && habActivos.length === 0) return null;
                 return (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 flex gap-6">
                     {antActivos.length > 0 && (
-                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex-shrink-0">Antecedentes</span>
-                        {antActivos.map(([key, val]) => (
-                          <span key={key} className="flex items-center gap-1 text-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
-                            <span className="font-medium text-gray-700 dark:text-gray-300">{ANT[key] ?? key}</span>
-                            {(val as any).especifique && (
-                              <span className="text-gray-400 dark:text-gray-500">— {(val as any).especifique}</span>
-                            )}
-                          </span>
-                        ))}
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Antecedentes</p>
+                        <ul className="space-y-0.5">
+                          {antActivos.map(([key, val]) => (
+                            <li key={key} className="flex items-center gap-1 text-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0" />
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{ANT[key] ?? key}</span>
+                              {(val as any).especifique && (
+                                <span className="text-gray-400 dark:text-gray-500">— {(val as any).especifique}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                     {habActivos.length > 0 && (
-                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide flex-shrink-0">Hábitos</span>
-                        {habActivos.map(([key, val]) => (
-                          <span key={key} className="flex items-center gap-1 text-xs">
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${BAD_HABITS.has(key) ? "bg-amber-400" : "bg-green-400"}`} />
-                            <span className="font-medium text-gray-700 dark:text-gray-300">{HAB[key] ?? key}</span>
-                            {(val as any).especifique && (
-                              <span className="text-gray-400 dark:text-gray-500">— {(val as any).especifique}</span>
-                            )}
-                          </span>
-                        ))}
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Hábitos</p>
+                        <ul className="space-y-0.5">
+                          {habActivos.map(([key, val]) => (
+                            <li key={key} className="flex items-center gap-1 text-xs">
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${BAD_HABITS.has(key) ? "bg-amber-400" : "bg-green-400"}`} />
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{HAB[key] ?? key}</span>
+                              {(val as any).especifique && (
+                                <span className="text-gray-400 dark:text-gray-500">— {(val as any).especifique}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
