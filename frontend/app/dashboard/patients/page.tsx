@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { patientService, Patient } from "@/services/patientService";
 import { toast } from "react-hot-toast";
@@ -13,6 +13,42 @@ import LoadingSkeleton from "@/components/LoadingSkeleton";
 import { SearchIcon, EditIcon, TrashIcon, HospitalIcon, ClipboardIcon, PhoneIcon, EmailIcon, IdCardIcon, PlusIcon, UsersIcon } from "@/components/Icons";
 import { useTranslation } from "@/hooks/useTranslation";
 
+type SortOption = "apellido-asc" | "apellido-desc" | "nombre-asc" | "nombre-desc" | "reciente" | "antiguo";
+type GenderFilter = "" | "MALE" | "FEMALE";
+type StatusFilter = "" | "true" | "false";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  "apellido-asc":  "Apellido A → Z",
+  "apellido-desc": "Apellido Z → A",
+  "nombre-asc":    "Nombre A → Z",
+  "nombre-desc":   "Nombre Z → A",
+  "reciente":      "Más recientes",
+  "antiguo":       "Más antiguos",
+};
+
+const GENDER_LABELS: { value: GenderFilter; label: string }[] = [
+  { value: "",       label: "Todos" },
+  { value: "MALE",   label: "Masculino" },
+  { value: "FEMALE", label: "Femenino" },
+];
+
+const STATUS_LABELS: { value: StatusFilter; label: string }[] = [
+  { value: "",      label: "Todos" },
+  { value: "true",  label: "Activos" },
+  { value: "false", label: "Inactivos" },
+];
+
+function getLastName(fullName: string): string {
+  return fullName.trim().split(/\s+/).pop()?.toLowerCase() ?? "";
+}
+
+function sortByLastName(patients: Patient[], order: "asc" | "desc"): Patient[] {
+  return [...patients].sort((a, b) => {
+    const cmp = getLastName(a.name).localeCompare(getLastName(b.name), "es");
+    return order === "asc" ? cmp : -cmp;
+  });
+}
+
 export default function PatientsPage() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -20,6 +56,21 @@ export default function PatientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [sort, setSort] = useState<SortOption>("apellido-asc");
+  const [gender, setGender] = useState<GenderFilter>("");
+  const [status, setStatus] = useState<StatusFilter>("");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setShowSortMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     id: string;
@@ -38,24 +89,43 @@ export default function PatientsPage() {
       setSearch(searchInput);
       setPagination((prev) => ({ ...prev, page: 1 }));
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchInput]);
 
   useEffect(() => {
     fetchPatients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, search]);
+  }, [pagination.page, search, sort, gender, status]);
 
   const fetchPatients = async () => {
     try {
       setLoading(true);
+
+      const isDateSort = sort === "reciente" || sort === "antiguo";
+      const backendSortBy: "name" | "createdAt" = isDateSort ? "createdAt" : "name";
+      const backendSortOrder: "asc" | "desc" = sort === "antiguo" ? "asc" : "desc";
+
       const response = await patientService.getAll({
         search: search || undefined,
         page: pagination.page,
         limit: pagination.limit,
+        gender: gender || undefined,
+        isActive: status === "" ? undefined : status === "true",
+        sortBy: backendSortBy,
+        sortOrder: isDateSort ? backendSortOrder : "asc",
       });
-      setPatients(response.patients);
+
+      let sorted = response.patients;
+      if (sort === "apellido-asc" || sort === "apellido-desc") {
+        sorted = sortByLastName(response.patients, sort === "apellido-asc" ? "asc" : "desc");
+      } else if (sort === "nombre-asc" || sort === "nombre-desc") {
+        sorted = [...response.patients].sort((a, b) => {
+          const cmp = a.name.toLowerCase().localeCompare(b.name.toLowerCase(), "es");
+          return sort === "nombre-asc" ? cmp : -cmp;
+        });
+      }
+
+      setPatients(sorted);
       setPagination(response.pagination);
     } catch (error: any) {
       toast.error(t("messages.errorLoadingPatients"));
@@ -64,6 +134,15 @@ export default function PatientsPage() {
       setLoading(false);
     }
   };
+
+  const resetFilters = () => {
+    setGender("");
+    setStatus("");
+    setSort("apellido-asc");
+    setSearchInput("");
+  };
+
+  const hasActiveFilters = gender !== "" || status !== "" || sort !== "apellido-asc" || search !== "";
 
   const handleDeleteClick = (id: string, name: string) => {
     setDeleteConfirm({ isOpen: true, id, name });
@@ -101,7 +180,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Búsqueda */}
-      <div className="mb-4 sm:mb-6">
+      <div className="mb-3 sm:mb-4">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <SearchIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
@@ -114,6 +193,96 @@ export default function PatientsPage() {
             className="block w-full pl-9 sm:pl-10 pr-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* Ordenar */}
+        <div className="relative" ref={sortMenuRef}>
+          <button
+            onClick={() => setShowSortMenu((v) => !v)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+            </svg>
+            {SORT_LABELS[sort]}
+            <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {showSortMenu && (
+            <div className="absolute z-20 mt-1 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg">
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => { setSort(opt); setShowSortMenu(false); setPagination((p) => ({ ...p, page: 1 })); }}
+                  className={`w-full text-left px-3 py-2 text-xs sm:text-sm transition-colors ${
+                    sort === opt
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-medium"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {SORT_LABELS[opt]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Género */}
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700/60 rounded-md p-0.5">
+          {GENDER_LABELS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => { setGender(value); setPagination((p) => ({ ...p, page: 1 })); }}
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                gender === value
+                  ? "bg-white dark:bg-gray-600 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Estado */}
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700/60 rounded-md p-0.5">
+          {STATUS_LABELS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => { setStatus(value); setPagination((p) => ({ ...p, page: 1 })); }}
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                status === value
+                  ? "bg-white dark:bg-gray-600 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Limpiar filtros */}
+        {hasActiveFilters && (
+          <button
+            onClick={resetFilters}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Limpiar
+          </button>
+        )}
+
+        {/* Contador */}
+        {!loading && (
+          <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+            {pagination.total} paciente{pagination.total !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
       {/* Tabla de pacientes */}

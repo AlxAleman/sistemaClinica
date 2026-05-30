@@ -86,6 +86,9 @@ export const patientService = {
     page?: number;
     limit?: number;
     isActive?: boolean;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER';
+    sortBy?: 'name' | 'createdAt';
+    sortOrder?: 'asc' | 'desc';
   }): Promise<PatientsResponse> => {
     const response = await api.get<{ success: boolean; data: PatientsResponse }>(
       '/patients',

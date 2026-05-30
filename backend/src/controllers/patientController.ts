@@ -27,11 +27,15 @@ export const getPatients = async (
   res: Response<ApiResponse>
 ): Promise<void> => {
   try {
-    const { search, page, limit } = req.query;
+    const { search, page, limit, isActive, gender, sortBy, sortOrder } = req.query;
     const result = await patientService.getPatients({
       search: search as string,
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      gender: gender as 'MALE' | 'FEMALE' | 'OTHER' | undefined,
+      sortBy: (sortBy as 'name' | 'createdAt') || 'name',
+      sortOrder: (sortOrder as 'asc' | 'desc') || 'asc',
     });
     res.status(200).json({
       success: true,

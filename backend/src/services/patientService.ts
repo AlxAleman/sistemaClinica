@@ -34,16 +34,23 @@ export const createPatient = async (data: CreatePatientData) => {
 export const getPatients = async (filters: {
   search?: string;
   isActive?: boolean;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  sortBy?: 'name' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }) => {
-  const { search, page = 1, limit = 10 } = filters;
+  const { search, page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc' } = filters;
   const skip = (page - 1) * limit;
 
   const where: any = {};
 
   if (filters.isActive !== undefined) {
     where.isActive = filters.isActive;
+  }
+
+  if (filters.gender) {
+    where.gender = filters.gender;
   }
 
   if (search) {
@@ -56,12 +63,16 @@ export const getPatients = async (filters: {
     ];
   }
 
+  const orderBy: any = sortBy === 'name'
+    ? { name: sortOrder }
+    : { createdAt: sortOrder };
+
   const [patients, total] = await Promise.all([
     prisma.patient.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         medicalProfile: true,
         _count: {
@@ -145,25 +156,32 @@ export const getPatientById = async (id: string) => {
 };
 
 export const updatePatient = async (id: string, data: UpdatePatientData) => {
+  const set = <T>(val: T | null | undefined): T | null | undefined =>
+    val === undefined ? undefined : (val as T | null);
+
   const patient = await prisma.patient.update({
     where: { id },
     data: {
-      email: data.email?.toLowerCase() || undefined,
-      name: data.name,
-      phone: data.phone,
-      dui: data.dui || undefined,
-      gender: data.gender || undefined,
-      photoUrl: data.photoUrl || undefined,
-      birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-      address: data.address || undefined,
-      residence: data.residence || undefined,
-      profession: data.profession || undefined,
-      workplace: data.workplace || undefined,
-      insuranceCompany: data.insuranceCompany || undefined,
-      affiliateNumber: data.affiliateNumber || undefined,
-      emergencyContact: data.emergencyContact || undefined,
-      emergencyPhone: data.emergencyPhone || undefined,
-      isActive: data.isActive,
+      ...(data.email !== undefined && {
+        email: data.email ? data.email.toLowerCase() : null,
+      }),
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.phone !== undefined && { phone: data.phone }),
+      dui:              set(data.dui),
+      gender:           set(data.gender),
+      photoUrl:         set(data.photoUrl),
+      birthDate:        data.birthDate !== undefined
+        ? (data.birthDate ? new Date(data.birthDate) : null)
+        : undefined,
+      address:          set(data.address),
+      residence:        set(data.residence),
+      profession:       set(data.profession),
+      workplace:        set(data.workplace),
+      insuranceCompany: set(data.insuranceCompany),
+      affiliateNumber:  set(data.affiliateNumber),
+      emergencyContact: set(data.emergencyContact),
+      emergencyPhone:   set(data.emergencyPhone),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
     },
   });
 

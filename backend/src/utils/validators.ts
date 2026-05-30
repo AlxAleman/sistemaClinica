@@ -37,7 +37,11 @@ export const createPatientSchema = z.object({
   isActive: z.boolean().optional().default(true),
 });
 
-export const updatePatientSchema = createPatientSchema.partial();
+export const updatePatientSchema = createPatientSchema.partial().extend({
+  email: z.union([z.string().email('Email inválido'), z.literal(''), z.null()]).optional()
+    .transform((v) => (v === '' ? null : v)),
+  photoUrl: z.string().optional().nullable(),
+});
 
 // Validaciones de perfil médico
 export const medicalProfileSchema = z.object({

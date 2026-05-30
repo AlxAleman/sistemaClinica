@@ -27,6 +27,7 @@ export default function EditPatientPage() {
     address: "",
     emergencyContact: "",
     emergencyPhone: "",
+    isActive: true,
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
@@ -41,16 +42,17 @@ export default function EditPatientPage() {
       setFormData({
         name: patient.name,
         phone: patient.phone,
-        email: patient.email || "",
-        dui: patient.dui || "",
+        email: patient.email || null,
+        dui: patient.dui || null,
         gender: patient.gender || null,
         photoUrl: patient.photoUrl || null,
         birthDate: patient.birthDate
           ? new Date(patient.birthDate).toISOString().split("T")[0]
-          : "",
-        address: patient.address || "",
-        emergencyContact: patient.emergencyContact || "",
-        emergencyPhone: patient.emergencyPhone || "",
+          : null,
+        address: patient.address || null,
+        emergencyContact: patient.emergencyContact || null,
+        emergencyPhone: patient.emergencyPhone || null,
+        isActive: patient.isActive ?? true,
       });
       setPhotoPreview(patient.photoUrl || null);
     } catch (error: any) {
@@ -275,6 +277,40 @@ export default function EditPatientPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
+        </div>
+
+        {/* Estado del paciente */}
+        <div className="mt-6 pt-5 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Estado del paciente</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {formData.isActive
+                  ? "El paciente aparece en búsquedas y puede agendar citas."
+                  : "El paciente está archivado y no aparece por defecto en búsquedas."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                formData.isActive ? "bg-indigo-600" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  formData.isActive ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <span className={`mt-1 inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
+            formData.isActive
+              ? "bg-green-100 text-green-700"
+              : "bg-gray-100 text-gray-500"
+          }`}>
+            {formData.isActive ? "Activo" : "Inactivo"}
+          </span>
         </div>
 
         <div className="mt-6 flex justify-end gap-4">
